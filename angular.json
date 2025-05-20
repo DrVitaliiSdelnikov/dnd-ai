@@ -43,7 +43,7 @@
                   "with": "src/environment/environment.dev.ts"
                 }
               ],
-              "outputPath": "dist-global",
+              "outputPath": "dist/dnd-ai",
               "baseHref": "/",
               "optimization": false,
               "outputHashing": "all",
@@ -64,7 +64,7 @@
                   "with": "src/environment/environment.dev.ts"
                 }
               ],
-              "outputPath": "dist-global",
+              "outputPath": "dist/dnd-ai",
               "baseHref": "/",
               "optimization": true,
               "outputHashing": "all",
