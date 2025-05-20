@@ -2,3 +2,6 @@ name = "dnd-ai-dev"
 pages_build_output_dir = "./dist/dnd-ai"
 compatibility_date = "2025-05-20"
 compatibility_flags = ["nodejs_compat"]
+
+[[pages.functions]]
+directory = "./functions"
