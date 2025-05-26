@@ -1,8 +1,11 @@
 // src/app/components/dnd-chat/dnd-chat.component.ts
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ChatService, ChatMessage } from '../../services/chat.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, take, tap } from 'rxjs/operators';
+import { campaignInitPrompt } from '../../../assets/prompts/campaign-init-prompt';
 
 @Component({
   selector: 'app-dnd-chat',
@@ -13,67 +16,56 @@ import { ChatService, ChatMessage } from '../../services/chat.service';
 })
 export class DndChatComponent implements OnInit {
   private chatService = inject(ChatService);
-
+  private destroyRef = inject(DestroyRef);
   messages: ChatMessage[] = [];
   userInput: string = '';
-  isLoading: boolean = false;
-  // Начальное сообщение можно добавить здесь или получить от API при инициализации
-  // initialMessage: ChatMessage = { role: 'assistant', content: "Приветствую, искатели приключений! Готовы начать?" };
+  isLoading: WritableSignal<boolean> = signal(false);
 
   ngOnInit(): void {
-    // Можно отправить пустое сообщение или специальное "init" сообщение,
-    // чтобы получить приветствие от DM. Или просто добавить его вручную.
-    // this.messages.push(this.initialMessage);
-    // Для простоты MVP, пусть пользователь начнет диалог первым или добавьте
-    // приветственное сообщение в Cloudflare Function для первого пустого запроса.
-    // Либо можно сразу отправить "привет" для инициации:
-    // this.sendInitialGreeting();
+    this.initChatMessage();
   }
 
-  // Опционально: отправить "привет" для начала игры
-  // sendInitialGreeting() {
-  //   this.isLoading = true;
-  //   // Отправляем только системный промпт (неявно через Cloudflare Function)
-  //   // и одно "user" сообщение, чтобы инициировать ответ.
-  //   const initialUserMessage: ChatMessage = { role: 'user', content: "Привет, Мастер! Мы готовы начать." };
-  //   this.messages.push(initialUserMessage);
+  private initChatMessage(): void {
+    this.chatService.sendMessage([{ role: 'user', content: campaignInitPrompt }])
+      .pipe(
+        tap(result => {
+          this.messages.push(result);
+          this.isLoading.set(false);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+        catchError(errorMsg => {
+          this.messages.push(errorMsg);
+          this.isLoading.set(false);
+          return errorMsg;
+        })
+      )
+      .subscribe();
+  }
 
-  //   this.chatService.sendMessage([initialUserMessage]).subscribe({
-  //     next: (response) => {
-  //       this.messages.push(response);
-  //       this.isLoading = false;
-  //     },
-  //     error: (errorMsg) => {
-  //       this.messages.push(errorMsg); // errorMsg уже ChatMessage
-  //       this.isLoading = false;
-  //     }
-  //   });
-  // }
-
-  // ... внутри DndChatComponent
   formatMessageContent(content: string): string {
     return content.replace(/\n/g, '<br>');
   }
 
   sendMessage(): void {
     if (!this.userInput.trim()) return;
-
     const userMessage: ChatMessage = { role: 'user', content: this.userInput };
     this.messages.push(userMessage);
     this.userInput = '';
-    this.isLoading = true;
+    this.isLoading.set(true);
 
-    // Отправляем всю историю чата (включая системный промпт, который добавляется на сервере)
-    // Cloudflare Function ожидает массив всех сообщений для контекста
-    this.chatService.sendMessage(this.messages).subscribe({
-      next: (response) => {
-        this.messages.push(response);
-        this.isLoading = false;
-      },
-      error: (errorMsg) => { // errorMsg из handleError уже ChatMessage
-        this.messages.push(errorMsg);
-        this.isLoading = false;
-      }
-    });
+    this.chatService.sendMessage(this.messages)
+      .pipe(
+        tap(result => {
+          this.messages.push(result);
+          this.isLoading.set(false);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+        catchError(errorMsg => {
+          this.messages.push(errorMsg);
+          this.isLoading.set(false);
+          return errorMsg;
+        })
+      )
+      .subscribe();
   }
 }

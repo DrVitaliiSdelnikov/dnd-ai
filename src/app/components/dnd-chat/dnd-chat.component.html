@@ -1,11 +1,11 @@
-<!-- src/app/components/dnd-chat/dnd-chat.component.html -->
+
 <div class="chat-container">
   <div class="messages-area">
     <div *ngFor="let message of messages" class="message" [ngClass]="message.role">
       <strong class="role-label">{{ message.role === 'user' ? 'Вы' : 'Мастер' }}:</strong>
       <p [innerHTML]="formatMessageContent(message.content)"></p>
     </div>
-    <div *ngIf="isLoading" class="message assistant">
+    <div *ngIf="isLoading()" class="message assistant">
       <strong class="role-label">Мастер:</strong>
       <p><em>печатает...</em></p>
     </div>
@@ -17,7 +17,7 @@
       placeholder="Что вы делаете?"
       rows="3"
     ></textarea>
-    <button (click)="sendMessage()" [disabled]="isLoading || !userInput.trim()">
+    <button (click)="sendMessage()" [disabled]="isLoading() || !userInput.trim()">
       Отправить
     </button>
   </div>
