@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ChatService, ChatMessage } from '../../services/chat.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, take, tap } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { campaignInitPrompt } from '../../../assets/prompts/campaign-init-prompt';
 
 @Component({
