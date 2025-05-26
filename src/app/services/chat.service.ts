@@ -17,7 +17,7 @@ export class ChatService {
   private apiUrl = environment.apiUrl;
 
   sendMessage(messages: ChatMessage[]): Observable<ChatMessage> {
-    return this.http.post<ChatMessage>(this.apiUrl, { messages }).pipe(
+    return this.http.post<ChatMessage>(`${this.apiUrl}/chat`, { messages }).pipe(
       map(response => {
         if (!response.role) {
           return { ...response, role: 'assistant' };
