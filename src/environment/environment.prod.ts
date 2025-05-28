@@ -1,5 +1,5 @@
 
 export const environment = {
-  apiUrl: 'http://151.145.85.19',
+  apiUrl: 'https://api.rpg-play-ai.com',
   production: true,
 };
