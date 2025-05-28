@@ -15,11 +15,12 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:browser",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/dnd-ai",
+            "outputPath": {
+              "base": "dist/dnd-ai"
+            },
             "index": "src/index.html",
-            "main": "src/main.ts",
             "polyfills": [
               "zone.js"
             ],
@@ -33,7 +34,8 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "browser": "src/main.ts"
           },
           "configurations": {
             "local": {
@@ -43,16 +45,16 @@
                   "with": "src/environment/environment.dev.ts"
                 }
               ],
-              "outputPath": "dist/dnd-ai",
+              "outputPath": {
+                "base": "dist/dnd-ai"
+              },
               "baseHref": "/",
               "optimization": false,
               "outputHashing": "all",
               "sourceMap": true,
               "namedChunks": false,
               "aot": true,
-              "extractLicenses": true,
-              "vendorChunk": true,
-              "buildOptimizer": false
+              "extractLicenses": true
             },
             "development": {
               "fileReplacements": [
@@ -61,16 +63,16 @@
                   "with": "src/environment/environment.dev.ts"
                 }
               ],
-              "outputPath": "dist/dnd-ai",
+              "outputPath": {
+                "base": "dist/dnd-ai"
+              },
               "baseHref": "/",
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
               "namedChunks": false,
               "aot": true,
-              "extractLicenses": true,
-              "vendorChunk": true,
-              "buildOptimizer": true
+              "extractLicenses": true
             },
             "production": {
               "fileReplacements": [
@@ -79,16 +81,16 @@
                   "with": "src/environment/environment.prod.ts"
                 }
               ],
-              "outputPath": "dist/dnd-ai",
+              "outputPath": {
+                "base": "dist/dnd-ai"
+              },
               "baseHref": "/",
               "optimization": true,
               "outputHashing": "all",
               "sourceMap": false,
               "namedChunks": false,
               "aot": true,
-              "extractLicenses": true,
-              "vendorChunk": true,
-              "buildOptimizer": true
+              "extractLicenses": true
             }
           },
           "defaultConfiguration": "local"

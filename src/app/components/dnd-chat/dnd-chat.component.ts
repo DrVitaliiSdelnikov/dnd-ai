@@ -8,10 +8,10 @@ import { campaignInitPrompt } from '../../../assets/prompts/campaign-init-prompt
 
 @Component({
   selector: 'app-dnd-chat',
-  standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './dnd-chat.component.html',
   styleUrls: ['./dnd-chat.component.scss'],
+  standalone: true,
 })
 export class DndChatComponent implements OnInit {
   private chatService = inject(ChatService);
