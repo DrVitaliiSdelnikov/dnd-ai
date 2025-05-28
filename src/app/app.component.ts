@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { HttpClientModule } from '@angular/common/http';
+import {} from '@angular/common/http';
 import { DndChatComponent } from './components/dnd-chat/dnd-chat.component';
 
 @Component({
@@ -8,7 +8,11 @@ import { DndChatComponent } from './components/dnd-chat/dnd-chat.component';
   standalone: true,
   imports: [
     RouterOutlet,
-    HttpClientModule,
+    
+// TODO: `HttpClientModule` should not be imported into a component directly.
+// Please refactor the code to add `provideHttpClient()` call to the provider list in the
+// application bootstrap logic and remove the `HttpClientModule` import from this component.
+HttpClientModule,
     DndChatComponent
   ],
   templateUrl: './app.component.html',
