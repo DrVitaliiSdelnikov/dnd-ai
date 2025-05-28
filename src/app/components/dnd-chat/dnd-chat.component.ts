@@ -1,4 +1,3 @@
-// src/app/components/dnd-chat/dnd-chat.component.ts
 import { Component, DestroyRef, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -22,7 +21,7 @@ export class DndChatComponent implements OnInit {
   isLoading: WritableSignal<boolean> = signal(false);
 
   ngOnInit(): void {
-    this.initChatMessage();
+    // this.initChatMessage();
   }
 
   private initChatMessage(): void {
