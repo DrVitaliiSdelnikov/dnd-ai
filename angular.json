@@ -84,6 +84,7 @@
               "outputPath": {
                 "base": "dist/dnd-ai"
               },
+              "index": "src/index.html",
               "baseHref": "/",
               "optimization": true,
               "outputHashing": "all",
