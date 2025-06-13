@@ -17,9 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": {
-              "base": "dist/dnd-ai"
-            },
+            "outputPath": "dist/dnd-ai",
             "index": "src/index.html",
             "polyfills": [
               "zone.js"
@@ -45,9 +43,7 @@
                   "with": "src/environment/environment.dev.ts"
                 }
               ],
-              "outputPath": {
-                "base": "dist/dnd-ai"
-              },
+              "outputPath": "dist/dnd-ai",
               "baseHref": "/",
               "optimization": false,
               "outputHashing": "all",
@@ -63,9 +59,7 @@
                   "with": "src/environment/environment.dev.ts"
                 }
               ],
-              "outputPath": {
-                "base": "dist/dnd-ai"
-              },
+              "outputPath": "dist/dnd-ai",
               "baseHref": "/",
               "optimization": false,
               "outputHashing": "all",
@@ -81,13 +75,10 @@
                   "with": "src/environment/environment.prod.ts"
                 }
               ],
-              "outputPath": {
-                "base": "dist/dnd-ai"
-              },
+              "outputPath": "dist/dnd-ai",
               "index": "src/index.html",
               "baseHref": "/",
               "optimization": true,
-              "outputHashing": "all",
               "sourceMap": false,
               "namedChunks": false,
               "aot": true,
