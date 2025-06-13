@@ -1,0 +1,120 @@
+<p-card class="player-card">
+  <ng-template pTemplate="header">
+    <div class="header">
+      <h2>{{ name() }}</h2>
+      <button
+        pButton type="button"
+        [label]="editMode() ? 'Cancel' : 'Edit'"
+        (click)="toggleEdit()"
+      ></button>
+
+      @if(editMode()) {
+        <button
+          pButton
+          type="submit"
+          label="Save changes"
+          class="p-button-success"
+          (click)="saveChanges()"
+        ></button>
+      }
+    </div>
+  </ng-template>
+
+  <!-- ============ КОГДА НЕ editMode ============ -->
+  <ng-container *ngIf="!editMode(); else editView">
+    <!-- ► Основная информация ---------------------->
+    <p-panel header="Основная информация">
+      <div class="info-grid">
+        <div><b>Раса:</b> {{ playerCardForm.get('race')?.getRawValue() }}</div>
+        <div><b>Класс:</b> {{ playerCardForm.get('class')?.getRawValue() }}</div>
+        <div><b>Предыстория:</b> {{ playerCardForm.get('background')?.getRawValue() }}</div>
+        <div><b>Уровень:</b> {{ playerCardForm.get('level')?.getRawValue() }}</div>
+        <div><b>Опыт:</b> {{ playerCardForm.get('exp')?.getRawValue() }}</div>
+        <div><b>HP:</b> {{ playerCardForm.get('hp.current')?.getRawValue() }} / {{ playerCardForm.get('hp.maximum')?.getRawValue()}}</div>
+      </div>
+    </p-panel>
+    
+
+    <p-divider />
+
+    <!-- ► Характеристики -------------------------->
+    <p-panel header="Характеристики">
+      <div class="ability-grid">
+        <ng-container *ngFor="let key of (abilities() | keyvalue)">
+          <div class="ability">
+            <span class="label">{{ key.key | uppercase }}</span>:
+            <span class="score">{{ key.value }}</span>
+          </div>
+        </ng-container>
+      </div>
+    </p-panel>
+
+    <p-divider />
+
+    <p-accordion>
+      <p-accordionTab header="Инвентарь">
+        <ul *ngIf="inventory().length; else emptyInv">
+          <li *ngFor="let item of inventory()">
+            {{ item.name }} ×{{ item.qty }}
+          </li>
+        </ul>
+        <ng-template #emptyInv><p class="muted">пусто…</p></ng-template>
+      </p-accordionTab>
+
+      <p-accordionTab header="Заметки">
+        <pre>{{ character().notes || '—' }}</pre>
+      </p-accordionTab>
+
+    </p-accordion>
+  </ng-container>
+
+  <ng-template #editView>
+    <form [formGroup]="playerCardForm">
+      <p-panel header="Основная информация">
+        <div class="info-grid">
+          <div>
+            <label>Имя</label>
+            <input pInputText name="name" formControlName="name" />
+          </div>
+          <div>
+            <label>Раса</label>
+            <input pInputText name="race" formControlName="race" />
+          </div>
+          <div>
+            <label>Класс</label>
+            <input pInputText name="class" formControlName="class" />
+          </div>
+          <div>
+            <label>Предыстория</label>
+            <input pInputText name="background" formControlName="background" />
+          </div>
+          <div>
+            <label>Уровень</label>
+            <p-inputNumber name="level" formControlName="level" [min]="1"></p-inputNumber>
+          </div>
+          <div>
+            <label>Опыт</label>
+            <p-inputNumber name="exp" formControlName="exp" [min]="0"></p-inputNumber>
+          </div>
+        </div>
+      </p-panel>
+
+      <p-divider />
+
+      <p-panel header="Характеристики">
+        <div class="ability-grid" formGroupName="abilities">
+          <ng-container *ngFor="let key of (abilities() | keyvalue)">
+            <div class="ability edit">
+              <label>{{ key.key | uppercase }}</label>
+              <p-inputNumber
+                [formControlName]="key.key"
+              ></p-inputNumber>
+            </div>
+          </ng-container>
+        </div>
+      </p-panel>
+
+      <p-divider />
+    </form>
+  </ng-template>
+</p-card>

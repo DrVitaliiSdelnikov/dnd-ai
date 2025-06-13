@@ -1,24 +1,59 @@
-
-<div class="chat-container">
-  <div class="messages-area">
-    <div *ngFor="let message of messages" class="message" [ngClass]="message.role">
-      <strong class="role-label">{{ message.role === 'user' ? 'Вы' : 'Мастер' }}:</strong>
-      <p [innerHTML]="formatMessageContent(message.content)"></p>
-    </div>
-    <div *ngIf="isLoading()" class="message assistant">
-      <strong class="role-label">Мастер:</strong>
-      <p><em>печатает...</em></p>
-    </div>
-  </div>
+@if(isNewCampaign()) {
+  <h3>Instructions</h3>
   <div class="input-area">
-    <textarea
-      [(ngModel)]="userInput"
-      (keyup.enter)="sendMessage()"
-      placeholder="Что вы делаете?"
-      rows="3"
-    ></textarea>
-    <button (click)="sendMessage()" [disabled]="isLoading() || !userInput.trim()">
-      Отправить
+      <textarea
+        [(ngModel)]="instructions"
+        (keyup.enter)="sendMessage()"
+        placeholder="Here you can provide instruction for your master"
+        rows="3"
+      ></textarea>
+    <button
+      (click)="prepareInstructions()"
+      [disabled]="isLoading() || !instructions.trim()">
+      Send instructions and start
     </button>
   </div>
-</div>
+} @else {
+  <div class="layout">
+    <div class="card-container">
+      <app-player-card
+        [playerCard]="playerCard()"
+      />
+    </div>
+    <app-dice-roller
+      (emitRollResults)="setDiceRollResult($event)"
+    />
+    <div class="chat-container">
+      <div class="messages-area">
+        @for(message of messages; track message) {
+          <div class="message" [ngClass]="message.role">
+            <strong class="role-label">{{ message.role === 'user' ? 'Вы' : 'Мастер' }}:</strong>
+            <p [innerHTML]="formatMessageContent(message.content)"></p>
+          </div>
+        }
+
+        @if(isLoading()) {
+          <div class="message assistant">
+            <strong class="role-label">Мастер:</strong>
+            <p><em>печатает...</em></p>
+          </div>
+        }
+
+      </div>
+      <div class="input-area">
+        <textarea
+          [(ngModel)]="userInput"
+          (keyup.enter)="sendMessage()"
+          placeholder="What is your next move?"
+          rows="3"
+        ></textarea>
+        <button
+          pButton
+          (click)="sendMessage()"
+          [disabled]="isLoading() || !userInput.trim()">
+          Отправить
+        </button>
+      </div>
+    </div>
+  </div>
+}

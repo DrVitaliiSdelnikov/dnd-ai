@@ -7,6 +7,7 @@ import { environment } from '../../environment/environment';
 export interface ChatMessage {
   role: string;
   content: string;
+  hero?: any;
 }
 
 @Injectable({
@@ -17,7 +18,6 @@ export class ChatService {
   private apiUrl1 = environment.apiUrl;
 
   sendMessage(messages: ChatMessage[]): Observable<ChatMessage> {
-    console.log(environment.apiUrl, 'environment.apiUrl')
     return this.http.post<ChatMessage>(`${this.apiUrl1}/chat`, { messages }).pipe(
       map(response => {
         if (!response.role) {
