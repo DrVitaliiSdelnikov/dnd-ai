@@ -25,12 +25,21 @@
     <!-- ► Основная информация ---------------------->
     <p-panel header="Основная информация">
       <div class="info-grid">
-        <div><b>Раса:</b> {{ playerCardForm.get('race')?.getRawValue() }}</div>
-        <div><b>Класс:</b> {{ playerCardForm.get('class')?.getRawValue() }}</div>
-        <div><b>Предыстория:</b> {{ playerCardForm.get('background')?.getRawValue() }}</div>
-        <div><b>Уровень:</b> {{ playerCardForm.get('level')?.getRawValue() }}</div>
-        <div><b>Опыт:</b> {{ playerCardForm.get('exp')?.getRawValue() }}</div>
-        <div><b>HP:</b> {{ playerCardForm.get('hp.current')?.getRawValue() }} / {{ playerCardForm.get('hp.maximum')?.getRawValue()}}</div>
+        <div [appValueChangeRipple]="playerCardForm.get('race')?.getRawValue()">
+          <b>Раса:</b> {{ playerCardForm.get('race')?.getRawValue() }}
+        </div>
+        <div [appValueChangeRipple]="playerCardForm.get('class')?.getRawValue()">
+          <b>Класс:</b> {{ playerCardForm.get('class')?.getRawValue() }}
+        </div>
+        <div [appValueChangeRipple]="playerCardForm.get('level')?.getRawValue()">
+          <b>Уровень:</b> {{ playerCardForm.get('level')?.getRawValue() }}
+        </div>
+        <div [appValueChangeRipple]="playerCardForm.get('exp')?.getRawValue()">
+          <b>Опыт:</b> {{ playerCardForm.get('exp')?.getRawValue() }}
+        </div>
+        <div [appValueChangeRipple]="playerCardForm.get('hp.current')?.getRawValue()">
+          <b>HP:</b> {{ playerCardForm.get('hp.current')?.getRawValue() }} / {{ playerCardForm.get('hp.maximum')?.getRawValue()}}
+        </div>
       </div>
     </p-panel>
 
@@ -62,7 +71,7 @@
       </p-accordionTab>
 
       <p-accordionTab header="Заметки">
-        <pre>{{ character().notes || '—' }}</pre>
+        <pre>{{ playerCardForm.get('notes')?.getRawValue() || '—' }}</pre>
       </p-accordionTab>
 
     </p-accordion>

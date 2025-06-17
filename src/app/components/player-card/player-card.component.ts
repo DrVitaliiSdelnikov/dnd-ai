@@ -9,9 +9,12 @@ import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { PlayCardAbilities, PlayerCard } from '../../shared/interfaces/player-card.interface';
+import { PlayerCard } from '../../shared/interfaces/player-card.interface';
 import { SessionStorageService } from '../../services/session-storage.service';
 import { sessionStorageKeys } from '../../shared/const/session-storage-keys';
+import {
+  ValueChangeRippleDirective
+} from '../../shared/directives/field-update-ui/value-change-ripple-directive.directive';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -19,10 +22,9 @@ interface CharacterBase {
   name: FormControl<string | null>;
   race: FormControl<string | null>;
   class: FormControl<string | null>;
-  background: FormControl<string | null>;
   level: FormControl<number | null>;
   exp: FormControl<number | null>;
-  abilities: FormGroup<AbilityMap | null>;
+  abilities: FormGroup<AbilityMap>;
   inventory: FormControl<Item[] | null>;
   notes: FormControl<string | null>;
 }
@@ -42,7 +44,8 @@ interface CharacterBase {
     ButtonModule,
     InputTextModule,
     InputNumberModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    ValueChangeRippleDirective
   ]
 })
 export class PlayerCardComponent implements OnInit {
@@ -55,7 +58,6 @@ export class PlayerCardComponent implements OnInit {
     name: new FormControl('Mysterious traveler'),
     race: new FormControl(null),
     class: new FormControl(null),
-    background: new FormControl(''),
     level: new FormControl(1),
     exp: new FormControl(0),
     // @ts-ignore
@@ -73,23 +75,10 @@ export class PlayerCardComponent implements OnInit {
     notes: new FormControl('')
   });
   private sessionStorageService = inject(SessionStorageService);
-
-  private readonly _initial = {
-    name: '',
-    race: '',
-    class: '',
-    background: '',
-    level: 1,
-    exp: 0,
-    abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-    inventory: [],
-    notes: ''
-  };
-  readonly characterSig = signal(structuredClone(this._initial));
   readonly editMode = signal(false);
 
 
-  character = this.characterSig.asReadonly();
+  // character = this.characterSig.asReadonly();
   abilities: Signal<{ [k: string]: FormControl<number | null> }> = computed(() => this.playerCardForm.get('abilities').getRawValue());
   inventory = computed(() => this.playerCardForm.get('inventory').getRawValue());
   name = computed(() => this.playerCardForm.get('name').getRawValue() || 'Безымянный странник');
@@ -109,9 +98,16 @@ export class PlayerCardComponent implements OnInit {
     this.setInitPlayerCard();
   }
 
-  saveChanges() {
+  saveChanges(): void {
     this.playerCardForm.updateValueAndValidity();
     this.abilities = computed(() => this.playerCardForm.get('abilities').getRawValue());
+
+    const concatPlayerCard = {
+      ...this.playerCard(),
+      ...this.playerCardForm.getRawValue()
+    };
+
+    this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, JSON.stringify(concatPlayerCard))
     this.editMode.set(false);
   }
 
@@ -122,22 +118,21 @@ export class PlayerCardComponent implements OnInit {
 
   private updateHeroForm(playerStats: PlayerCard): void {
     const patch = {
-      hp: playerStats.hp,
-      name: playerStats.name ?? null,
-      race: playerStats.race ?? null,
-      class: playerStats.class ?? null,
-      background: playerStats.background ?? '',
-      level: playerStats.level,
-      exp: playerStats.exp,
+      hp: playerStats?.hp ?? null,
+      name: playerStats?.name ?? null,
+      race: playerStats?.race ?? null,
+      class: playerStats?.class ?? null,
+      level: playerStats?.level,
+      exp: playerStats?.exp,
       abilities: {
-        str: playerStats.abilities?.str,
-        dex: playerStats.abilities?.dex,
-        con: playerStats.abilities?.con,
-        int: playerStats.abilities?.int,
-        wis: playerStats.abilities?.wis,
-        cha: playerStats.abilities?.cha,
+        str: playerStats?.abilities?.str,
+        dex: playerStats?.abilities?.dex,
+        con: playerStats?.abilities?.con,
+        int: playerStats?.abilities?.int,
+        wis: playerStats?.abilities?.wis,
+        cha: playerStats?.abilities?.cha,
       },
-      notes: playerStats.notes ?? ''
+      notes: playerStats?.notes ?? ''
     };
 
     this.playerCardForm.patchValue(patch, { emitEvent: false });

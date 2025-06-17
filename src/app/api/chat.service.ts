@@ -15,10 +15,10 @@ export interface ChatMessage {
 })
 export class ChatService {
   private http = inject(HttpClient);
-  private apiUrl1 = environment.apiUrl;
+  private apiUrl = environment.apiUrl;
 
   sendMessage(messages: ChatMessage[]): Observable<ChatMessage> {
-    return this.http.post<ChatMessage>(`${this.apiUrl1}/chat`, { messages }).pipe(
+    return this.http.post<ChatMessage>(`${this.apiUrl}/chat`, { messages }).pipe(
       map(response => {
         if (!response.role) {
           return { ...response, role: 'assistant' };
