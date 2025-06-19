@@ -1,12 +1,19 @@
 :host ::ng-deep {
-  $border-info:      #5c6bc0;
+  $border-info: #5c6bc0;
   $border-abilities: #26a69a;
   $border-inventory: #ffa726;
-  $border-notes:     #90caf9;
+  $border-notes: #90caf9;
 
   .player-card {
     width: 100%;
     .p-card-body { padding: 0 !important; }
+
+    .header-button-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
 
     .title   { margin: 0; font-weight: 600; text-align: center; }
 

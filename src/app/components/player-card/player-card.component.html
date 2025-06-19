@@ -1,28 +1,39 @@
 <p-card class="player-card">
   <ng-template pTemplate="header">
     <div class="header">
-      <h2>{{ name() }}</h2>
-      <button
-        pButton type="button"
-        [label]="editMode() ? 'Cancel' : 'Edit'"
-        (click)="toggleEdit()"
-      ></button>
-
-      @if(editMode()) {
+      <h2>
+        @if(name()) {
+          <span>{{ name() }}</span>
+        } @else {
+          <span>Безымянный странник</span>
+        }
+      </h2>
+      <div class="header-button-wrapper">
         <button
-          pButton
-          type="submit"
-          label="Save changes"
-          class="p-button-success"
-          (click)="saveChanges()"
+          pButton type="button"
+          [label]="editMode() ? 'Cancel' : 'Edit'"
+          (click)="toggleEdit()"
         ></button>
-      }
+
+        @if(editMode()) {
+          <button
+            pButton
+            type="submit"
+            label="Save changes"
+            class="p-button-success"
+            (click)="saveChanges()"
+          ></button>
+        }
+
+        <app-dice-roller
+          (emitRollResults)="setDiceRollResult($event)"
+        />
+      </div>
+
     </div>
   </ng-template>
 
-  <!-- ============ КОГДА НЕ editMode ============ -->
   <ng-container *ngIf="!editMode(); else editView">
-    <!-- ► Основная информация ---------------------->
     <p-panel header="Основная информация">
       <div class="info-grid">
         <div [appValueChangeRipple]="playerCardForm.get('race')?.getRawValue()">
@@ -43,17 +54,20 @@
       </div>
     </p-panel>
 
-
     <p-divider />
 
-    <!-- ► Характеристики -------------------------->
     <p-panel header="Характеристики">
       <div class="ability-grid">
-        <ng-container *ngFor="let key of (abilities() | keyvalue)">
-          <div class="ability">
+        <ng-container *ngFor="let key of (abilities() | keyvalue); trackBy: trackByAbilityKey">
+          <button
+            type="button"
+            class="ability"
+            (click)="rollAbilityDice(key.key, key.value)"
+            [appValueChangeRipple]="key.value"
+            >
             <span class="label">{{ key.key | uppercase }}</span>:
             <span class="score">{{ key.value }}</span>
-          </div>
+          </button>
         </ng-container>
       </div>
     </p-panel>
@@ -62,7 +76,7 @@
 
     <p-accordion>
       <p-accordionTab header="Инвентарь">
-        <ul *ngIf="inventory().length; else emptyInv">
+        <ul *ngIf="inventory()?.length; else emptyInv">
           <li *ngFor="let item of inventory()">
             {{ item.name }} ×{{ item.qty }}
           </li>
@@ -70,8 +84,11 @@
         <ng-template #emptyInv><p class="muted">пусто…</p></ng-template>
       </p-accordionTab>
 
-      <p-accordionTab header="Заметки">
-        <pre>{{ playerCardForm.get('notes')?.getRawValue() || '—' }}</pre>
+      <p-accordionTab
+        header="Adventure summery"
+        [disabled]="!campaignSummary()"
+      >
+        <pre>{{ campaignSummary() || '—' }}</pre>
       </p-accordionTab>
 
     </p-accordion>
@@ -92,10 +109,6 @@
           <div>
             <label>Класс</label>
             <input pInputText name="class" formControlName="class" />
-          </div>
-          <div>
-            <label>Предыстория</label>
-            <input pInputText name="background" formControlName="background" />
           </div>
           <div>
             <label>Уровень</label>

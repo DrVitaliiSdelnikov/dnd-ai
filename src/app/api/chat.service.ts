@@ -8,6 +8,8 @@ export interface ChatMessage {
   role: string;
   content: string;
   hero?: any;
+  id?: string;
+  isEditing?: boolean;
 }
 
 @Injectable({

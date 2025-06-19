@@ -18,28 +18,72 @@
     <div class="card-container">
       <app-player-card
         [playerCard]="playerCard()"
+        [campaignSummary]="campaignSummary()"
+        (emitRollResults)="setDiceRollResult($event)"
       />
     </div>
-    <app-dice-roller
-      (emitRollResults)="setDiceRollResult($event)"
-    />
     <div class="chat-container">
-      <div class="messages-area">
+      <div class="messages-area" #messagesArea>
         @for(message of messages; track message) {
           <div class="message" [ngClass]="message.role">
-            <strong class="role-label">{{ message.role === 'user' ? 'Вы' : 'Мастер' }}:</strong>
-            <p [innerHTML]="formatMessageContent(message.content)"></p>
+
+            @if (!message.isEditing) {
+              <div class="message-content">
+                <strong class="role-label">{{ message.role === 'user' ? 'Вы' : 'Мастер' }}:</strong>
+                <p [innerHTML]="formatMessageContent(message.content)"></p>
+              </div>
+
+              @if ($index === messages.length - 1 || $index === messages.length - 2) {
+                <button
+                  pButton
+                  type="button"
+                  pButtonIcon="pi pi-pencil"
+                  class="p-button-text p-button-rounded edit-btn"
+                  (click)="startEditing(message.id)"
+                  pTooltip="Редактировать"
+                  tooltipPosition="left"
+                ><i class="pi pi-pencil"></i></button>
+              }
+            }
+
+            @if (message.isEditing) {
+              <div class="edit-area">
+                <textarea
+                  #editTextarea
+                  [value]="message.content"
+                  class="edit-textarea"
+                  rows="10"
+                ></textarea>
+                <div class="edit-controls">
+                  <button
+                    pButton
+                    type="button"
+                    pButtonLabel="Сохранить"
+                    pButtonIcon="pi pi-check"
+                    class="p-button-success p-button-sm"
+                    (click)="saveEdit(message, editTextarea.value)"
+                  ><i class="pi pi-check"></i></button>
+                  <button
+                    pButton
+                    type="button"
+                    pButtonLabel="Отмена"
+                    pButtonIcon="pi pi-times"
+                    class="p-button-secondary p-button-sm"
+                    (click)="cancelEdit(message)"
+                  ><i class="pi pi-times"></i></button>
+                </div>
+              </div>
+            }
+
           </div>
         }
-
         @if(isLoading()) {
           <div class="message assistant">
-            <strong class="role-label">Мастер:</strong>
-            <p><em>печатает...</em></p>
+            <div class="message-content-loader">
+              <app-loading-indicator [label]="'Мастер:'" />
+            </div>
           </div>
         }
-
-      </div>
       <div class="input-area">
         <textarea
           [(ngModel)]="userInput"
@@ -56,4 +100,5 @@
       </div>
     </div>
   </div>
+</div>
 }

@@ -50,11 +50,11 @@ export class ValueChangeRippleDirective implements OnChanges, OnDestroy {
       element,
       'animationend',
       () => {
-        this.renderer.removeClass(element, this.RIPPLE_CLASS);
-        if (this.unlistenAnimationEndFn) {
-          this.unlistenAnimationEndFn();
-          this.unlistenAnimationEndFn = null;
-        }
+        // this.renderer.removeClass(element, this.RIPPLE_CLASS);
+        // if (this.unlistenAnimationEndFn) {
+        //   this.unlistenAnimationEndFn();
+        //   this.unlistenAnimationEndFn = null;
+        // }
       }
     );
   }

@@ -1,7 +1,5 @@
 <p-splitbutton
   [label]="selectedDie()"
   icon="pi pi-dice"
-  (onClick)="roll(selectedDie())"
+  (onClick)="roll()"
   [model]="menuItems"/>
-
-<span class="dice-result" *ngIf="rollResult()">Dice roll result: {{ rollResult() }}</span>

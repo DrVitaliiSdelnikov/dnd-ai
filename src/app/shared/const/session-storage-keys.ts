@@ -1,4 +1,6 @@
 export enum sessionStorageKeys {
   MESSAGES_HISTORY = "MESSAGES_HISTORY",
-  HERO = "HERO"
+  HERO = "HERO",
+  SUMMERY = "SUMMERY",
+  GENERAL_SETTING = "GENERAL_SETTING"
 }
