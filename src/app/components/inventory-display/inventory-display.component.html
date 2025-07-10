@@ -1,0 +1,43 @@
+<div class="inventory-container">
+  <div *ngIf="inventoryItems.length === 0" class="empty-inventory">
+    Inventory is empty.
+  </div>
+
+  <div *ngFor="let categoryName of objectKeys(categorizedItems)" class="inventory-section">
+    <h3>{{ categoryName }}</h3>
+    <ul class="item-list">
+      <li *ngFor="let item of categorizedItems[categoryName]" class="item-entry">
+        <div class="item-info">
+          <span class="item-name">
+            {{ item.name }}
+            <span *ngIf="item.quantity > 1" class="item-quantity"> (x{{ item.quantity }})</span>
+          </span>
+          <span *ngIf="item.description" class="tooltip-container">
+            <span class="info-icon" title="Show description">ⓘ</span>
+            <span class="tooltip-text">{{ item.description }}</span>
+          </span>
+        </div>
+        <div class="item-actions">
+          <button
+            *ngIf="item.type === 'WEAPON' && item.properties.damage_dice"
+            (click)="rollDamage(item)"
+            pButton
+            class="action-button attack-button p-button-danger p-button-outlined">
+            Attack ({{ item.properties.damage_dice }})
+          </button>
+          <button
+            *ngIf="item.type === 'CONSUMABLE' && item.properties.effect_details"
+            (click)="useConsumable(item)"
+            pButton
+            class="action-button use-button p-button-success p-button-outlined">
+            Use
+          </button>
+
+          <span *ngIf="damageRollResults[item.item_id_suggestion] === null" class="roll-result error">
+             Roll error
+          </span>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>

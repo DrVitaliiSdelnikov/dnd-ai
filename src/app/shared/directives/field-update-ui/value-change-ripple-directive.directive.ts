@@ -18,8 +18,6 @@ export class ValueChangeRippleDirective implements OnChanges, OnDestroy {
 
   private elementRef = inject(ElementRef<HTMLElement>);
   private renderer = inject(Renderer2);
-
-  // Статическое свойство, чтобы гарантировать, что стили будут добавлены только один раз на всё приложение.
   private static styleElement: HTMLStyleElement | null = null;
   private unlistenAnimationEndFn: (() => void) | null = null;
   private readonly RIPPLE_CLASS = 'value-change-ripple-effect';
@@ -50,21 +48,13 @@ export class ValueChangeRippleDirective implements OnChanges, OnDestroy {
       element,
       'animationend',
       () => {
-        // this.renderer.removeClass(element, this.RIPPLE_CLASS);
-        // if (this.unlistenAnimationEndFn) {
-        //   this.unlistenAnimationEndFn();
-        //   this.unlistenAnimationEndFn = null;
-        // }
+
       }
     );
   }
 
-  /**
-   * Инжектирует CSS-правила для анимации в <head> документа.
-   * Выполняется только один раз благодаря статической проверке.
-   */
+
   private ensureStylesInjected(): void {
-    // Если стили уже были добавлены другим экземпляром директивы, ничего не делаем.
     if (ValueChangeRippleDirective.styleElement) {
       return;
     }
@@ -89,7 +79,6 @@ export class ValueChangeRippleDirective implements OnChanges, OnDestroy {
     this.renderer.appendChild(style, this.renderer.createText(css));
     this.renderer.appendChild(document.head, style);
 
-    // Сохраняем ссылку на созданный элемент в статическое свойство.
     ValueChangeRippleDirective.styleElement = style;
   }
 

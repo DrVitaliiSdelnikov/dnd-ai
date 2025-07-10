@@ -1,0 +1,127 @@
+:host ::ng-deep {
+  .inventory-container {
+    font-family: Arial, sans-serif;
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+  }
+
+  .inventory-container h2 {
+    text-align: center;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+
+  .empty-inventory {
+    text-align: center;
+    color: #777;
+    padding: 20px;
+  }
+
+  .inventory-section {
+    margin-bottom: 20px;
+  }
+
+  .inventory-section h3 {
+    color: #555;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #ddd;
+    padding-bottom: 5px;
+  }
+
+  .item-list {
+    list-style-type: none;
+    padding-left: 0;
+  }
+
+  .item-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 5px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease-in-out;
+  }
+
+  .item-entry:last-child {
+    border-bottom: none;
+  }
+
+  .item-entry:hover {
+    background-color: #f0f0f0;
+  }
+
+  .item-name {
+    color: #444;
+    font-weight: bold;
+  }
+
+  .item-quantity {
+    font-size: 0.9em;
+    color: #777;
+    margin-left: 5px;
+  }
+
+  .tooltip-container {
+    position: relative;
+    display: inline-block;
+    margin-left: 8px;
+  }
+
+  .info-icon {
+    cursor: help;
+    color: #007bff;
+    font-weight: bold;
+    border: 1px solid #007bff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.8em;
+    user-select: none;
+  }
+
+  .tooltip-text {
+    visibility: hidden;
+    width: 220px;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -110px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.9em;
+    font-weight: normal;
+    line-height: 1.4;
+    box-shadow: 0px 0px 5px rgba(0,0,0,0.2);
+  }
+
+  .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+  }
+
+  .tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+}

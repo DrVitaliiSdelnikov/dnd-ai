@@ -1,5 +1,6 @@
 <p-splitbutton
   [label]="selectedDie()"
   icon="pi pi-dice"
+  [styleClass]="styleClass()"
   (onClick)="roll()"
   [model]="menuItems"/>

@@ -20,12 +20,11 @@ import { sessionStorageKeys } from '../../shared/const/session-storage-keys';
 import { PlayerCardComponent } from '../player-card/player-card.component';
 import { ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
 import {
-  CORE_DM_BEHAVIOR, FORMAT_JSON_RESPONSE, RULES_DICE_AND_CHECKS, TASK_CONTINUE_GAMEPLAY,
+  CORE_DM_BEHAVIOR, FORMAT_JSON_RESPONSE, LOOT_AND_INVENTORY_MANAGEMENT, RULES_DICE_AND_CHECKS, TASK_CONTINUE_GAMEPLAY,
   TASK_NEW_CAMPAIGN, TASK_SUMMARIZE_HISTORY
 } from '../../shared/prompts/prompts';
 import { Observable, of } from 'rxjs';
 import { PlayerCard } from '../../shared/interfaces/player-card.interface';
-import { DiceRollerComponent } from '../dice-roller/dice-roller.component';
 import { Tooltip } from 'primeng/tooltip';
 import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator.component';
 
@@ -36,7 +35,6 @@ import { LoadingIndicatorComponent } from '../../shared/components/loading-indic
     FormsModule,
     PlayerCardComponent,
     ButtonDirective,
-    DiceRollerComponent,
     Tooltip,
     ButtonLabel,
     ButtonIcon,
@@ -63,10 +61,19 @@ export class DndChatComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.checkCampaignHistory();
+    this.setPlayerCard();
   }
 
   ngAfterViewInit(): void {
     this.scrollToBottom();
+  }
+
+  private setPlayerCard(): void {
+    const playerCard = this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.HERO);
+    if(!playerCard) return;
+
+    const parsedPlayerCard = JSON.parse(playerCard);
+    this.playerCard.set(parsedPlayerCard);
   }
 
   private generateId(): string {
@@ -101,7 +108,6 @@ export class DndChatComponent implements OnInit, AfterViewInit {
       return this.wipeMessagesIds()
     };
 
-
     const preparedMessages = this.wipeMessagesIds();
     const unsummarised = preparedMessages.length % 10 || 10;
     const tail = preparedMessages.slice(-unsummarised);
@@ -115,7 +121,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   private checkCampaignHistory(): void {
     this.isLoading.set(true);
     const messagesHistory = this.getCampaignMessages();
-    this.campaignSummary.set(this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.SUMMERY));
+    this.campaignSummary.set(JSON.parse(this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.SUMMERY)));
     this.isNewCampaign.set(!messagesHistory?.length);
     if(messagesHistory?.length) {
       this.messages = JSON.parse(messagesHistory) ?? [];
@@ -197,7 +203,8 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     ${TASK_CONTINUE_GAMEPLAY}
     ---
     ${FORMAT_JSON_RESPONSE}
-
+    ---
+    ${LOOT_AND_INVENTORY_MANAGEMENT}
     ---
     **Game Context (History):**
     ${JSON.stringify(userMessage)}

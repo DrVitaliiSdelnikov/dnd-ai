@@ -27,6 +27,8 @@ import { tap } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DiceRollerComponent } from '../dice-roller/dice-roller.component';
 import { DiceRollerService } from '../dice-roller/dice-roller.service';
+import { InventoryDisplayComponent } from '../inventory-display/inventory-display.component';
+import { AttributeNamePipe } from './attribute-name.pipe';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -58,7 +60,9 @@ interface CharacterBase {
     InputNumberModule,
     ReactiveFormsModule,
     ValueChangeRippleDirective,
-    DiceRollerComponent
+    DiceRollerComponent,
+    InventoryDisplayComponent,
+    AttributeNamePipe
   ]
 })
 export class PlayerCardComponent implements OnInit {
@@ -171,11 +175,15 @@ export class PlayerCardComponent implements OnInit {
     this.editMode.set(false);
   }
 
-  setDiceRollResult($event: number) {
+  setDiceRollResult($event: number): void {
     this.emitRollResults.emit(`${this.diceRollerService.getSelectedDie()} roll, result: ${$event}`);
   }
 
-  rollAbilityDice(key: string, value: number) {
+  setFromInventoryDiceRollResult($event: string): void {
+    this.emitRollResults.emit($event);
+  }
+
+  rollAbilityDice(key: string, value: number): void {
     const rollResult = this.diceRollerService.roll()
     this.emitRollResults.emit(`${this.diceRollerService.getSelectedDie()} ${this.abilitiesMap[key]} roll, result: ${rollResult}`)
   }

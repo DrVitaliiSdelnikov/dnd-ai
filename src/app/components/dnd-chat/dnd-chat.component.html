@@ -29,18 +29,19 @@
 
             @if (!message.isEditing) {
               <div class="message-content">
-                <strong class="role-label">{{ message.role === 'user' ? 'Вы' : 'Мастер' }}:</strong>
+                <strong class="role-label">{{ message.role === 'user' ? 'You' : 'Master' }}:</strong>
                 <p [innerHTML]="formatMessageContent(message.content)"></p>
               </div>
 
               @if ($index === messages.length - 1 || $index === messages.length - 2) {
                 <button
+                  [disabled]="isLoading()"
                   pButton
                   type="button"
                   pButtonIcon="pi pi-pencil"
                   class="p-button-text p-button-rounded edit-btn"
                   (click)="startEditing(message.id)"
-                  pTooltip="Редактировать"
+                  pTooltip="Edit"
                   tooltipPosition="left"
                 ><i class="pi pi-pencil"></i></button>
               }
@@ -58,7 +59,7 @@
                   <button
                     pButton
                     type="button"
-                    pButtonLabel="Сохранить"
+                    pButtonLabel="Save"
                     pButtonIcon="pi pi-check"
                     class="p-button-success p-button-sm"
                     (click)="saveEdit(message, editTextarea.value)"
@@ -66,7 +67,7 @@
                   <button
                     pButton
                     type="button"
-                    pButtonLabel="Отмена"
+                    pButtonLabel="Cancel"
                     pButtonIcon="pi pi-times"
                     class="p-button-secondary p-button-sm"
                     (click)="cancelEdit(message)"
@@ -80,7 +81,7 @@
         @if(isLoading()) {
           <div class="message assistant">
             <div class="message-content-loader">
-              <app-loading-indicator [label]="'Мастер:'" />
+              <app-loading-indicator [label]="'Master:'" />
             </div>
           </div>
         }
@@ -96,7 +97,7 @@
           pButton
           (click)="sendMessage()"
           [disabled]="isLoading() || !userInput.trim()">
-          Отправить
+          Send
         </button>
       </div>
     </div>

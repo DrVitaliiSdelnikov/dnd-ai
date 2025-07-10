@@ -1,32 +1,26 @@
-// dnd-chat.component.scss
-
-// Удалите :host ::ng-deep { ... } и замените на это:
-
-// --- Главный контейнер ---
 .layout {
   display: flex;
-  gap: 1.5rem; // Пространство между карточкой и чатом
+  gap: 1.5rem;
 }
 
 .card-container {
-  flex: 1 1 35%; // Занимает 35% ширины, может сжиматься и расти
-  min-width: 300px; // Минимальная ширина, чтобы не схлопывался
+  flex: 1 1 35%;
+  min-width: 300px;
 }
 
 .chat-container {
-  flex: 1 1 65%; // Занимает 65% ширины
+  flex: 1 1 65%;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 40px); // Занимает почти всю высоту экрана
-  max-height: 800px; // Но не больше 800px
-  border: 1px solid #dee2e6; // Используем переменные PrimeNG если возможно
+  height: calc(100vh - 40px);
+  max-height: 800px;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   overflow: hidden;
   font-family: sans-serif;
   margin: 20px 0;
 }
 
-// --- Область сообщений ---
 .messages-area {
   flex-grow: 1;
   overflow-y: auto;
@@ -36,7 +30,6 @@
   flex-direction: column;
 }
 
-// --- Стили для одного сообщения ---
 .message {
   display: flex;
   align-items: flex-start;
@@ -47,7 +40,7 @@
 
   &.user {
     align-self: flex-end;
-    flex-direction: row-reverse; // Разворачиваем, чтобы кнопка была слева
+    flex-direction: row-reverse;
   }
 
   &.assistant {
@@ -76,9 +69,9 @@
     }
   }
 
-  // Стилизация контента в зависимости от роли
+
   &.user .message-content {
-    background-color: var(--primary-color, #007bff); // Используем переменную темы PrimeNG
+    background-color: var(--primary-color, #007bff);
     color: var(--primary-color-text, white);
     border-bottom-right-radius: 4px;
     .role-label {
@@ -94,7 +87,6 @@
   }
 }
 
-// --- Стили для режима редактирования ---
 .edit-btn {
   flex-shrink: 0;
   margin-top: 0.5rem;

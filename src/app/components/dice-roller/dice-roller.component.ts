@@ -1,18 +1,19 @@
-import { Component, EventEmitter, inject, Output, signal, WritableSignal } from '@angular/core';
+import { Component, EventEmitter, inject, input, Output, signal, WritableSignal } from '@angular/core';
 import { SplitButtonModule } from 'primeng/splitbutton';
 import { MenuItem } from 'primeng/api';
-import { NgIf } from '@angular/common';
 import { DiceRollerService } from './dice-roller.service';
+
 
 @Component({
   standalone: true,
   selector: 'app-dice-roller',
-  imports: [SplitButtonModule, NgIf],
+  imports: [SplitButtonModule],
   templateUrl: 'dice-roller.component.html',
   styleUrls: ['./dice-roller.component.scss'],
 })
 export class DiceRollerComponent {
   selectedDie = signal<string>('1d20');
+  styleClass = input<string>('');
   rollResult: WritableSignal<number> = signal(0);
   @Output() emitRollResults: EventEmitter<number> = new EventEmitter();
 

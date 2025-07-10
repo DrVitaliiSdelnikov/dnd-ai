@@ -1,121 +1,125 @@
 <p-card class="player-card">
-  <ng-template pTemplate="header">
-    <div class="header">
-      <h2>
-        @if(name()) {
-          <span>{{ name() }}</span>
-        } @else {
-          <span>Безымянный странник</span>
-        }
-      </h2>
-      <div class="header-button-wrapper">
-        <button
-          pButton type="button"
-          [label]="editMode() ? 'Cancel' : 'Edit'"
-          (click)="toggleEdit()"
-        ></button>
+  <ng-container>
+    <div class="basic-info-row">
+      <div class="info-main">
 
-        @if(editMode()) {
+        <div class="header-button-wrapper">
+          <h3 class="char-name">
+            {{ name() || 'Nameless Wanderer' }}
+          </h3>
+
           <button
             pButton
-            type="submit"
-            label="Save changes"
-            class="p-button-success"
-            (click)="saveChanges()"
-          ></button>
-        }
-
-        <app-dice-roller
-          (emitRollResults)="setDiceRollResult($event)"
-        />
-      </div>
-
-    </div>
-  </ng-template>
-
-  <ng-container *ngIf="!editMode(); else editView">
-    <p-panel header="Основная информация">
-      <div class="info-grid">
-        <div [appValueChangeRipple]="playerCardForm.get('race')?.getRawValue()">
-          <b>Раса:</b> {{ playerCardForm.get('race')?.getRawValue() }}
-        </div>
-        <div [appValueChangeRipple]="playerCardForm.get('class')?.getRawValue()">
-          <b>Класс:</b> {{ playerCardForm.get('class')?.getRawValue() }}
-        </div>
-        <div [appValueChangeRipple]="playerCardForm.get('level')?.getRawValue()">
-          <b>Уровень:</b> {{ playerCardForm.get('level')?.getRawValue() }}
-        </div>
-        <div [appValueChangeRipple]="playerCardForm.get('exp')?.getRawValue()">
-          <b>Опыт:</b> {{ playerCardForm.get('exp')?.getRawValue() }}
-        </div>
-        <div [appValueChangeRipple]="playerCardForm.get('hp.current')?.getRawValue()">
-          <b>HP:</b> {{ playerCardForm.get('hp.current')?.getRawValue() }} / {{ playerCardForm.get('hp.maximum')?.getRawValue()}}
-        </div>
-      </div>
-    </p-panel>
-
-    <p-divider />
-
-    <p-panel header="Характеристики">
-      <div class="ability-grid">
-        <ng-container *ngFor="let key of (abilities() | keyvalue); trackBy: trackByAbilityKey">
-          <button
             type="button"
-            class="ability"
-            (click)="rollAbilityDice(key.key, key.value)"
-            [appValueChangeRipple]="key.value"
-            >
-            <span class="label">{{ key.key | uppercase }}</span>:
-            <span class="score">{{ key.value }}</span>
+            class="p-button-outlined p-button-sm manage-btn"
+            [label]="editMode() ? 'Cancel' : 'Edit'"
+            (click)="toggleEdit()">
           </button>
+
+          @if (editMode()) {
+            <button
+              pButton
+              type="submit"
+              class="p-button-sm p-button-success save-btn"
+              label="Save"
+              (click)="saveChanges()">
+            </button>
+          }
+
+          <app-dice-roller
+            styleClass="p-button-sm p-button-outlined manage-btn"
+            (emitRollResults)="setDiceRollResult($event)"
+          />
+        </div>
+
+        <p class="char-specialization">
+          {{ playerCardForm.get('race')?.getRawValue() }}
+          /
+          {{ playerCardForm.get('class')?.getRawValue() }}
+        </p>
+
+        <p class="char-level-exp">
+          <span class="level">Level {{ playerCardForm.get('level')?.getRawValue() }}</span>
+          <span class="exp"> /  {{ playerCardForm.get('exp')?.getRawValue() }} XP</span>
+        </p>
+      </div>
+
+      <div class="hp-box" [appValueChangeRipple]="playerCardForm.get('hp.current')?.getRawValue()">
+        <span class="hp-label">HIT POINTS</span>
+        <span class="hp-value">
+          {{ playerCardForm.get('hp.current')?.getRawValue() }}
+          <span class="hp-divider">/</span>
+          {{ playerCardForm.get('hp.maximum')?.getRawValue() }}
+        </span>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!editMode(); else editView">
+      <p-divider />
+
+      <div class="attributes-grid">
+        <ng-container *ngFor="let ability of (abilities() | keyvalue); trackBy: trackByAbilityKey">
+          <div class="attribute-card">
+            <span class="attribute-name">{{ ability.key | attrName | uppercase }}</span>
+
+            <button
+              class="stat-button"
+              type="button"
+              (click)="rollAbilityDice(ability.key, ability.value)"
+              [appValueChangeRipple]="ability.value">
+              {{ ability.value }}
+            </button>
+
+            <span class="bonus-oval" *ngIf="true">+1</span>
+          </div>
         </ng-container>
       </div>
-    </p-panel>
 
-    <p-divider />
+      <p-divider />
 
-    <p-accordion>
-      <p-accordionTab header="Инвентарь">
-        <ul *ngIf="inventory()?.length; else emptyInv">
-          <li *ngFor="let item of inventory()">
-            {{ item.name }} ×{{ item.qty }}
-          </li>
-        </ul>
-        <ng-template #emptyInv><p class="muted">пусто…</p></ng-template>
-      </p-accordionTab>
+      <div class="inventory-wrapper">
+        <p-accordion>
+          <p-accordionTab header="Inventory">
+            <app-inventory-display
+              (emitRollResults)="setFromInventoryDiceRollResult($event)"
+              [inventoryItems]="playerCard()?.loot"/>
+          </p-accordionTab>
 
-      <p-accordionTab
-        header="Adventure summery"
-        [disabled]="!campaignSummary()"
-      >
-        <pre>{{ campaignSummary() || '—' }}</pre>
-      </p-accordionTab>
+          <p-accordionTab
+            header="Adventure summery"
+            [disabled]="!campaignSummary()"
+          >
+            <p>{{ campaignSummary()?.content || '—' }}</p>
+          </p-accordionTab>
 
-    </p-accordion>
+        </p-accordion>
+      </div>
+
+    </ng-container>
   </ng-container>
 
   <ng-template #editView>
     <form [formGroup]="playerCardForm">
-      <p-panel header="Основная информация">
+      <p-panel header="Basic Information">
         <div class="info-grid">
           <div>
-            <label>Имя</label>
+            <label>Name</label>
             <input pInputText name="name" formControlName="name" />
           </div>
           <div>
-            <label>Раса</label>
+            <label>Race</label>
             <input pInputText name="race" formControlName="race" />
           </div>
           <div>
-            <label>Класс</label>
+            <label>Class</label>
             <input pInputText name="class" formControlName="class" />
           </div>
           <div>
-            <label>Уровень</label>
+            <label>Level</label>
             <p-inputNumber name="level" formControlName="level" [min]="1"></p-inputNumber>
           </div>
           <div>
-            <label>Опыт</label>
+            <label>Exp</label>
             <p-inputNumber name="exp" formControlName="exp" [min]="0"></p-inputNumber>
           </div>
         </div>
@@ -123,7 +127,7 @@
 
       <p-divider />
 
-      <p-panel header="Характеристики">
+      <p-panel header="Attributes">
         <div class="ability-grid" formGroupName="abilities">
           <ng-container *ngFor="let key of (abilities() | keyvalue)">
             <div class="ability edit">
