@@ -6,7 +6,7 @@ import {
   input,
   OnInit,
   inject,
-  Output, EventEmitter
+  Output, EventEmitter, WritableSignal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -23,7 +23,6 @@ import { sessionStorageKeys } from '../../shared/const/session-storage-keys';
 import {
   ValueChangeRippleDirective
 } from '../../shared/directives/field-update-ui/value-change-ripple-directive.directive';
-import { tap } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DiceRollerComponent } from '../dice-roller/dice-roller.component';
 import { DiceRollerService } from '../dice-roller/dice-roller.service';
@@ -62,7 +61,7 @@ interface CharacterBase {
     ValueChangeRippleDirective,
     DiceRollerComponent,
     InventoryDisplayComponent,
-    AttributeNamePipe
+    AttributeNamePipe,
   ]
 })
 export class PlayerCardComponent implements OnInit {
@@ -76,8 +75,8 @@ export class PlayerCardComponent implements OnInit {
       maximum: new FormControl(null),
     }),
     name: new FormControl('Mysterious traveler'),
-    race: new FormControl(null),
-    class: new FormControl(null),
+    race: new FormControl('-'),
+    class: new FormControl('-'),
     level: new FormControl(1),
     exp: new FormControl(0),
     // @ts-ignore
@@ -114,6 +113,7 @@ export class PlayerCardComponent implements OnInit {
     this.playerCardForm.get('name').valueChanges,
   );
   toggleEdit = () => this.editMode.set(!this.editMode());
+  loading: WritableSignal<boolean> = signal(true);
 
   constructor() {
     effect(() => {
@@ -169,6 +169,7 @@ export class PlayerCardComponent implements OnInit {
     };
 
     this.playerCardForm.patchValue(patch);
+    this.loading.set(false);
   }
 
   cancel() {

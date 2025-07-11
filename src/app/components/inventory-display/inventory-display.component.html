@@ -1,5 +1,5 @@
 <div class="inventory-container">
-  <div *ngIf="inventoryItems.length === 0" class="empty-inventory">
+  <div *ngIf="!inventoryItems?.length" class="empty-inventory">
     Inventory is empty.
   </div>
 

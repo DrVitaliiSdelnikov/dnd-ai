@@ -43,6 +43,8 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   private categorizeItems(): void {
+    if(!this.inventoryItems || !Array.isArray(this.inventoryItems)) return;
+
     this.categorizedItems = {};
     this.categoryOrder.forEach(categoryKey => {
       if (this.categoryDisplayNames[categoryKey]) {

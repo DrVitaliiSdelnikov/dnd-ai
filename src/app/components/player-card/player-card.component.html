@@ -12,6 +12,7 @@
             pButton
             type="button"
             class="p-button-outlined p-button-sm manage-btn"
+            [disabled]="!playerCardForm.get('level')?.getRawValue()"
             [label]="editMode() ? 'Cancel' : 'Edit'"
             (click)="toggleEdit()">
           </button>
@@ -22,6 +23,7 @@
               type="submit"
               class="p-button-sm p-button-success save-btn"
               label="Save"
+              [disabled]="!playerCardForm.get('level')?.getRawValue()"
               (click)="saveChanges()">
             </button>
           }
@@ -38,19 +40,21 @@
           {{ playerCardForm.get('class')?.getRawValue() }}
         </p>
 
+
         <p class="char-level-exp">
           <span class="level">Level {{ playerCardForm.get('level')?.getRawValue() }}</span>
           <span class="exp"> /  {{ playerCardForm.get('exp')?.getRawValue() }} XP</span>
         </p>
       </div>
 
+
       <div class="hp-box" [appValueChangeRipple]="playerCardForm.get('hp.current')?.getRawValue()">
         <span class="hp-label">HIT POINTS</span>
         <span class="hp-value">
-          {{ playerCardForm.get('hp.current')?.getRawValue() }}
+        {{ playerCardForm.get('hp.current')?.getRawValue() }}
           <span class="hp-divider">/</span>
           {{ playerCardForm.get('hp.maximum')?.getRawValue() }}
-        </span>
+      </span>
       </div>
     </div>
 
