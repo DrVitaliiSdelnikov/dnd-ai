@@ -15,6 +15,7 @@ export class DiceRollerComponent {
   selectedDie = signal<string>('1d20');
   styleClass = input<string>('');
   rollResult: WritableSignal<number> = signal(0);
+  disabled = input(false);
   @Output() emitRollResults: EventEmitter<number> = new EventEmitter();
 
   readonly menuItems: MenuItem[] = this.buildMenu();

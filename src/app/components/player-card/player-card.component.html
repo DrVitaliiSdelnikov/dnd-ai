@@ -29,16 +29,21 @@
           }
 
           <app-dice-roller
+            [disabled]="!playerCardForm.get('level')?.getRawValue()"
             styleClass="p-button-sm p-button-outlined manage-btn"
             (emitRollResults)="setDiceRollResult($event)"
           />
         </div>
 
+
         <p class="char-specialization">
-          {{ playerCardForm.get('race')?.getRawValue() }}
-          /
-          {{ playerCardForm.get('class')?.getRawValue() }}
+          @if(playerCardForm.get('race')?.getRawValue() && playerCardForm.get('class')?.getRawValue()) {
+            {{ playerCardForm.get('race')?.getRawValue() }}
+            /
+            {{ playerCardForm.get('class')?.getRawValue() }}
+          }
         </p>
+
 
 
         <p class="char-level-exp">
@@ -69,12 +74,17 @@
             <button
               class="stat-button"
               type="button"
+              [disabled]="!ability.value"
               (click)="rollAbilityDice(ability.key, ability.value)"
               [appValueChangeRipple]="ability.value">
               {{ ability.value }}
             </button>
 
-            <span class="bonus-oval" *ngIf="true">+1</span>
+            <span
+              class="bonus-oval"
+              [ngClass]="{'bonus-oval-disabled': !ability.value}"
+              *ngIf="true"
+            >+1</span>
           </div>
         </ng-container>
       </div>

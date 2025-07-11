@@ -128,10 +128,14 @@
       transition: box-shadow 0.15s ease-in-out;
     }
 
-    .stat-button:hover,
-    .stat-button:focus-visible {
+    .stat-button:not(:disabled):hover,
+    .stat-button:not(:disabled):focus-visible {
       outline: none;
       box-shadow: 0 0 0 3px #ef4444;
+    }
+
+    .stat-button:disabled {
+      opacity: 0.6;
     }
 
     .bonus-oval {
@@ -145,6 +149,10 @@
       font-size: 0.9rem;
       line-height: 1.2;
       color: #111827;
+    }
+
+    .bonus-oval-disabled {
+      opacity: 0.8;
     }
   }
 
