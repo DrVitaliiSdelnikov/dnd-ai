@@ -274,10 +274,10 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     ---
     **Data for Summarization:**
 
-    ### Previous Summary
+    Previous Summary
     ${existingSummary?.content || 'No previous summary.'}
 
-    ### Recent Messages
+    Recent Messages
     ${JSON.stringify(lastTenBlock)}
   `;
 
