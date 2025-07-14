@@ -43,15 +43,8 @@ export const TASK_CONTINUE_GAMEPLAY = `
 export const FORMAT_JSON_RESPONSE = `
 **CRITICAL OUTPUT INSTRUCTIONS: YOUR ENTIRE RESPONSE MUST BE A SINGLE, VALID JSON OBJECT AND NOTHING ELSE.**
 
-- **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
-do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
-- **NO EXTRA TEXT:** The first character of your response must be \\`
-{` and the last character must be \\`}`. There should be no text or whitespace outside of these brackets.
--  { role: here should be role title as string, content: here JSON Schema provided below }
-- **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
-- **Avoid Redundancy in "message":** The "message" field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like "You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object. The player's UI will display these changes from the structured data.
-
-**JSON Schema:**
+**JSON Schema, which should be used as model for response:**
+**Use this JSON model only, dont create your new one**
 {
   "playerCard": {
     "hp": { "current": "number", "maximum": "number" },
@@ -68,6 +61,15 @@ do not add any introductory text, explanations, greetings, or apologies before o
   },
   "message": "string" // This field contains your in-character text response as the DM.
 }
+
+- **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
+do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
+- **NO EXTRA TEXT:** The first character of your response must be \\`
+{` and the last character must be \\`}`. There should be no text or whitespace outside of these brackets.
+-  { role: here should be role title as string, content: here JSON Schema provided below }
+- **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
+- **Avoid Redundancy in "content", the field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like "You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object. The player's UI will display these changes from the structured data.
+
 **FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
 `;
 

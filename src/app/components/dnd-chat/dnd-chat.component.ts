@@ -178,7 +178,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   formatMessageContent(content: string): string {
-    return content.replace(/\n/g, '<br>');
+    return content?.replace(/\n/g, '<br>');
   }
 
   sendMessage(): void {
