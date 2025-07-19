@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Output, EventEmitter, input } from '@angular/core';
 import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { NgForOf, NgIf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
@@ -16,6 +16,7 @@ import { ButtonDirective } from 'primeng/button';
 })
 export class InventoryDisplayComponent implements OnInit, OnChanges {
   @Input() inventoryItems: InventoryItem[] = [];
+  abilityModifiers = input({});
 
   categorizedItems: { [key: string]: InventoryItem[] } = {};
   categoryOrder: string[] = ['WEAPON', 'ARMOR', 'CONSUMABLE', 'MISC_ITEM', 'OTHER'];
@@ -28,7 +29,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   };
   damageRollResults: { [itemId: string]: number | null } = {};
   actionResults: { [itemId: string]: string | null } = {};
-  @Output() emitRollResults: EventEmitter<string> = new EventEmitter();
+  @Output() emitRollResults: EventEmitter<{[key: string]: string}> = new EventEmitter();
 
   ngOnInit(): void {
     this.categorizeItems();
@@ -67,79 +68,99 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       .filter(displayName => obj[displayName] && obj[displayName].length > 0);
   }
 
+  rollAttack(item: InventoryItem): void {
+    if (item.type !== 'WEAPON') return;
+
+    const abilityKey = (item.properties.range_type === 'RANGED' || item.properties.special_tags?.includes('Finesse')) ? 'dex' : 'str';
+    const modifier = this.abilityModifiers()[abilityKey] ?? 0;
+    const magicBonus = item.properties.magic_bonus ?? 0;
+    const totalBonus = modifier + magicBonus;
+
+    const d20Roll = Math.floor(Math.random() * 20) + 1;
+    const finalResult = d20Roll + totalBonus;
+
+    const bonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
+    const resultDescription = `Attack with ${item.name}: ${finalResult} to hit (Roll: ${d20Roll}${bonusString})`;
+
+    this.emitRollResults.emit({
+      type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
+      description: resultDescription
+    });
+  }
+
   rollDamage(item: InventoryItem): void {
-    if (item.type === 'WEAPON' && item.properties.damage_dice) {
-      const diceNotation = item.properties.damage_dice;
-      let totalDamage = 0;
-      let modifier = 0;
+    if (item.type !== 'WEAPON' || !item.properties.damage_dice) return;
 
-      const parts = diceNotation.match(/(\d+)[dD](\d+)(?:([+-])(\d+))?/);
+    const diceNotation = item.properties.damage_dice;
+    const damageRollResult = this.parseAndRollDice(diceNotation);
 
-      if (parts) {
-        const numDice = parseInt(parts[1], 10);
-        const diceType = parseInt(parts[2], 10);
-
-        if (parts[3] && parts[4]) {
-          modifier = parseInt(parts[4], 10);
-          if (parts[3] === '-') {
-            modifier = -modifier;
-          }
-        }
-
-        for (let i = 0; i < numDice; i++) {
-          totalDamage += Math.floor(Math.random() * diceType) + 1;
-        }
-        totalDamage += modifier;
-
-        this.damageRollResults[item.item_id_suggestion] = totalDamage;
-        this.emitRollResults.emit(`Damage ${item.name}: ${totalDamage} (roll: ${diceNotation})`);
-      } else {
-        this.damageRollResults[item.item_id_suggestion] = null;
-      }
+    if (damageRollResult.error) {
+      this.actionResults[item.item_id_suggestion] = 'Ошибка урона';
+      return;
     }
+
+    const abilityKey = (item.properties.range_type === 'RANGED' || item.properties.special_tags?.includes('Finesse')) ? 'dex' : 'str';
+    const modifier = this.abilityModifiers()[abilityKey] ?? 0;
+    const magicBonus = item.properties.magic_bonus ?? 0;
+    const totalBonus = modifier + magicBonus;
+    const finalDamage = damageRollResult.total + totalBonus;
+    const bonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
+    const resultDescription = `Damage with ${item.name}: ${finalDamage} (Roll: ${damageRollResult.total}${bonusString})`;
+
+    this.actionResults[item.item_id_suggestion] = `Урон: ${finalDamage}`;
+    this.emitRollResults.emit({
+      type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
+      description: resultDescription
+    });
   }
 
   useConsumable(item: InventoryItem): void {
-    if (item.type !== 'CONSUMABLE' || !item.properties.effect_details) return;
-    const effect = item.properties.effect_details;
+    if (item.type !== 'CONSUMABLE' || !item.properties.effects || !item.properties.effects.length) return;
+
+    const effect = item.properties.effects[0]; // Берем первый эффект
 
     if (effect.type === 'HEAL' && effect.heal_amount) {
       const result = this.parseAndRollDice(effect.heal_amount);
-      if (result !== null) {
-        this.actionResults[item.item_id_suggestion] = `Heal: ${result}`;
-        this.emitRollResults.emit(`Used ${item.name}. Healed for: ${result} (from ${effect.heal_amount})`);
+      if (!result.error) {
+        this.actionResults[item.item_id_suggestion] = `Исцелено: ${result.total}`;
+        this.emitRollResults.emit({
+          type: `CONSUMABLE_USE_${item.item_id_suggestion}`,
+          description: `Used ${item.name}. Healed for: ${result.total} (from ${effect.heal_amount})`
+        });
       } else {
         this.actionResults[item.item_id_suggestion] = 'Ошибка эффекта';
       }
     }
   }
 
-  private parseAndRollDice(diceNotation: string): number | null {
+  private parseAndRollDice(diceNotation: string): { total: number; error: null } | { total: null; error: string } {
+    if (!diceNotation || typeof diceNotation !== 'string') {
+      return { total: null, error: `Invalid dice notation: ${diceNotation}` };
+    }
+
     let total = 0;
     let modifier = 0;
-
-    const parts = diceNotation.match(/(\d+)[dD](\d+)(?:([+-])(\d+))?/);
+    const parts = diceNotation.trim().match(/(\d+)[dD](\d+)(?:([+-])(\d+))?/);
 
     if (parts) {
       const numDice = parseInt(parts[1], 10);
       const diceType = parseInt(parts[2], 10);
-
       if (parts[3] && parts[4]) {
         modifier = parseInt(parts[4], 10);
-        if (parts[3] === '-') {
-          modifier = -modifier;
-        }
+        if (parts[3] === '-') { modifier = -modifier; }
       }
       for (let i = 0; i < numDice; i++) {
         total += Math.floor(Math.random() * diceType) + 1;
       }
       total += modifier;
-      return total;
-    } else if (!isNaN(parseInt(diceNotation, 10))) {
-      return parseInt(diceNotation, 10);
+      return { total, error: null };
     }
 
-    console.error('Неверный формат дайсов:', diceNotation);
-    return null;
+    const staticValue = parseInt(diceNotation, 10);
+    if (!isNaN(staticValue)) {
+      return { total: staticValue, error: null };
+    }
+
+    return { total: null, error: `Unknown dice notation format: ${diceNotation}` };
   }
 }

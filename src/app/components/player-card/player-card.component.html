@@ -53,13 +53,21 @@
       </div>
 
 
-      <div class="hp-box" [appValueChangeRipple]="playerCardForm.get('hp.current')?.getRawValue()">
-        <span class="hp-label">HIT POINTS</span>
-        <span class="hp-value">
-        {{ playerCardForm.get('hp.current')?.getRawValue() }}
-          <span class="hp-divider">/</span>
-          {{ playerCardForm.get('hp.maximum')?.getRawValue() }}
-      </span>
+      <div class="hp-armor-wrapper">
+        <div class="hp-box" [appValueChangeRipple]="playerCardForm.get('hp.current')?.getRawValue()">
+          <span class="hp-label">HIT POINTS</span>
+          <span class="hp-value">
+            {{ playerCardForm.get('hp.current')?.getRawValue() }}
+            <span class="hp-divider">/</span>
+            {{ playerCardForm.get('hp.maximum')?.getRawValue() }}
+          </span>
+        </div>
+        <div>
+          <div class="hp-box" [appValueChangeRipple]="playerCardForm.get('hp.current')?.getRawValue()">
+            <span class="hp-label">ARMOR</span>
+            <span class="hp-value">{{ armorClass() }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -75,7 +83,7 @@
               class="stat-button"
               type="button"
               [disabled]="!ability.value"
-              (click)="rollAbilityDice(ability.key, ability.value)"
+              (click)="rollAbilityCheck(ability.key)"
               [appValueChangeRipple]="ability.value">
               {{ ability.value }}
             </button>
@@ -83,8 +91,8 @@
             <span
               class="bonus-oval"
               [ngClass]="{'bonus-oval-disabled': !ability.value}"
-              *ngIf="true"
-            >+1</span>
+              *ngIf="equipmentBonuses()?.statsBonuses?.[ability.key] && equipmentBonuses()?.statsBonuses?.[ability.key] > 0"
+            >+{{ equipmentBonuses()?.statsBonuses?.[ability.key] }}</span>
           </div>
         </ng-container>
       </div>
@@ -96,7 +104,16 @@
           <p-accordionTab header="Inventory">
             <app-inventory-display
               (emitRollResults)="setFromInventoryDiceRollResult($event)"
+              [abilityModifiers]="equipmentBonuses()?.statsBonuses"
               [inventoryItems]="playerCard()?.loot"/>
+          </p-accordionTab>
+
+          <p-accordionTab header="Spellbook" [disabled]="!playerCard()?.spells?.length">
+            <app-spellbook-display
+              [spells]="playerCard()?.spells"
+              [abilityModifiers]="equipmentBonuses()?.statsBonuses"
+              (spellCast)="handleSpellCast($event)"
+            ></app-spellbook-display>
           </p-accordionTab>
 
           <p-accordionTab

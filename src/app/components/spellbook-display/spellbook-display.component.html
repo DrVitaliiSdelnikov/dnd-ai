@@ -1,0 +1,30 @@
+<div class="spellbook-container">
+    @if(!spells()?.length) {
+      <div class="empty-inventory">
+        Spellbook is empty.
+      </div>
+    }
+
+    <div *ngFor="let categoryName of objectKeys(categorizedSpells())" class="inventory-section">
+      <h3>{{ categoryName }}</h3>
+      <ul class="item-list">
+        <li *ngFor="let spell of categorizedSpells()[categoryName]" class="item-entry">
+          <div class="item-info">
+            <span class="item-name" [pTooltip]="spell.description" tooltipPosition="top">
+              {{ spell.name }}
+            </span>
+          </div>
+          <div class="item-actions">
+
+            <button
+              *ngIf="!spell.properties.is_passive"
+              (click)="castSpell(spell)"
+              pButton
+              class="action-button cast-button p-button-info p-button-outlined">
+              Cast
+            </button>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>

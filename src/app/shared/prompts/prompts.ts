@@ -55,6 +55,7 @@ export const FORMAT_JSON_RESPONSE = `
     "level": "number",
     "exp": "number",
     "loot": [/* Array of 'Universal Item Model' objects */],
+    "spells": [/* Array of 'Universal spell Model' objects */],
     "abilities": { "str": "number", "dex": "number", "con": "number", "int": "number", "wis": "number", "cha": "number" },
     "notes": "string",
     "isUpdated": "boolean"
@@ -78,10 +79,11 @@ do not add any introductory text, explanations, greetings, or apologies before o
 export const TASK_SUMMARIZE_HISTORY = `
 You are a Story Archivist for a text-based RPG.
 Your sole purpose is to create a factual, concise summary of game events based on the provided history.
--   Analyze the "Previous Summary" and the "Recent Messages".
--   Extract key events, decisions, acquired items, important NPCs, and locations.
--   The summary must be a neutral, third-person narrative.
--   Your output must be a single block of plain text containing only the summary. Do not add greetings.
+- Analyze the "Previous Summary" and the "Recent Messages".
+- Extract key events, decisions, acquired items, important NPCs, and locations.
+- The summary must be a neutral, third-person narrative.
+- Your output must be a single block of plain text containing only the summary. Do not add greetings.
+- Summery should not include playerCard object, and any other JSON elements, only narrative aspects.
 `;
 
 export const LOOT_AND_INVENTORY_MANAGEMENT = `
@@ -126,23 +128,77 @@ If, based on the narrative and player actions, you determine that the player fin
     "armor_class_value"?: "number", // total AC provided
     "armor_type"?: "string", // e.g., "Light Armor", "Shield"
     "max_dex_bonus"?: "number | string", // e.g., 2 or "NO_LIMIT"
-    "stealth_disadvantage"?: "boolean",
-    "strength_requirement"?: "number",
     "effect_description_brief": "string", // REQUIRED for consumables, summarizing the effect
-    "effect_details"?: { /* object, optional, detailing the effect mechanics */
-      "type": "string", // e.g., "HEAL", "BUFF_STAT", "GRANT_EFFECT", "DAMAGE_AREA"
-      "heal_amount"?: "string",      // e.g., "2d4+2" or "15"
-      "stat_buffed"?: "string",      // e.g., { "str", "dex", "con", "int", "wis", "cha" }
-      "buff_value"?: "number | string", // e.g., 2 or "+1d4"
-      "buff_duration_rounds"?: "number | string", // optional, e.g., 10 or "1 minute"
-      "effect_granted"?: "string", //  e.g., "Fire Resistance", "Invisibility"
-    },
-
-
     "effects_list"?: ["string"],    // array of text descriptions of its magical effects or stat bonuses
+    "effect_details"?: [{
+        "type": "string", // 'BUFF_STAT', 'HEAL', 'GRANT_ABILITY', 'TEXT_DESCRIPTION'
+        "description": "string", // Текстовое описание этого конкретного эффекта. e.g., "+1 to Wisdom"
+        "stat_buffed"?: "string", // 'str', 'dex', 'con', 'int', 'wis', 'cha', 'AC', 'SAVING_THROW_ALL', 'SAVING_THROW_DEX', etc.
+        "buff_value"?: "number", // e.g., 1, 2, -1
+        "heal_amount"?: "string", // e.g., "2d4+2"
+        "ability_granted"?: "string", // e.g., "Advantage on Perception checks", "Resistance to Fire damage"
+        // Для type: 'TEXT_DESCRIPTION' (если эффект чисто описательный)
+        // Поле "description" уже покрывает это.
+    }],
     "currency_type"?: "string", // e.g., "gold", "silver", "electrum"
     "utility_description"?: "string", // optional, describes what it can be used for if not obvious
     "is_quest_item"?: "boolean"     // optional, true if it's specifically a quest item
   } as array of these items
+}
+`;
+
+export const SPELLS_SKILLS_MANAGEMENT = `
+**"Universal spell Model" Structure (for each item in playerCard.spells - both input and output):**
+{
+  "id_suggestion": "string", // Уникальный ID, предлагаемый AI (e.g., "spell_fireball_01", "ability_power_attack_01")
+  "name": "string", // Название, которое видит игрок (e.g., "Fireball", "Power Attack")
+  "type": "SPELL | ABILITY", // Тип: заклинание (требует маны/слотов) или способность (может быть пассивной или иметь перезарядку)
+  "description": "string", // Художественное описание и общая механика (e.g., "Вы создаете огненный шар, который взрывается в указанной точке...")
+
+  "properties": {
+  --- Общие свойства для обоих типов ---
+  "target_type": "SELF | SINGLE_ENEMY | SINGLE_ALLY | AREA | MULTIPLE", // На кого/что нацелено
+    "range": "string", // Дистанция (e.g., "Self", "Touch", "60 feet", "120-foot line")
+    "duration": "string", // ignore this field
+    "casting_time": "string", // ignore this field
+    "usage_cost"?: {            // Стоимость использования
+      "resource": "MANA | SPELL_SLOT | HIT_POINTS |NONE",
+      "amount": "number" // e.g., 10 (для маны), 3 (для слота 3-го уровня)
+    },
+    "usage_limit"?: { // Ограничение на использование
+      "charges": "number" // Количество зарядов (e.g., 3 раза в день)
+    },
+    "is_passive": "boolean", // Является ли способность пассивной (true для аур, постоянных бонусов), обязательное поле
+
+    // --- Свойства, специфичные для заклинаний (SPELL) ---
+    "school_of_magic"?: "string",// Школа магии (e.g., "Evocation", "Abjuration", "Illusion")
+    "spell_level"?: "number", // Уровень заклинания (0 для кантрипов/фокусов, 1, 2, ...)
+    "material_component_description"?: "string", // Описание материального компонента, если он есть
+
+    // --- Механика эффекта (самая важная часть) ---
+    "effects": [
+    // Массив эффектов, так как одно заклинание может делать несколько вещей
+    // (например, наносить урон И отталкивать)
+    {
+      "effect_type": "DAMAGE | HEAL | BUFF_STAT | DEBUFF_STAT | GRANT_EFFECT | SUMMON | CONTROL | UTILITY",
+      "damage_dice": "string", // Для DAMAGE, e.g., "8d6"
+      "damage_type": "string", // Для DAMAGE, e.g., "Fire", "Cold", "Force"
+      "heal_dice": "string", // Для HEAL, e.g., "1d4"
+      "stat_affected": "string", // Для BUFF/DEBUFF, e.g., "Strength", "AC", "Attack Rolls"
+      "modifier_value": "string", // Для BUFF/DEBUFF, e.g., "+2", "-1d4"
+      "effect_granted"?: "string", // Для GRANT_EFFECT, e.g., "Invisibility", "Haste", "Poisoned", "Stunned"
+      "area_of_effect"?: { // Для эффектов по области
+        "shape": "SPHERE | CUBE | CONE | LINE",
+        "size": "number", // e.g., 20 (для радиуса сферы), 15 (для стороны куба/длины конуса)
+        "unit": "FEET | METERS"
+      },
+      "saving_throw"?: { // Если эффект можно избежать/ослабить спасброском
+        "ability": "STRENGTH | DEXTERITY | CONSTITUTION | INTELLIGENCE | WISDOM | CHARISMA",
+        "effect_on_save": "NEGATES | HALF_DAMAGE | NO_EFFECT_CHANGE" // Что происходит при успешном спасброске
+      },
+      "description": "string" // Краткое текстовое описание именно этого конкретного эффекта
+    }
+  ]
+}
 }
 `;

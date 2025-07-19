@@ -20,8 +20,14 @@ import { sessionStorageKeys } from '../../shared/const/session-storage-keys';
 import { PlayerCardComponent } from '../player-card/player-card.component';
 import { ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
 import {
-  CORE_DM_BEHAVIOR, FORMAT_JSON_RESPONSE, LOOT_AND_INVENTORY_MANAGEMENT, RULES_DICE_AND_CHECKS, TASK_CONTINUE_GAMEPLAY,
-  TASK_NEW_CAMPAIGN, TASK_SUMMARIZE_HISTORY
+  CORE_DM_BEHAVIOR,
+  FORMAT_JSON_RESPONSE,
+  LOOT_AND_INVENTORY_MANAGEMENT,
+  RULES_DICE_AND_CHECKS,
+  SPELLS_SKILLS_MANAGEMENT,
+  TASK_CONTINUE_GAMEPLAY,
+  TASK_NEW_CAMPAIGN,
+  TASK_SUMMARIZE_HISTORY
 } from '../../shared/prompts/prompts';
 import { Observable, of } from 'rxjs';
 import { PlayerCard } from '../../shared/interfaces/player-card.interface';
@@ -206,6 +212,10 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     ---
     ${LOOT_AND_INVENTORY_MANAGEMENT}
     ---
+    ${SPELLS_SKILLS_MANAGEMENT}
+    ---
+    Player curren playerCard state -> ${JSON.stringify(this.playerCard())}
+    ---
     **Game Context (History):**
     ${JSON.stringify(userMessage)}
   `;
@@ -305,7 +315,17 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     this.sendInstructionsAndStart();
   }
 
-  setDiceRollResult($event: string) {
-    this.userInput = `${$event}.`
+  setDiceRollResult(rollEvent: {[key: string]: string}): void {
+    const rollMarkerRegex = new RegExp(`\\[ROLL:${rollEvent.type}:.*?\\]`, 'g');
+    const newRollMarker = `[ROLL:${rollEvent.type}:${rollEvent.description}]`;
+
+
+    if (rollMarkerRegex.test(this.userInput)) {
+      this.userInput = this.userInput.replace(rollMarkerRegex, newRollMarker);
+    } else {
+      this.userInput = this.userInput.trim()
+        ? `${this.userInput.trim()} ${newRollMarker}`
+        : newRollMarker;
+    }
   }
 }
