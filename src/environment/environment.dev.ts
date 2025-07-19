@@ -1,6 +1,6 @@
 
 export const environment = {
-  // apiUrl: 'https://api.rpg-play-ai.com', use for local work without back
+  // apiUrl: 'https://api.rpg-play-ai.com',
   apiUrl: 'http://localhost:3000',
   production: false,
 };

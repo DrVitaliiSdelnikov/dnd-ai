@@ -1,5 +1,6 @@
 export interface ItemProperties {
   // Common
+  effects: any;
   attunement_required?: boolean;
   magic_bonus?: number;
 
@@ -39,6 +40,11 @@ export interface ItemProperties {
 
   utility_description?: string;
   is_quest_item?: boolean;
+}
+
+export interface CalculatedBonuses {
+  statsBonuses: {[key: string]: number};
+  armorClass: number;
 }
 
 export interface InventoryItem {

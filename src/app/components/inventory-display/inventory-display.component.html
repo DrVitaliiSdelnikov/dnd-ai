@@ -20,7 +20,7 @@
         <div class="item-actions">
           <button
             *ngIf="item.type === 'WEAPON' && item.properties.damage_dice"
-            (click)="rollDamage(item)"
+            (click)="rollAttack(item)"
             pButton
             class="action-button attack-button p-button-danger p-button-outlined">
             Attack ({{ item.properties.damage_dice }})

@@ -138,6 +138,12 @@
       opacity: 0.6;
     }
 
+    .hp-armor-wrapper {
+      display: flex;
+      gap: 5px;
+      flex-direction: column;
+    }
+
     .bonus-oval {
       margin-top: -10px;
       padding: 2px 10px;

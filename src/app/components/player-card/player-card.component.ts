@@ -6,7 +6,7 @@ import {
   input,
   OnInit,
   inject,
-  Output, EventEmitter, WritableSignal
+  Output, EventEmitter, WritableSignal, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -28,6 +28,9 @@ import { DiceRollerComponent } from '../dice-roller/dice-roller.component';
 import { DiceRollerService } from '../dice-roller/dice-roller.service';
 import { InventoryDisplayComponent } from '../inventory-display/inventory-display.component';
 import { AttributeNamePipe } from './attribute-name.pipe';
+import { CalculatedBonuses, InventoryItem } from '../../shared/interfaces/inventroy.interface';
+import { SpellbookDisplayComponent } from '../spellbook-display/spellbook-display.component';
+import { RollEvent } from '../../shared/interfaces/dice-roll';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -62,11 +65,36 @@ interface CharacterBase {
     DiceRollerComponent,
     InventoryDisplayComponent,
     AttributeNamePipe,
+    SpellbookDisplayComponent,
   ]
 })
 export class PlayerCardComponent implements OnInit {
-  @Output() emitRollResults: EventEmitter<string> = new EventEmitter();
+  @Output() emitRollResults: EventEmitter<{ [key: string]: string }> = new EventEmitter();
   playerCard = input(null);
+  readonly equipmentBonuses: Signal<CalculatedBonuses> = computed(() => {
+    const allItems = this.playerCard()?.loot ?? [];
+    const bonuses: CalculatedBonuses = {
+      armorClass: 10,
+      statsBonuses: {}
+    };
+
+    bonuses.statsBonuses = this.calculateStatsBonuses(allItems, this.playerCard()?.abilities);
+    bonuses.armorClass = this.calculateArmorClass(allItems, bonuses?.statsBonuses);
+
+    if(!bonuses?.statsBonuses || !bonuses?.armorClass) return;
+
+    const baseDex = this.playerCardForm.get('abilities.dex').value;
+    const bonusDexFromItems = bonuses?.statsBonuses.dex || 0;
+    const totalDex = (baseDex || 0) + bonusDexFromItems;
+    const dexModifier = this.getAbilityModifier(totalDex);
+
+    const heavyArmor = allItems.find(item => item.properties?.armor_type === 'Heavy Armor');
+    if (!heavyArmor) {
+      bonuses.armorClass += dexModifier;
+    }
+
+    return bonuses;
+  });
   campaignSummary = input(null);
   private readonly diceRollerService: DiceRollerService = inject(DiceRollerService)
   playerCardForm: FormGroup = new FormGroup<CharacterBase>({
@@ -114,6 +142,9 @@ export class PlayerCardComponent implements OnInit {
   );
   toggleEdit = () => this.editMode.set(!this.editMode());
   loading: WritableSignal<boolean> = signal(true);
+  armorClass = computed(() => {
+    return this.equipmentBonuses()?.armorClass > 0 ? this.equipmentBonuses()?.armorClass : 0;
+  });
 
   constructor() {
     effect(() => {
@@ -128,8 +159,46 @@ export class PlayerCardComponent implements OnInit {
     this.setInitPlayerCard();
   }
 
+  private calculateStatsBonuses(
+    allItems: InventoryItem[],
+    baseAbilities: { [key: string]: number | null }
+  ): { [key: string]: number } {
+
+    if(!baseAbilities) return;
+
+    const finalModifiers: { [key: string]: number } = {};
+
+    const itemBonuses: { [key: string]: number } = {};
+    allItems.forEach(item => {
+      const props = item?.properties;
+      if (props?.effects && Array.isArray(props.effects)) {
+        props.effects.forEach(effect => {
+          if (effect.type === 'BUFF_STAT' && effect.stat_buffed && typeof effect.buff_value === 'number') {
+            const statKey = effect.stat_buffed.toLowerCase();
+            itemBonuses[statKey] = (itemBonuses[statKey] || 0) + effect.buff_value;
+          }
+        });
+      }
+    });
+
+    Object.keys(baseAbilities).forEach(key => {
+      const baseValue = baseAbilities[key] ?? 0;
+      const itemBonus = itemBonuses[key] ?? 0;
+      const totalValue = baseValue + itemBonus;
+
+      finalModifiers[key] = this.getAbilityModifier(totalValue);
+    });
+
+    return finalModifiers;
+  }
+
   trackByAbilityKey(index: number, item: { key: string, value: any }): string {
     return item.key;
+  }
+
+  getAbilityModifier(value: number): number {
+    if (value === null || value === undefined) return 0;
+    return Math.floor((value - 10) / 2);
   }
 
   saveChanges(): void {
@@ -177,15 +246,82 @@ export class PlayerCardComponent implements OnInit {
   }
 
   setDiceRollResult($event: number): void {
-    this.emitRollResults.emit(`${this.diceRollerService.getSelectedDie()} roll, result: ${$event}`);
+    this.emitRollResults.emit({
+      type: `FREE_DICE_ROLL`,
+      description: String($event)
+    });
   }
 
-  setFromInventoryDiceRollResult($event: string): void {
+  setFromInventoryDiceRollResult($event:  { [key: string]: string }): void {
     this.emitRollResults.emit($event);
   }
 
-  rollAbilityDice(key: string, value: number): void {
-    const rollResult = this.diceRollerService.roll()
-    this.emitRollResults.emit(`${this.diceRollerService.getSelectedDie()} ${this.abilitiesMap[key]} roll, result: ${rollResult}`)
+  rollAbilityCheck(abilityKey: string): void {
+    const abilityData = this.equipmentBonuses()?.statsBonuses;
+    const modifier = abilityData[abilityKey];
+
+    if (modifier === undefined) {
+      console.error(`Could not find modifier for ability key: ${abilityKey}`);
+      return;
+    }
+
+    const d20Roll = Math.floor(Math.random() * 20) + 1;
+    const finalResult = d20Roll + modifier;
+    const abilityName = this.abilitiesMap[abilityKey] || 'Unknown';
+    const modifierString = modifier === 0 ? '' : (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`);
+    const resultString = `Check for ${abilityName}: ${finalResult} (Roll: ${d20Roll}${modifierString})`;
+
+    this.emitRollResults.emit({
+      type: `ABILITY_CHECK_${abilityKey.toUpperCase()}`,
+      description: resultString
+    });
+  }
+
+  private calculateArmorClass(allItems: InventoryItem[], statsBonuses: { [key: string]: number }): number {
+    let calculatedAc = 10;
+    let armorIsPresent = false;
+
+    allItems.forEach(item => {
+      const props = item?.properties;
+      if (!props) return;
+
+      if (typeof props.armor_class_value === 'number') {
+        if (!armorIsPresent) {
+          calculatedAc = props.armor_class_value;
+          armorIsPresent = true;
+        } else {
+          calculatedAc += props.armor_class_value;
+        }
+      }
+
+      if (typeof props.magic_bonus === 'number' && (item.type === 'ARMOR' || item.type === 'SHIELD')) {
+        calculatedAc += props.magic_bonus;
+      }
+    });
+
+    const baseDex = this.playerCardForm.get('abilities.dex').value ?? 0;
+    const bonusDexFromItems = statsBonuses?.dex || 0;
+    const totalDex = baseDex + bonusDexFromItems;
+    const dexModifier = this.getAbilityModifier(totalDex);
+
+    const heavyArmor = allItems.find(item => item.properties?.armor_type === 'Heavy Armor');
+    if (!heavyArmor) {
+      const mediumArmor = allItems.find(item => item.properties?.armor_type === 'Medium Armor');
+      if (mediumArmor) {
+        const maxDexBonus = Number(mediumArmor.properties.max_dex_bonus ?? 2);
+        calculatedAc += Math.min(dexModifier, maxDexBonus);
+      } else {
+        calculatedAc += dexModifier;
+      }
+    }
+
+    return calculatedAc;
+  }
+
+  handleSpellCast($event: RollEvent): void {
+    this.emitRollResults.emit({
+      type: $event.type,
+      description: $event.description
+    });
   }
 }
