@@ -3,12 +3,11 @@ import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
 import { StickyHeaderDirective } from '../../shared/directives/sticky-header.directive';
 import { Drawer } from 'primeng/drawer';
-import { Sidebar } from 'primeng/sidebar';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, ButtonModule, StickyHeaderDirective, Drawer, Sidebar],
+  imports: [CommonModule, ButtonModule, StickyHeaderDirective, Drawer ],
   templateUrl: './app-header.component.html',
   styleUrls: ['./app-header.component.scss']
 })
