@@ -127,7 +127,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   private checkCampaignHistory(): void {
     this.isLoading.set(true);
     const messagesHistory = this.getCampaignMessages();
-    this.campaignSummary.set(JSON.parse(this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.SUMMERY)));
+    this.campaignSummary.set(this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.SUMMERY));
     this.isNewCampaign.set(!messagesHistory?.length);
     if(messagesHistory?.length) {
       this.messages = JSON.parse(messagesHistory) ?? [];
@@ -276,7 +276,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
 
   private generateSummery(message: ChatMessage): Observable<ChatMessage> {
     const lastTenBlock = this.lastN(this.messages, 10);
-    const existingSummary = JSON.parse(this.campaignSummary()) ?? '';
+    const existingSummary = this.campaignSummary() ?? '';
 
     const summarizationPrompt = `
     ${TASK_SUMMARIZE_HISTORY}
@@ -285,19 +285,19 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     **Data for Summarization:**
 
     Previous Summary
-    ${existingSummary?.content || 'No previous summary.'}
+    ${existingSummary || 'No previous summary.'}
 
     Recent Messages
     ${JSON.stringify(lastTenBlock)}
   `;
 
-    return this.chatService.sendMessage([{ role: 'user', content: summarizationPrompt }])
+    return this.chatService.getSummarize([{ role: 'user', content: summarizationPrompt }])
       .pipe(
         delay(1000),
         take(1),
         tap(result => {
           this.campaignSummary.set(result.content);
-          this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.SUMMERY, JSON.stringify(result));
+          this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.SUMMERY, this.campaignSummary());
         }),
         map(() => message),
       )

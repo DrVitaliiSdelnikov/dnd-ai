@@ -120,7 +120,7 @@
             header="Adventure summery"
             [disabled]="!campaignSummary()"
           >
-            <p>{{ campaignSummary()?.content || '—' }}</p>
+            <p>{{ campaignSummary() || '—' }}</p>
           </p-accordionTab>
 
         </p-accordion>

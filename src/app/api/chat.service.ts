@@ -31,6 +31,18 @@ export class ChatService {
     );
   }
 
+  getSummarize(messages: ChatMessage[]): Observable<ChatMessage> {
+    return this.http.post<ChatMessage>(`${this.apiUrl}/summarize`, { messages }).pipe(
+      map(response => {
+        if (!response.role) {
+          return { ...response, role: 'assistant' };
+        }
+        return response;
+      }),
+      catchError(this.handleError)
+    );
+  }
+
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An unknown error occurred!';
     if (error.error instanceof ErrorEvent) {

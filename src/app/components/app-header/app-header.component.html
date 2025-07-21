@@ -1,0 +1,89 @@
+<header class="app-header" appStickyHeader>
+  <div class="header-content">
+
+    <div class="header-left">
+      <div class="header-title">
+        <span>RPG AI</span>
+      </div>
+    </div>
+
+
+    <div class="header-right">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-user"
+        class="p-button-rounded p-button-text p-button-secondary profile-button"
+        (click)="toggleProfile()">
+      </button>
+    </div>
+
+  </div>
+</header>
+
+<p-drawer
+  [(visible)]="isSidebarVisible"
+  [closeOnEscape]="true"
+  styleClass="github-sidebar">
+
+  <ng-template pTemplate="header">
+    <h3 class="sidebar-title">Player Card</h3>
+  </ng-template>
+
+  <ng-template pTemplate="content">
+    <ul class="sidebar-nav-list" (click)="$event.stopPropagation()">
+      <li>
+        <a class="nav-item" (click)="selectSection('HOME',$event)">
+          <i class="pi pi-question-circle"></i>
+          <span>Stats</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" (click)="selectSection('CAMPAIGNS', $event)">
+          <i class="pi pi-book"></i>
+          <span>Loot</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-item" (click)="selectSection('HELP',$event)">
+          <i class="pi pi-book"></i>
+          <span>Spells</span>
+        </a>
+      </li>
+    </ul>
+
+
+    <div class="sidebar-content-area" (click)="$event.stopPropagation()">
+      @switch (activeSection()) {
+        @case ('HOME') {
+          <div class="content-panel">
+            <h4>Welcome!</h4>
+            <p>This is the home section. Here you can find general information or a dashboard.</p>
+          </div>
+        }
+        @case ('CAMPAIGNS') {
+          <div class="content-panel">
+            <h4>My Campaigns</h4>
+            <p>Here will be a list of your saved and active campaigns. You can start a new one or continue a previous adventure.</p>
+            <ul>
+              <li>Campaign 1: The Goblin's Cave</li>
+              <li>Campaign 2: The Lost Artifact</li>
+            </ul>
+          </div>
+        }
+        @case ('HELP') {
+          <div class="content-panel">
+            <h4>Help & FAQ</h4>
+            <p>If you have any questions, you might find answers here. How do I roll dice? How does the inventory work?</p>
+          </div>
+        }
+        @default {
+          <div class="content-panel">
+            <p>Please select a section from the menu.</p>
+          </div>
+        }
+      }
+    </div>
+  </ng-template>
+
+</p-drawer>
