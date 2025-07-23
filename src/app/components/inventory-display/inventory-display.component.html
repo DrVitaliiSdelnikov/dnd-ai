@@ -12,9 +12,8 @@
             {{ item.name }}
             <span *ngIf="item.quantity > 1" class="item-quantity"> (x{{ item.quantity }})</span>
           </span>
-          <span *ngIf="item.description" class="tooltip-container">
-            <span class="info-icon" title="Show description">ⓘ</span>
-            <span class="tooltip-text">{{ item.description }}</span>
+          <span *ngIf="item.description">
+            <i class="pi pi-info-circle" [pTooltip]="item.description" tooltipPosition="top"></i>
           </span>
         </div>
         <div class="item-actions">

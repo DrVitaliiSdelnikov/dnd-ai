@@ -10,8 +10,11 @@
       <ul class="item-list">
         <li *ngFor="let spell of categorizedSpells()[categoryName]" class="item-entry">
           <div class="item-info">
-            <span class="item-name" [pTooltip]="spell.description" tooltipPosition="top">
+            <span class="item-name">
               {{ spell.name }}
+            </span>
+            <span *ngIf="spell.description">
+              <i class="pi pi-info-circle" [pTooltip]="spell.description" tooltipPosition="top"></i>
             </span>
           </div>
           <div class="item-actions">

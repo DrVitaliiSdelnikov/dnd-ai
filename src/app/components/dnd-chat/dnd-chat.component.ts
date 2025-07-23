@@ -225,7 +225,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
         tap(result => this.parseMessage(result)),
         switchMap(result => {
           const count = this.messages?.length ?? 0;
-          return count !== 0 && count % 10 === 0
+          return count !== 0 && (count - 1) % 10 === 0
             ? this.generateSummery(result)
             : of(result);
         }),
