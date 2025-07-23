@@ -222,13 +222,13 @@ export class DndChatComponent implements OnInit, AfterViewInit {
 
     this.chatService.sendMessage([{ role: 'user', content: gameTurnPrompt }])
       .pipe(
+        tap(result => this.parseMessage(result)),
         switchMap(result => {
           const count = this.messages?.length ?? 0;
           return count !== 0 && count % 10 === 0
             ? this.generateSummery(result)
             : of(result);
         }),
-        tap(result => this.parseMessage(result)),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoading.set(false))
       )
@@ -275,20 +275,17 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   private generateSummery(message: ChatMessage): Observable<ChatMessage> {
-    const lastTenBlock = this.lastN(this.messages, 10);
     const existingSummary = this.campaignSummary() ?? '';
 
     const summarizationPrompt = `
     ${TASK_SUMMARIZE_HISTORY}
-
+    ---
+    ${JSON.stringify(this.messages)}
     ---
     **Data for Summarization:**
 
     Previous Summary
     ${existingSummary || 'No previous summary.'}
-
-    Recent Messages
-    ${JSON.stringify(lastTenBlock)}
   `;
 
     return this.chatService.getSummarize([{ role: 'user', content: summarizationPrompt }])
@@ -301,13 +298,6 @@ export class DndChatComponent implements OnInit, AfterViewInit {
         }),
         map(() => message),
       )
-  }
-
-  private lastN(messages: ChatMessage[], n = 10): string {
-    return messages
-      .slice(-n)
-      .map(m => `${m.role} -> ${m.content}`)
-      .join('\n');
   }
 
   prepareInstructions(): void {
