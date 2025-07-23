@@ -101,6 +101,7 @@ INCLUDE (only if critical to understanding future events or character motivation
 - The outcome of critical skill checks that significantly altered events (e.g., "successfully negotiated past the guardian," "failed to disarm the trap leading to X").
 - Significant environmental discoveries or alterations.
 - The goal is a concise summary useful for the DM to quickly recall the key story beats and character developments. Provide the appended summary text in chat.
+- CRITICAL: Try to set summary in 4000 characters
 `;
 
 export const LOOT_AND_INVENTORY_MANAGEMENT = `

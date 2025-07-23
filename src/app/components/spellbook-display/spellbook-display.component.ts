@@ -8,14 +8,14 @@ import {
   computed
 } from '@angular/core';
 import { NgForOf, NgIf } from '@angular/common';
-import { ButtonDirective } from 'primeng/button';
+import { ButtonDirective, ButtonIcon } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule],
+  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ButtonIcon],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
 })

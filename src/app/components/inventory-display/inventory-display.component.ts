@@ -2,6 +2,7 @@ import { Component, Input, OnInit, OnChanges, SimpleChanges, Output, EventEmitte
 import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { NgForOf, NgIf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
+import { Tooltip } from 'primeng/tooltip';
 
 @Component({
   selector: 'app-inventory-display',
@@ -10,7 +11,8 @@ import { ButtonDirective } from 'primeng/button';
   imports: [
     NgForOf,
     NgIf,
-    ButtonDirective
+    ButtonDirective,
+    Tooltip
   ],
   standalone: true
 })
