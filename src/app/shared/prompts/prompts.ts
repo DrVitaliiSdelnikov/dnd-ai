@@ -44,14 +44,25 @@ export const TASK_CONTINUE_GAMEPLAY = `
 
 // --- МОДУЛЬ 3: ФОРМАТ ОТВЕТА ---
 export const FORMAT_JSON_RESPONSE = `
-**CRITICAL OUTPUT INSTRUCTIONS: YOUR ENTIRE RESPONSE MUST BE A SINGLE, VALID JSON OBJECT AND NOTHING ELSE.**
-
-- **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks, do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for system stability.
-- **NO EXTRA TEXT:** The first character of your response must be \`{\` and the last character must be \`}\`. There should be no text or whitespace outside of these brackets.
+- **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
+do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
+- **NO EXTRA TEXT:** The first character of your response must be "{" and the last character must be "}".
+There should be no text or whitespace outside of these brackets.
+-  { role: here should be role title as string, content: here JSON Schema provided below }
 - **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
-- **Avoid Redundancy in "message":** The "message" field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like "You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object. The player's UI will display these changes from the structured data.
+- **Avoid Redundancy in "content", the field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like
+"You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object.
+The player's UI will display these changes from the structured data.
+**FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
 
-**JSON Schema:**
+**CRITICAL OUTPUT REQUIREMENT:**
+Your entire response MUST be a single, **stringified JSON object**.
+This means your output is a plain string that starts with \`{\` and end with \`}\` ready to be parsed by a JSON parser.
+- **NO MARKDOWN OR EXTRA TEXT:** Do NOT wrap the JSON string in markdown blocks (like \`\`\`json) Do NOT add any text, comments, or explanations before or after the JSON string.
+**VALIDATION:** The first character of your output must be \`{\` and the last must be \`}\` All property names and string values inside the JSON MUST be enclosed in double quotes.
+
+**JSON SCHEMA:**
+Adhere strictly to this schema when creating the object that you will stringify.
 {
   "playerCard": {
     "hp": { "current": "number", "maximum": "number" },
@@ -69,17 +80,7 @@ export const FORMAT_JSON_RESPONSE = `
   },
   "message": "string"
 }
-
-- **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
-do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
-- **NO EXTRA TEXT:** The first character of your response must be "{" and the last character must be "}".
-There should be no text or whitespace outside of these brackets.
--  { role: here should be role title as string, content: here JSON Schema provided below }
-- **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
-- **Avoid Redundancy in "content", the field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like
-"You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object.
-The player's UI will display these changes from the structured data.
-**FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
+**FINAL INSTRUCTION: Provide your response as a single, valid, stringified JSON object ONLY.**
 `;
 
 
@@ -101,7 +102,7 @@ INCLUDE (only if critical to understanding future events or character motivation
 - The outcome of critical skill checks that significantly altered events (e.g., "successfully negotiated past the guardian," "failed to disarm the trap leading to X").
 - Significant environmental discoveries or alterations.
 - The goal is a concise summary useful for the DM to quickly recall the key story beats and character developments. Provide the appended summary text in chat.
-- CRITICAL: Try to set summary in 4000 characters
+- CRITICAL: Summary text length should not exceed 4000 characters without empty space.
 `;
 
 export const LOOT_AND_INVENTORY_MANAGEMENT = `
