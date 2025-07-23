@@ -276,6 +276,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
 
   private generateSummery(message: ChatMessage): Observable<ChatMessage> {
     const existingSummary = this.campaignSummary() ?? '';
+    this.isLoading.set(false);
 
     const summarizationPrompt = `
     ${TASK_SUMMARIZE_HISTORY}
