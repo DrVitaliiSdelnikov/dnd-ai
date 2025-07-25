@@ -1,0 +1,76 @@
+:host {
+  display: block;
+  border-radius: 6px;
+  width: 250px; // или auto
+}
+
+.roll-panel-content {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+}
+
+.roll-panel-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.roll-options-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-radio-wrapper {
+  position: relative;
+}
+
+
+:host ::ng-deep {
+  .p-radiobutton {
+
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    opacity: 0;
+  }
+}
+
+
+label.option-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-height: 45px;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.checkmark-icon {
+  color: #539bf5;
+  font-size: 1.25rem;
+  width: 24px;
+  height: 24px;
+}
+
+.roll-panel-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+
+  .roll-confirm-button {
+    width: 100%;
+
+    &:hover {
+      border-color: #80b6f8 !important;
+      color: #80b6f8 !important;
+    }
+  }
+}

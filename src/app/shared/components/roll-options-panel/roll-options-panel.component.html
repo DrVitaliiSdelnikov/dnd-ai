@@ -1,0 +1,24 @@
+<div class="roll-panel-content" [formGroup]="rollForm">
+  <div class="roll-panel-header">
+    <strong>ROLL WITH:</strong>
+  </div>
+
+  <div class="roll-options-list">
+    @for(option of rollOptions; track option.value) {
+      <div class="custom-radio-wrapper">
+        <p-radioButton
+          [value]="option.value"
+          formControlName="rollState"
+          [inputId]="option.value">
+        </p-radioButton>
+        <label [for]="option.value" class="option-content">
+          <span class="text-container">{{ option.text }}</span>
+
+          @if(rollForm.get('rollState').value === option.value) {
+            <i class="checkmark-icon pi pi-check"></i>
+          }
+        </label>
+      </div>
+    }
+  </div>
+</div>

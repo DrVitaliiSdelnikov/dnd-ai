@@ -19,8 +19,9 @@
         <div class="item-actions">
           <button
             *ngIf="item.type === 'WEAPON' && item.properties.damage_dice"
-            (click)="rollAttack(item)"
+            (click)="rollAttackAndDamage(item)"
             pButton
+            (contextmenu)="callModeDialog(item, $event)"
             class="action-button attack-button p-button-danger p-button-outlined">
             Attack ({{ item.properties.damage_dice }})
           </button>
@@ -40,3 +41,11 @@
     </ul>
   </div>
 </div>
+
+
+<p-confirmpopup>
+  <ng-template #content let-message>
+    <app-roll-options-panel (rollEmit)="setRollMode($event)"/>
+  </ng-template>
+</p-confirmpopup>
+

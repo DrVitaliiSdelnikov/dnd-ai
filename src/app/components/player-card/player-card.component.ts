@@ -31,6 +31,12 @@ import { AttributeNamePipe } from './attribute-name.pipe';
 import { CalculatedBonuses, InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { SpellbookDisplayComponent } from '../spellbook-display/spellbook-display.component';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
+import { ConfirmPopup } from 'primeng/confirmpopup';
+import {
+  RollOptionsPanelComponent,
+  RollState, RollStateEnum
+} from '../../shared/components/roll-options-panel/roll-options-panel.component';
+import { ConfirmationService } from 'primeng/api';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -66,11 +72,18 @@ interface CharacterBase {
     InventoryDisplayComponent,
     AttributeNamePipe,
     SpellbookDisplayComponent,
+    ConfirmPopup,
+    RollOptionsPanelComponent,
+  ],
+  providers: [
+    ConfirmationService
   ]
 })
 export class PlayerCardComponent implements OnInit {
   @Output() emitRollResults: EventEmitter<{ [key: string]: string }> = new EventEmitter();
+  private confirmationService: ConfirmationService = inject(ConfirmationService);
   playerCard = input(null);
+  selectedItem: WritableSignal<string> = signal(null);
   readonly equipmentBonuses: Signal<CalculatedBonuses> = computed(() => {
     const allItems = this.playerCard()?.loot ?? [];
     const bonuses: CalculatedBonuses = {
@@ -145,6 +158,7 @@ export class PlayerCardComponent implements OnInit {
   armorClass = computed(() => {
     return this.equipmentBonuses()?.armorClass > 0 ? this.equipmentBonuses()?.armorClass : 0;
   });
+  private selectedMode: WritableSignal<string> = signal(RollStateEnum.NORMAL);
 
   constructor() {
     effect(() => {
@@ -157,6 +171,31 @@ export class PlayerCardComponent implements OnInit {
 
   ngOnInit(): void {
     this.setInitPlayerCard();
+  }
+
+  callModeDialog(item: string, $event: MouseEvent): void {
+    $event.preventDefault();
+    this.selectedItem.set(item);
+    this.confirmationService.confirm({
+      target: $event.target as EventTarget,
+      rejectButtonProps: {
+        icon: 'pi pi-times',
+        label: 'Cancel',
+        outlined: true,
+      },
+      acceptButtonProps: {
+        label: 'Roll',
+      },
+      accept: (): void => {
+        this.rollAbilityCheck(this.selectedItem(), this.selectedMode() as RollState);
+        this.selectedMode.set(RollStateEnum.NORMAL)
+        this.selectedItem.set(null)
+      },
+      reject: (): void => {
+        this.selectedMode.set(RollStateEnum.NORMAL)
+        this.selectedItem.set(null)
+      }
+    });
   }
 
   private calculateStatsBonuses(
@@ -256,20 +295,33 @@ export class PlayerCardComponent implements OnInit {
     this.emitRollResults.emit($event);
   }
 
-  rollAbilityCheck(abilityKey: string): void {
+  rollAbilityCheck(abilityKey: string, rollMode: string = RollStateEnum.NORMAL): void {
     const abilityData = this.equipmentBonuses()?.statsBonuses;
     const modifier = abilityData[abilityKey];
 
-    if (modifier === undefined) {
-      console.error(`Could not find modifier for ability key: ${abilityKey}`);
-      return;
+    let d20Roll: number;
+    let rollsString: string;
+
+    if (rollMode === RollStateEnum.ADVANTAGE) {
+      const roll1 = Math.floor(Math.random() * 20) + 1;
+      const roll2 = Math.floor(Math.random() * 20) + 1;
+      d20Roll = Math.max(roll1, roll2);
+      rollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+    } else if (rollMode === RollStateEnum.DISADVANTAGE) {
+      const roll1 = Math.floor(Math.random() * 20) + 1;
+      const roll2 = Math.floor(Math.random() * 20) + 1;
+      d20Roll = Math.min(roll1, roll2);
+      rollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+    } else {
+      d20Roll = Math.floor(Math.random() * 20) + 1;
+      rollsString = `Roll: ${d20Roll}`;
     }
 
-    const d20Roll = Math.floor(Math.random() * 20) + 1;
     const finalResult = d20Roll + modifier;
+
     const abilityName = this.abilitiesMap[abilityKey] || 'Unknown';
     const modifierString = modifier === 0 ? '' : (modifier > 0 ? ` + ${modifier}` : ` - ${Math.abs(modifier)}`);
-    const resultString = `Check for ${abilityName}: ${finalResult} (Roll: ${d20Roll}${modifierString})`;
+    const resultString = `Check for ${abilityName}: ${finalResult} (${rollsString}${modifierString})`;
 
     this.emitRollResults.emit({
       type: `ABILITY_CHECK_${abilityKey.toUpperCase()}`,
@@ -323,5 +375,9 @@ export class PlayerCardComponent implements OnInit {
       type: $event.type,
       description: $event.description
     });
+  }
+
+  setRollMode($event: RollState): void {
+    this.selectedMode.set($event);
   }
 }
