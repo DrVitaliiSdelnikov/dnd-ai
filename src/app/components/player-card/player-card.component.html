@@ -84,6 +84,7 @@
               type="button"
               [disabled]="!ability.value"
               (click)="rollAbilityCheck(ability.key)"
+              (contextmenu)="callModeDialog(ability.key, $event)"
               [appValueChangeRipple]="ability.value">
               {{ ability.value }}
             </button>
@@ -175,3 +176,9 @@
     </form>
   </ng-template>
 </p-card>
+
+<p-confirmpopup>
+  <ng-template #content let-message>
+    <app-roll-options-panel (rollEmit)="setRollMode($event)"/>
+  </ng-template>
+</p-confirmpopup>

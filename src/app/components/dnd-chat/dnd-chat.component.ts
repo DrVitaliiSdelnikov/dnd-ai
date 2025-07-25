@@ -307,16 +307,10 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   setDiceRollResult(rollEvent: {[key: string]: string}): void {
-    const rollMarkerRegex = new RegExp(`\\[ROLL:${rollEvent.type}:.*?\\]`, 'g');
-    const newRollMarker = `[ROLL:${rollEvent.type}:${rollEvent.description}]`;
+    const newRollMarker = `Dice roll: ${rollEvent.description}.`;
 
-
-    if (rollMarkerRegex.test(this.userInput)) {
-      this.userInput = this.userInput.replace(rollMarkerRegex, newRollMarker);
-    } else {
-      this.userInput = this.userInput.trim()
-        ? `${this.userInput.trim()} ${newRollMarker}`
-        : newRollMarker;
-    }
+    this.userInput = this.userInput.trim()
+      ? `${this.userInput.trim()} ${newRollMarker}`
+      : newRollMarker;
   }
 }

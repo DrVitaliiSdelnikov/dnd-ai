@@ -1,8 +1,27 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, Output, EventEmitter, input } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  Output,
+  EventEmitter,
+  input,
+  inject,
+  WritableSignal, signal
+} from '@angular/core';
 import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { NgForOf, NgIf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
+import { ContextMenu } from 'primeng/contextmenu';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import {
+  RollOptionsPanelComponent,
+  RollState, RollStateEnum
+} from '../../shared/components/roll-options-panel/roll-options-panel.component';
+import { Toast } from 'primeng/toast';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-inventory-display',
@@ -12,13 +31,30 @@ import { Tooltip } from 'primeng/tooltip';
     NgForOf,
     NgIf,
     ButtonDirective,
-    Tooltip
+    Tooltip,
+    ContextMenu,
+    ConfirmPopupModule,
+    RollOptionsPanelComponent,
+    Toast
+  ],
+  providers: [
+    MessageService,
+    ConfirmationService
   ],
   standalone: true
 })
 export class InventoryDisplayComponent implements OnInit, OnChanges {
   @Input() inventoryItems: InventoryItem[] = [];
+  selectedMode: WritableSignal<string> = signal(RollStateEnum.NORMAL);
+  selectedItem: WritableSignal<InventoryItem> = signal(null);
+  private confirmationService: ConfirmationService = inject(ConfirmationService);
+  private messageService: MessageService = inject(MessageService);
   abilityModifiers = input({});
+  modeLabels = {
+    [RollStateEnum.ADVANTAGE]: 'Advantage',
+    [RollStateEnum.NORMAL]: 'Normal',
+    [RollStateEnum.DISADVANTAGE]: 'Disadvantage'
+  };
 
   categorizedItems: { [key: string]: InventoryItem[] } = {};
   categoryOrder: string[] = ['WEAPON', 'ARMOR', 'CONSUMABLE', 'MISC_ITEM', 'OTHER'];
@@ -70,67 +106,78 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       .filter(displayName => obj[displayName] && obj[displayName].length > 0);
   }
 
-  rollAttack(item: InventoryItem): void {
-    if (item.type !== 'WEAPON') return;
+  rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
+    if (item.type !== 'WEAPON' || !item.properties.damage_dice) return;
 
     const abilityKey = (item.properties.range_type === 'RANGED' || item.properties.special_tags?.includes('Finesse')) ? 'dex' : 'str';
     const modifier = this.abilityModifiers()[abilityKey] ?? 0;
     const magicBonus = item.properties.magic_bonus ?? 0;
     const totalBonus = modifier + magicBonus;
 
-    const d20Roll = Math.floor(Math.random() * 20) + 1;
-    const finalResult = d20Roll + totalBonus;
+    let d20Roll: number;
+    let attackRollsString: string;
 
-    const bonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
-    const resultDescription = `Attack with ${item.name}: ${finalResult} to hit (Roll: ${d20Roll}${bonusString})`;
+    if (mode === RollStateEnum.ADVANTAGE) {
+      const roll1 = Math.floor(Math.random() * 20) + 1;
+      const roll2 = Math.floor(Math.random() * 20) + 1;
+      d20Roll = Math.max(roll1, roll2);
+      attackRollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+    } else if (mode === RollStateEnum.DISADVANTAGE) {
+      const roll1 = Math.floor(Math.random() * 20) + 1;
+      const roll2 = Math.floor(Math.random() * 20) + 1;
+      d20Roll = Math.min(roll1, roll2);
+      attackRollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+    } else {
+      d20Roll = Math.floor(Math.random() * 20) + 1;
+      attackRollsString = `Roll: ${this.modeLabels[mode]}`;
+    }
+
+    const finalAttackResult = d20Roll + totalBonus;
+    const attackBonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
+    const attackResultDescription = `Attack with ${item.name}: ${finalAttackResult} to hit (${attackRollsString})`;
 
     this.emitRollResults.emit({
       type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
-      description: resultDescription
+      description: attackResultDescription
     });
-  }
-
-  rollDamage(item: InventoryItem): void {
-    if (item.type !== 'WEAPON' || !item.properties.damage_dice) return;
 
     const diceNotation = item.properties.damage_dice;
     const damageRollResult = this.parseAndRollDice(diceNotation);
 
     if (damageRollResult.error) {
-      this.actionResults[item.item_id_suggestion] = 'Ошибка урона';
+      this.actionResults[item.item_id_suggestion] = 'Damage roll error';
       return;
     }
 
-    const abilityKey = (item.properties.range_type === 'RANGED' || item.properties.special_tags?.includes('Finesse')) ? 'dex' : 'str';
-    const modifier = this.abilityModifiers()[abilityKey] ?? 0;
-    const magicBonus = item.properties.magic_bonus ?? 0;
-    const totalBonus = modifier + magicBonus;
-    const finalDamage = damageRollResult.total + totalBonus;
-    const bonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
-    const resultDescription = `Damage with ${item.name}: ${finalDamage} (Roll: ${damageRollResult.total}${bonusString})`;
+    const damageBonus = totalBonus;
+    const finalDamage = damageRollResult.total + damageBonus;
 
-    this.actionResults[item.item_id_suggestion] = `Урон: ${finalDamage}`;
+    const damageBonusString = damageBonus === 0 ? '' : (damageBonus > 0 ? ` + ${damageBonus}` : ` - ${Math.abs(damageBonus)}`);
+    const damageResultDescription = `Damage with ${item.name}: ${finalDamage} (Roll: ${this.modeLabels[mode]})`;
+
     this.emitRollResults.emit({
       type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
-      description: resultDescription
+      description: damageResultDescription
     });
+
+    this.actionResults[item.item_id_suggestion] = `Damage: ${finalDamage}`;
   }
 
   useConsumable(item: InventoryItem): void {
     if (item.type !== 'CONSUMABLE' || !item.properties.effects || !item.properties.effects.length) return;
 
-    const effect = item.properties.effects[0]; // Берем первый эффект
+    const effect = item.properties.effects[0];
 
     if (effect.type === 'HEAL' && effect.heal_amount) {
       const result = this.parseAndRollDice(effect.heal_amount);
       if (!result.error) {
-        this.actionResults[item.item_id_suggestion] = `Исцелено: ${result.total}`;
+        this.actionResults[item.item_id_suggestion] = `Healed: ${result.total}`;
         this.emitRollResults.emit({
           type: `CONSUMABLE_USE_${item.item_id_suggestion}`,
           description: `Used ${item.name}. Healed for: ${result.total} (from ${effect.heal_amount})`
         });
       } else {
-        this.actionResults[item.item_id_suggestion] = 'Ошибка эффекта';
+        this.actionResults[item.item_id_suggestion] = 'Effect issue';
       }
     }
   }
@@ -164,5 +211,34 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     }
 
     return { total: null, error: `Unknown dice notation format: ${diceNotation}` };
+  }
+
+  callModeDialog(item: InventoryItem, $event: MouseEvent): void {
+    $event.preventDefault();
+    this.selectedItem.set(item);
+    this.confirmationService.confirm({
+      target: $event.target as EventTarget,
+      rejectButtonProps: {
+        icon: 'pi pi-times',
+        label: 'Cancel',
+        outlined: true,
+      },
+      acceptButtonProps: {
+        label: 'Roll',
+      },
+      accept: (): void => {
+        this.rollAttackAndDamage(this.selectedItem(), this.selectedMode() as RollState);
+        this.selectedMode.set(RollStateEnum.NORMAL)
+        this.selectedItem.set(null)
+      },
+      reject: (): void => {
+        this.selectedMode.set(RollStateEnum.NORMAL)
+        this.selectedItem.set(null)
+      }
+    });
+  }
+
+  setRollMode($event: RollState): void {
+    this.selectedMode.set($event);
   }
 }
