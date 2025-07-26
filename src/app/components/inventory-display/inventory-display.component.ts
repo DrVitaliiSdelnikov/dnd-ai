@@ -121,20 +121,20 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       const roll1 = Math.floor(Math.random() * 20) + 1;
       const roll2 = Math.floor(Math.random() * 20) + 1;
       d20Roll = Math.max(roll1, roll2);
-      attackRollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+      attackRollsString = ` ADVANTAGE: [${roll1}, ${roll2}] -> ${d20Roll}`;
     } else if (mode === RollStateEnum.DISADVANTAGE) {
       const roll1 = Math.floor(Math.random() * 20) + 1;
       const roll2 = Math.floor(Math.random() * 20) + 1;
       d20Roll = Math.min(roll1, roll2);
-      attackRollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+      attackRollsString = ` DISADVANTAGE: [${roll1}, ${roll2}] -> ${d20Roll}`;
     } else {
       d20Roll = Math.floor(Math.random() * 20) + 1;
-      attackRollsString = `Roll: ${this.modeLabels[mode]}`;
+      attackRollsString = ``;
     }
 
     const finalAttackResult = d20Roll + totalBonus;
     const attackBonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
-    const attackResultDescription = `Attack with ${item.name}: ${finalAttackResult} to hit (${attackRollsString})`;
+    const attackResultDescription = `${item.name}: ${finalAttackResult} to hit${attackRollsString}`;
 
     this.emitRollResults.emit({
       type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
@@ -153,7 +153,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const finalDamage = damageRollResult.total + damageBonus;
 
     const damageBonusString = damageBonus === 0 ? '' : (damageBonus > 0 ? ` + ${damageBonus}` : ` - ${Math.abs(damageBonus)}`);
-    const damageResultDescription = `Damage with ${item.name}: ${finalDamage} (Roll: ${this.modeLabels[mode]})`;
+    const damageResultDescription = `DMG: ${finalDamage}`;
 
     this.emitRollResults.emit({
       type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
