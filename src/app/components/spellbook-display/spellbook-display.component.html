@@ -1,33 +1,41 @@
 <div class="spellbook-container">
-    @if(!spells()?.length) {
-      <div class="empty-inventory">
-        Spellbook is empty.
-      </div>
-    }
-
-    <div *ngFor="let categoryName of objectKeys(categorizedSpells())" class="inventory-section">
-      <h3>{{ categoryName }}</h3>
-      <ul class="item-list">
-        <li *ngFor="let spell of categorizedSpells()[categoryName]" class="item-entry">
-          <div class="item-info">
-            <span class="item-name">
-              {{ spell.name }}
-            </span>
-            <span *ngIf="spell.description">
-              <i class="pi pi-info-circle" [pTooltip]="spell.description" tooltipPosition="top"></i>
-            </span>
-          </div>
-          <div class="item-actions">
-
-            <button
-              *ngIf="!spell.properties.is_passive"
-              (click)="castSpell(spell)"
-              pButton
-              class="action-button cast-button p-button-info p-button-outlined">
-              Cast
-            </button>
-          </div>
-        </li>
-      </ul>
+  @if(!spells()?.length) {
+    <div class="empty-inventory">
+      Spell book is empty.
     </div>
+  }
+
+  <div *ngFor="let categoryName of objectKeys(categorizedSpells())" class="inventory-section">
+    <h3>{{ categoryName }}</h3>
+    <ul class="item-list">
+      <li *ngFor="let spell of categorizedSpells()[categoryName]" class="item-entry">
+        <div class="item-info">
+          <span class="item-name">
+            {{ spell.name }}
+          </span>
+          <span *ngIf="spell.description">
+            <i class="pi pi-info-circle" [pTooltip]="spell.description" tooltipPosition="top"></i>
+          </span>
+        </div>
+        <div class="item-actions">
+
+          <button
+            *ngIf="!spell.properties.is_passive"
+            (click)="castSpell(spell)"
+            (contextmenu)="callModeDialog(spell, $event)"
+            pButton
+            class="action-button cast-button p-button-info p-button-outlined">
+            Cast
+          </button>
+        </div>
+      </li>
+    </ul>
   </div>
+</div>
+
+
+<p-confirmpopup>
+  <ng-template #content let-message>
+    <app-roll-options-panel (rollEmit)="castSpell(this.selectedItem(), $event)"/>
+  </ng-template>
+</p-confirmpopup>

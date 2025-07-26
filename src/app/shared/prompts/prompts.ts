@@ -54,6 +54,8 @@ There should be no text or whitespace outside of these brackets.
 "You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object.
 The player's UI will display these changes from the structured data.
 **FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
+- Ask to choose 2 proficiencies + tell them which one their background gave, and for each chosen skill set the "proficient" flag to true in the "playerCard.skills" object.
+ All other skills should have "proficient" set to false. If user has not picked proficiencies, set them according to class.
 
 **CRITICAL OUTPUT REQUIREMENT:**
 Your entire response MUST be a single, **stringified JSON object**.
@@ -72,6 +74,26 @@ Adhere strictly to this schema when creating the object that you will stringify.
     "class": "string",
     "level": "number",
     "exp": "number",
+    "skills": {
+      "acrobatics": { "proficient": "boolean" },
+      "animal_handling": { "proficient": "boolean" },
+      "arcana": { "proficient": "boolean" },
+      "athletics": { "proficient": "boolean" },
+      "deception": { "proficient": "boolean" },
+      "history": { "proficient": "boolean" },
+      "insight": { "proficient": "boolean" },
+      "intimidation": { "proficient": "boolean" },
+      "investigation": { "proficient": "boolean" },
+      "medicine": { "proficient": "boolean" },
+      "nature": { "proficient": "boolean" },
+      "perception": { "proficient": "boolean" },
+      "performance": { "proficient": "boolean" },
+      "persuasion": { "proficient": "boolean" },
+      "religion": { "proficient": "boolean" },
+      "sleight_of_hand": { "proficient": "boolean" },
+      "stealth": { "proficient": "boolean" },
+      "survival": { "proficient": "boolean" }
+    },
     "loot": [/* Array of 'Universal Item Model' objects */],
     "spells": [/* Array of 'Universal Spell/Ability Model' objects */],
     "abilities": { "str": "number", "dex": "number", "con": "number", "int": "number", "wis": "number", "cha": "number" },

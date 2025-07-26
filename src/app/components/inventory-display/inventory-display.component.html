@@ -45,7 +45,7 @@
 
 <p-confirmpopup>
   <ng-template #content let-message>
-    <app-roll-options-panel (rollEmit)="setRollMode($event)"/>
+    <app-roll-options-panel (rollEmit)="rollAttackAndDamage(this.selectedItem(), $event)"/>
   </ng-template>
 </p-confirmpopup>
 

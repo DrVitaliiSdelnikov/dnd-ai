@@ -5,29 +5,42 @@ import {
   EventEmitter,
   input,
   InputSignal,
-  computed
+  computed, inject, WritableSignal, signal
 } from '@angular/core';
 import { NgForOf, NgIf } from '@angular/common';
 import { ButtonDirective, ButtonIcon } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import {
+  RollOptionsPanelComponent,
+  RollState,
+  RollStateEnum
+} from '../../shared/components/roll-options-panel/roll-options-panel.component';
+import { ConfirmPopup } from 'primeng/confirmpopup';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ButtonIcon],
+  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ButtonIcon, ConfirmPopup, RollOptionsPanelComponent],
+  providers: [
+    ConfirmationService,
+    MessageService
+  ],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
 })
 export class SpellbookDisplayComponent implements OnInit {
   spells = input([]);
+  selectedItem: WritableSignal<any> = signal(null);
+  private selectedMode: WritableSignal<string> = signal(RollStateEnum.NORMAL);
   abilityModifiers: InputSignal<{ [key: string]: number }> = input<{ [key: string]: number }>({});
+  private confirmationService: ConfirmationService = inject(ConfirmationService);
+  private messageService: MessageService = inject(MessageService);
   @Output() spellCast: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
   actionResults: { [spellId: string]: string | null } = {};
-  // categorizedSpells: WritableSignal<{ [key: string]: any[] }> = signal({});
   readonly categorizedSpells = computed(() => {
-    const currentSpells = this.spells(); // Читаем значение из InputSignal
-
+    const currentSpells = this.spells();
     console.log('Computed categorizedSpells is running...');
 
     if (!currentSpells || !Array.isArray(currentSpells)) {
@@ -48,125 +61,127 @@ export class SpellbookDisplayComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // this.categorizeSpells();
+
   }
-
-  // private categorizeSpells(): void {
-  //   if (!this.spells() || !Array.isArray(this.spells())) {
-  //     this.categorizedSpells.set({});
-  //     return;
-  //   }
-  //
-  //   const grouped = this.spells().reduce((acc, spell) => {
-  //     const level = spell.properties.spell_level ?? -1;
-  //     const key = level === 0 ? 'Cantrips' : (level > 0 ? `Level ${level}` : 'Abilities');
-  //     if (!acc[key]) {
-  //       acc[key] = [];
-  //     }
-  //     acc[key].push(spell);
-  //     return acc;
-  //   }, {} as { [key: string]: any[] });
-  //
-  //   this.categorizedSpells.set(grouped);
-  //   console.log(this.categorizedSpells(), 'this.categorizedSpells');
-  // }
-
 
   objectKeys(obj: any): string[] {
     return Object.keys(obj).sort();
   }
 
-
-  castSpell(spell: any): void {
+  castSpell(spell: any, rollState: RollState = 'NORMAL'): void {
     const mainEffect = spell.properties.effects[0];
     if (!mainEffect) return;
 
-    let resultDescription = `Casts ${spell.name}.`;
-    let resultValue: number | null = null;
+    let resultDescription = `Casts ${spell.name}`;
+    let diceNotation: string | null = null;
     let resultType: 'Damage' | 'Heal' | null = null;
 
     if (mainEffect.effect_type === 'DAMAGE' && mainEffect.damage_dice) {
-      const roll = this.parseAndRollDice(mainEffect.damage_dice);
-      if (!roll?.error) {
-        resultValue = roll?.total;
-        resultType = 'Damage';
-        resultDescription += ` ${resultType}: ${resultValue} (from ${mainEffect.damage_dice})`;
-      }
+      diceNotation = mainEffect.damage_dice;
+      resultType = 'Damage';
     } else if (mainEffect.effect_type === 'HEAL' && mainEffect.heal_dice) {
-      const roll = this.parseAndRollDice(mainEffect.heal_dice);
-      if (!roll?.error) {
-        resultValue = roll?.total;
-        resultType = 'Heal';
-        resultDescription += ` ${resultType}: ${resultValue} (from ${mainEffect.heal_dice})`;
+      diceNotation = mainEffect.heal_dice;
+      resultType = 'Heal';
+    }
+
+    if (diceNotation) {
+      const roll = this.parseAndRollDice(diceNotation, rollState);
+
+      if (!roll.error) {
+        const resultValue = roll.total;
+        const rollDetails = roll.details;
+        let rollString = '';
+
+        if (rollState === 'ADVANTAGE') {
+          rollString = ` with Advantage (Rolls: [${rollDetails.rolls.join(', ')}] -> Used ${rollDetails.used})`;
+        } else if (rollState === 'DISADVANTAGE') {
+          rollString = ` with Disadvantage (Rolls: [${rollDetails.rolls.join(', ')}] -> Used ${rollDetails.used})`;
+        } else {
+          rollString = ` (Roll: ${rollDetails.used})`;
+        }
+
+        resultDescription += `. ${resultType}: ${resultValue} from ${diceNotation}${rollString}`;
+        this.actionResults[spell.id_suggestion] = `${resultType}: ${resultValue}`;
+      } else {
+        this.actionResults[spell.id_suggestion] = 'Roll error';
       }
     }
-
-    if (resultType && resultValue !== null) {
-      this.actionResults[spell.id_suggestion] = `${resultType}: ${resultValue}`;
-    }
-
 
     this.spellCast.emit({
       type: `SPELL_CAST_${spell.id_suggestion}`,
       description: resultDescription
     });
+    this.confirmationService.close();
   }
 
+  private parseAndRollDice(
+    diceNotation: string,
+    rollState: RollState = 'NORMAL'
+  ): { total: number; details: { rolls: number[], used: number }; error: null } | { total: null; details: null; error: string } {
 
-  private parseAndRollDice(diceNotation: string): { total: number; error: null } | { total: null; error: string } {
-    // 1. Проверка на корректность входных данных
-    if (!diceNotation || typeof diceNotation !== 'string' || diceNotation.trim() === '') {
-      return { total: null, error: `Invalid or empty dice notation provided: '${diceNotation}'` };
+    if (!diceNotation || typeof diceNotation !== 'string' || !diceNotation.trim()) {
+      return { total: null, details: null, error: `Invalid notation` };
     }
-
     const trimmedNotation = diceNotation.trim();
 
-    // 2. Регулярное выражение для парсинга нотации "XdY" с опциональным модификатором "+Z" или "-Z"
-    //    (\d+) - захватывает одну или более цифр (количество кубиков)
-    //    [dD]  - соответствует букве 'd' или 'D'
-    //    (\d+) - захватывает одну или более цифр (количество граней)
-    //    (?:([+-])(\d+))? - опциональная (незахватывающая) группа для модификатора
-    //      ([+-]) - захватывает знак '+' или '-'
-    //      (\d+)  - захватывает одну или более цифр (значение модификатора)
     const parts = trimmedNotation.match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
+    if (!parts) {
+      const staticValue = parseInt(trimmedNotation, 10);
+      if (!isNaN(staticValue)) {
+        return { total: staticValue, details: { rolls: [staticValue], used: staticValue }, error: null };
+      }
+      return { total: null, details: null, error: `Unknown notation format` };
+    }
 
-    // 3. Обработка случая, если строка соответствует формату "XdY..."
-    if (parts) {
-      try {
-        const numDice = parseInt(parts[1], 10);
-        const diceType = parseInt(parts[2], 10);
-        let modifier = 0;
+    try {
+      const numDice = parseInt(parts[1], 10);
+      const diceType = parseInt(parts[2], 10);
+      let modifier = 0;
+      if (parts[3] && parts[4]) {
+        modifier = parseInt(parts[4], 10);
+        if (parts[3] === '-') { modifier = -modifier; }
+      }
 
-        // Проверяем, был ли найден модификатор
-        if (parts[3] && parts[4]) {
-          modifier = parseInt(parts[4], 10);
-          if (parts[3] === '-') {
-            modifier = -modifier;
-          }
-        }
-
-        // Проверка на валидность (нельзя бросать 0 кубиков или кубики с 0 граней)
-        if (numDice <= 0 || diceType <= 0) {
-          return {
-            total: null,
-            error: `Number of dice and dice sides must be positive in notation: '${trimmedNotation}'`
-          };
-        }
-
+      const rollOnce = (): number => {
         let total = 0;
-        // Симуляция броска каждого кубика
         for (let i = 0; i < numDice; i++) {
           total += Math.floor(Math.random() * diceType) + 1;
         }
+        return total;
+      };
 
-        // Прибавляем модификатор
-        total += modifier;
+      let baseRollResult: number;
+      const allRolls: number[] = [];
+      const roll1 = rollOnce();
+      allRolls.push(roll1);
 
-        return { total, error: null };
-      } catch (e) {
-        // На случай, если parseInt выдаст ошибку для очень больших чисел
-        return { total: null, error: `Error parsing dice notation numbers: '${trimmedNotation}'` };
+      if (rollState === 'ADVANTAGE' || rollState === 'DISADVANTAGE') {
+        const roll2 = rollOnce();
+        allRolls.push(roll2);
+        baseRollResult = (rollState === 'ADVANTAGE') ? Math.max(roll1, roll2) : Math.min(roll1, roll2);
+      } else {
+        baseRollResult = roll1;
       }
+
+      return {
+        total: baseRollResult + modifier,
+        details: { rolls: allRolls.sort((a, b) => b - a), used: baseRollResult },
+        error: null
+      };
+
+    } catch (e) {
+      return { total: null, details: null, error: `Error parsing numbers` };
     }
+  }
+
+  callModeDialog(item: any, $event: MouseEvent): void {
+    $event.preventDefault();
+    this.selectedItem.set(item);
+    this.confirmationService.confirm({
+      target: $event.target as EventTarget,
+      acceptVisible: false,
+      rejectVisible: false,
+      closable: true
+    });
   }
 }

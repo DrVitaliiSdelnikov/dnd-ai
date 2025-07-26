@@ -36,7 +36,8 @@ import {
   RollOptionsPanelComponent,
   RollState, RollStateEnum
 } from '../../shared/components/roll-options-panel/roll-options-panel.component';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { SkillsDisplayComponent } from '../skills-display/skills-display.component';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -74,15 +75,22 @@ interface CharacterBase {
     SpellbookDisplayComponent,
     ConfirmPopup,
     RollOptionsPanelComponent,
+    SkillsDisplayComponent,
   ],
   providers: [
-    ConfirmationService
+    ConfirmationService,
+    MessageService
   ]
 })
 export class PlayerCardComponent implements OnInit {
   @Output() emitRollResults: EventEmitter<{ [key: string]: string }> = new EventEmitter();
   private confirmationService: ConfirmationService = inject(ConfirmationService);
+  private messageService: MessageService = inject(MessageService);
   playerCard = input(null);
+  readonly proficiencyBonus = computed(() => {
+    const level = this.playerCardForm.get('level').value ?? 1;
+    return Math.ceil(level / 4) + 1;
+  });
   selectedItem: WritableSignal<string> = signal(null);
   readonly equipmentBonuses: Signal<CalculatedBonuses> = computed(() => {
     const allItems = this.playerCard()?.loot ?? [];
@@ -178,23 +186,9 @@ export class PlayerCardComponent implements OnInit {
     this.selectedItem.set(item);
     this.confirmationService.confirm({
       target: $event.target as EventTarget,
-      rejectButtonProps: {
-        icon: 'pi pi-times',
-        label: 'Cancel',
-        outlined: true,
-      },
-      acceptButtonProps: {
-        label: 'Roll',
-      },
-      accept: (): void => {
-        this.rollAbilityCheck(this.selectedItem(), this.selectedMode() as RollState);
-        this.selectedMode.set(RollStateEnum.NORMAL)
-        this.selectedItem.set(null)
-      },
-      reject: (): void => {
-        this.selectedMode.set(RollStateEnum.NORMAL)
-        this.selectedItem.set(null)
-      }
+      acceptVisible: false,
+      rejectVisible: false,
+      closable: true
     });
   }
 
@@ -327,6 +321,7 @@ export class PlayerCardComponent implements OnInit {
       type: `ABILITY_CHECK_${abilityKey.toUpperCase()}`,
       description: resultString
     });
+    this.confirmationService.close();
   }
 
   private calculateArmorClass(allItems: InventoryItem[], statsBonuses: { [key: string]: number }): number {
@@ -379,5 +374,12 @@ export class PlayerCardComponent implements OnInit {
 
   setRollMode($event: RollState): void {
     this.selectedMode.set($event);
+  }
+
+  handleSkillCheck($event: RollEvent): void {
+    this.emitRollResults.emit({
+      type: $event.type,
+      description: $event.description
+    });
   }
 }

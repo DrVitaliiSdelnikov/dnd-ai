@@ -236,7 +236,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
 
-  private parseMessage(result: {content: string, role: string}) {
+  private parseMessage(result: {content: string, role: string}): void {
     const rawContent = this.stripMarkdownJson(result?.content);
     try {
       const parsedAnswer = JSON.parse(rawContent);

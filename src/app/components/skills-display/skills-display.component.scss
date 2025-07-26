@@ -1,0 +1,145 @@
+:host {
+  display: block;
+  font-family: Arial, sans-serif;
+}
+
+.skills-list-container {
+
+}
+
+.skills-header {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #777;
+  text-transform: uppercase;
+  border-bottom: 1px solid #ddd;
+  background-color: #f9f9f9;
+}
+
+
+.prof {
+  width: 40px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.mod {
+  width: 45px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.skill-name {
+  flex-grow: 1;
+  padding-left: 0.5rem;
+}
+
+.bonus {
+  width: 50px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.skills-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.skill-entry {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+}
+
+.prof-indicator {
+  width: 40px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.mod-name {
+  width: 45px;
+  flex-shrink: 0;
+  text-align: center;
+  color: #555;
+  font-size: 0.9em;
+}
+
+.bonus-box {
+  width: 50px;
+  flex-shrink: 0;
+  text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 0.25rem 0;
+  font-weight: bold;
+  font-size: 1em;
+  color: #333;
+  background-color: #fff;
+  transition: all 0.2s ease;
+
+  .skill-entry:hover & {
+    border-color: #007bff;
+    color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+  }
+}
+.dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background-color: #fff;
+  transition: all 0.2s ease;
+
+  &.proficient {
+    background-color: #333;
+    border-color: #333;
+  }
+}
+
+.bonus-box {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 0.25rem 0;
+  margin: 0;
+  font-family: inherit;
+  line-height: inherit;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+
+  width: 50px;
+  flex-shrink: 0;
+  text-align: center;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1em;
+  color: #333;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #007bff;
+    color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+  }
+}

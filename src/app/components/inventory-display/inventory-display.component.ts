@@ -161,6 +161,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
 
     this.actionResults[item.item_id_suggestion] = `Damage: ${finalDamage}`;
+    this.confirmationService.close();
   }
 
   useConsumable(item: InventoryItem): void {
@@ -218,27 +219,9 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     this.selectedItem.set(item);
     this.confirmationService.confirm({
       target: $event.target as EventTarget,
-      rejectButtonProps: {
-        icon: 'pi pi-times',
-        label: 'Cancel',
-        outlined: true,
-      },
-      acceptButtonProps: {
-        label: 'Roll',
-      },
-      accept: (): void => {
-        this.rollAttackAndDamage(this.selectedItem(), this.selectedMode() as RollState);
-        this.selectedMode.set(RollStateEnum.NORMAL)
-        this.selectedItem.set(null)
-      },
-      reject: (): void => {
-        this.selectedMode.set(RollStateEnum.NORMAL)
-        this.selectedItem.set(null)
-      }
+      acceptVisible: false,
+      rejectVisible: false,
+      closable: true
     });
-  }
-
-  setRollMode($event: RollState): void {
-    this.selectedMode.set($event);
   }
 }
