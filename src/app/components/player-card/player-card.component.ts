@@ -92,6 +92,11 @@ export class PlayerCardComponent implements OnInit {
     return Math.ceil(level / 4) + 1;
   });
   selectedItem: WritableSignal<string> = signal(null);
+  readonly skillsDisabled = computed(() => {
+    const skills = this.playerCard()?.skills;
+    if (!skills) return true;
+    return !Object.values(skills).some(s => !!(s as {proficient: boolean})?.proficient);
+  });
   readonly equipmentBonuses: Signal<CalculatedBonuses> = computed(() => {
     const allItems = this.playerCard()?.loot ?? [];
     const bonuses: CalculatedBonuses = {

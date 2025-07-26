@@ -109,7 +109,7 @@
               [inventoryItems]="playerCard()?.loot"/>
           </p-accordionTab>
 
-          <p-accordionTab header="Skills">
+          <p-accordionTab header="Skills" [disabled]="skillsDisabled()">
             <app-skills-display
               [skillsData]="playerCard()?.skills"
               [abilityModifiers]="equipmentBonuses()?.statsBonuses"
