@@ -307,7 +307,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   setDiceRollResult(rollEvent: {[key: string]: string}): void {
-    const newRollMarker = `Dice roll: ${rollEvent.description}.`;
+    const newRollMarker = `${rollEvent.description}.`;
 
     this.userInput = this.userInput.trim()
       ? `${this.userInput.trim()} ${newRollMarker}`
