@@ -109,6 +109,14 @@
               [inventoryItems]="playerCard()?.loot"/>
           </p-accordionTab>
 
+          <p-accordionTab header="Skills" [disabled]="skillsDisabled()">
+            <app-skills-display
+              [skillsData]="playerCard()?.skills"
+              [abilityModifiers]="equipmentBonuses()?.statsBonuses"
+              [proficiencyBonus]="proficiencyBonus()"
+              (skillCheck)="handleSkillCheck($event)"/>
+          </p-accordionTab>
+
           <p-accordionTab header="Spellbook" [disabled]="!playerCard()?.spells?.length">
             <app-spellbook-display
               [spells]="playerCard()?.spells"
@@ -179,6 +187,6 @@
 
 <p-confirmpopup>
   <ng-template #content let-message>
-    <app-roll-options-panel (rollEmit)="setRollMode($event)"/>
+    <app-roll-options-panel (rollEmit)="rollAbilityCheck(this.selectedItem(), $event)"/>
   </ng-template>
 </p-confirmpopup>

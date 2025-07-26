@@ -1,0 +1,32 @@
+<div class="skills-list-container">
+  <div class="skills-header">
+    <span class="prof">Prof</span>
+    <span class="mod">Mod</span>
+    <span class="skill-name">Skill</span>
+    <span class="bonus">Bonus</span>
+  </div>
+  <ul class="skills-list">
+    @for(skill of skills(); track skill.key) {
+      <li class="skill-entry">
+        <div class="prof-indicator">
+          <span class="dot" [class.proficient]="skill.proficient"></span>
+        </div>
+        <div class="mod-name">{{ skill.ability }}</div>
+        <div class="skill-name">{{ skill.name }}</div>
+        <button
+          type="button"
+          class="bonus-box"
+          (click)="rollSkillCheck(skill)"
+          (contextmenu)="callModeDialog(skill, $event)">
+          {{ skill.modifier >= 0 ? '+' : '' }}{{ skill.modifier }}
+        </button>
+      </li>
+    }
+  </ul>
+</div>
+
+<p-confirmpopup>
+  <ng-template #content let-message>
+    <app-roll-options-panel (rollEmit)="rollSkillCheck(this.selectedItem(), $event)"/>
+  </ng-template>
+</p-confirmpopup>
