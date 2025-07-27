@@ -190,8 +190,7 @@ export const SPELLS_SKILLS_MANAGEMENT = `
     "spell_level"?: "number", // Spell level (0 for cantrips, 1, 2, ...)
     "spell_components"?: "string", // e.g. "V, S, M (a pinch of soot and a twig from a yew tree)"
 
-  "spell_level": 3,
-  "school_of_magic": "Evocation", // Enum: ABJURATION, CONJURATION, DIVINATION, ENCHANTMENT, EVOCATION, ILLUSION, NECROMANCY, TRANSMUTATION
+  
 
   // PRIMARY ACTION LOGIC
   "action_type": "SAVING_THROW", // Enum: ATTACK_ROLL, SAVING_THROW, UTILITY, CONTESTED_CHECK
