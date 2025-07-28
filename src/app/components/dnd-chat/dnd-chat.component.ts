@@ -5,7 +5,7 @@ import {
   ElementRef,
   inject,
   NgZone,
-  OnInit,
+  OnInit, Signal,
   signal,
   ViewChild,
   WritableSignal
@@ -33,6 +33,7 @@ import { Observable, of } from 'rxjs';
 import { PlayerCard } from '../../shared/interfaces/player-card.interface';
 import { Tooltip } from 'primeng/tooltip';
 import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator.component';
+import { PlayerCardStateService } from '../../services/player-card-state.service';
 
 @Component({
   selector: 'app-dnd-chat',
@@ -60,26 +61,18 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   isLoading: WritableSignal<boolean> = signal(false);
   isNewCampaign: WritableSignal<boolean> = signal(true)
   instructions: string = '';
-  playerCard: WritableSignal<PlayerCard> = signal(null);
+  playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
+  playerCard: Signal<PlayerCard | null> = this.playerCardStateService.playerCard$;
   campaignSummary: WritableSignal<string> = signal(null);
 
   @ViewChild('messagesArea') private messagesArea!: ElementRef<HTMLDivElement>;
 
   ngOnInit(): void {
     this.checkCampaignHistory();
-    this.setPlayerCard();
   }
 
   ngAfterViewInit(): void {
     this.scrollToBottom();
-  }
-
-  private setPlayerCard(): void {
-    const playerCard = this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.HERO);
-    if(!playerCard) return;
-
-    const parsedPlayerCard = JSON.parse(playerCard);
-    this.playerCard.set(parsedPlayerCard);
   }
 
   private generateId(): string {
@@ -176,15 +169,22 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, heroStats);
   }
 
-  /**
-   * Get messages to session storage
-   */
   private getCampaignMessages(): string | null {
     return this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.MESSAGES_HISTORY);
   }
 
   formatMessageContent(content: string): string {
-    return content?.replace(/\n/g, '<br>');
+    if (!content) {
+      return '';
+    }
+    let formattedContent = content.replace(/\\n|\n/g, '<br>');
+    formattedContent = formattedContent.replace(/\t/g, '    ');
+
+    if (formattedContent.startsWith('"') && formattedContent.endsWith('"')) {
+      formattedContent = formattedContent.substring(1, formattedContent.length - 1);
+    }
+
+    return formattedContent;
   }
 
   sendMessage(): void {
@@ -246,7 +246,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
       });
       this.saveMessageToHistory(JSON.stringify(this.messages));
       this.saveHeroModelToSession(JSON.stringify(parsedAnswer.playerCard));
-      this.playerCard.set(parsedAnswer.playerCard);
+      this.playerCardStateService.updatePlayerCard(parsedAnswer.playerCard);
     } catch (error) {
       console.error("Failed to parse AI response as JSON. Treating as plain text.", error);
       this.messages.push({

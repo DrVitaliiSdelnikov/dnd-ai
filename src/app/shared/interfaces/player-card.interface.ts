@@ -18,6 +18,8 @@ export interface PlayerCard {
   class: string;
   background: string;
   level: number;
+  loot: any;
+  spells: any;
   exp: number;
   abilities: PlayCardAbilities;
   notes: string;

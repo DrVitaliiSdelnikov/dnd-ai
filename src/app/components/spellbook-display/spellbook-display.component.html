@@ -1,41 +1,55 @@
 <div class="spellbook-container">
   @if(!spells()?.length) {
     <div class="empty-inventory">
-      Spell book is empty.
+      Spellbook is empty.
     </div>
   }
 
-  <div *ngFor="let categoryName of objectKeys(categorizedSpells())" class="inventory-section">
-    <h3>{{ categoryName }}</h3>
-    <ul class="item-list">
-      <li *ngFor="let spell of categorizedSpells()[categoryName]" class="item-entry">
-        <div class="item-info">
-          <span class="item-name">
-            {{ spell.name }}
-          </span>
-          <span *ngIf="spell.description">
-            <i class="pi pi-info-circle" [pTooltip]="spell.description" tooltipPosition="top"></i>
-          </span>
-        </div>
-        <div class="item-actions">
-
-          <button
-            *ngIf="!spell.properties.is_passive"
-            (click)="castSpell(spell)"
-            (contextmenu)="callModeDialog(spell, $event)"
-            pButton
-            class="action-button cast-button p-button-info p-button-outlined">
-            Cast
-          </button>
-        </div>
-      </li>
-    </ul>
-  </div>
+  @for(categoryName of objectKeys(categorizedSpells()); track categoryName) {
+    <div class="inventory-section">
+      <h3>{{ categoryName }}</h3>
+      <ul class="item-list">
+        @for(spell of categorizedSpells()[categoryName]; track spell.id_suggestion) {
+          <li class="item-entry">
+            <div class="item-info">
+              <span class="item-name">
+                {{ spell.name }}
+              </span>
+              <span *ngIf="spell.description">
+                <i [pTooltip]="spell.description" tooltipPosition="top" class="pi pi-info-circle"></i>
+              </span>
+            </div>
+            <div class="managing-section">
+              <button
+                pButton
+                type="button"
+                icon="pi pi-pencil"
+                class="p-button-text p-button-sm edit-button"
+                (click)="openEditModal(spell)"
+                pTooltip="Edit Spell">
+              </button>
+              <div class="item-actions">
+                <button
+                  *ngIf="!spell.properties.is_passive"
+                  pButton
+                  class="action-button cast-button p-button-info p-button-outlined"
+                  (click)="castSpell(spell, 'NORMAL')"
+                  (contextmenu)="callModeDialog(spell, $event)">
+                  Cast
+                </button>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  }
 </div>
-
 
 <p-confirmpopup>
   <ng-template #content let-message>
-    <app-roll-options-panel (rollEmit)="castSpell(this.selectedItem(), $event)"/>
+    <app-roll-options-panel
+      (rollEmit)="executeRollFromPanel($event)">
+    </app-roll-options-panel>
   </ng-template>
 </p-confirmpopup>

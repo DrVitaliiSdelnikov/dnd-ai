@@ -190,57 +190,53 @@ The playerCard.loot array you may receive in the input represents the player's c
 
 export const SPELLS_SKILLS_MANAGEMENT = `
 # --- Spell and Ability Management Instructions ---
-
 **"Universal Spell/Ability Model" Structure (for each item in playerCard.spells):**
 - When adding a new spell or ability, create an object adhering to this structure.
 - **CRITICAL: ALL spell/ability details (like \`spell_level\`, \`range\`, \`effects\`) MUST be placed inside the nested \`properties\` object.**
+- **CRITICAL: all spells MUST have a spell_level attribute**
+- **CRITICAL: generate spells accordring to user class and race, the section can't be empty**
 {
   "id_suggestion": "string", // Unique ID suggested by the AI (e.g., "spell_fireball_01", "ability_power_attack_01")
   "name": "string", // Name the player sees (e.g., "Fireball", "Power Attack")
   "type": "SPELL | ABILITY", // Type: spell (requires mana/slots) or ability (can be passive or have a cooldown)
-  "description": "string", // Flavor text description and general mechanics (e.g., "You create a fireball that explodes at a point you choose...")
+  "description": "string", // short text description as seen in DMG .
 
   "properties": {
     "target_type": "SELF | SINGLE_ENEMY | SINGLE_ALLY | AREA | MULTIPLE", // Who/what it targets
     "range": "string", // Range (e.g., "Self", "Touch", "60 feet", "120-foot line")
-    "usage_cost"?: { // Usage cost
-      "resource": "MANA | SPELL_SLOT | HIT_POINTS |NONE",
-      "amount": "number" // e.g., 10 (for mana), 3 (for a 3rd-level slot)
-    },
-    "usage_limit"?: { // Usage limitation
-      "charges": "number" // Number of charges (e.g., 3 times per day)
-    },
+    "charges": "number" // Number of charges (e.g., 3 times per day)
     "is_passive": "boolean", // Whether the ability is passive (true for auras, constant bonuses), mandatory field
-
+    "reset_condition": "string", // how the charges are reset e.g long rest, short rest, at dawn, etc.
     // --- Properties specific to spells (SPELL) ---
-    "school_of_magic"?: "string",// School of magic (e.g., "Evocation", "Abjuration", "Illusion")
-    "spell_level"?: "number", // Spell level (0 for cantrips, 1, 2, ...)
-    "material_component_description"?: "string", // Description of the material component, if any
+    "school_of_magic": "string",// School of magic (e.g., "Evocation", "Abjuration", "Illusion")
+    "spell_level": "number", // Spell level (0 for cantrips, 1, 2, ...)
+    "spell_components"?: "string", // e.g. "V, S, M (a pinch of soot and a twig from a yew tree)"
 
-    // --- Effect mechanics (the most important part) ---
+  "spell_level": "number", // 3,
+  "school_of_magic": "Evocation", // Enum: ABJURATION, CONJURATION, DIVINATION, ENCHANTMENT, EVOCATION, ILLUSION, NECROMANCY, TRANSMUTATION
+
+  // PRIMARY ACTION LOGIC
+  "action_type": "SAVING_THROW", // Enum: ATTACK_ROLL, SAVING_THROW, UTILITY, CONTESTED_CHECK
+
+  // Section for Attack Rolls (if actionType is ATTACK_ROLL)
+  "attack_info": null, // Not applicable for Fireball
+
+  // Section for Saving Throws (if actionType is SAVING_THROW)
+  "saving_throw_info": {
+    "ability": "DEX", // Which of the 6 saves is required
+    "dc_calculation": "SPELLCASTING_ABILITY" // Enum: SPELLCASTING_ABILITY, FIXED
+    // fixedDC: 15 // Only if dcCalculation is FIXED (e.g., for magic items)
+  },
+
+  // Section for Damage
+  "damage_info": {
     "effects": [
-    // Array of effects, as a single spell can do multiple things
-    // (e.g., deal damage AND push back)
-    {
-      "effect_type": "DAMAGE | HEAL | BUFF_STAT | DEBUFF_STAT | GRANT_EFFECT | SUMMON | CONTROL | UTILITY",
-      "damage_dice": "string", // For DAMAGE, e.g., "8d6"
-      "damage_type": "string", // For DAMAGE, e.g., "Fire", "Cold", "Force"
-      "heal_dice": "string", // For HEAL, e.g., "1d4"
-      "stat_affected": "string", // For BUFF/DEBUFF, e.g., "Strength", "AC", "Attack Rolls"
-      "modifier_value": "string", // For BUFF/DEBUFF, e.g., "+2", "-1d4"
-      "effect_granted"?: "string", // For GRANT_EFFECT, e.g., "Invisibility", "Haste", "Poisoned", "Stunned"
-      "area_of_effect"?: { // For area of effects
-        "shape": "SPHERE | CUBE | CONE | LINE",
-        "size": "number", // e.g., 20 (for sphere radius), 15 (for cube side/cone length)
-        "unit": "FEET | METERS"
-      },
-      "saving_throw"?: { // If the effect can be avoided/mitigated with a saving throw
-        "ability": "STRENGTH | DEXTERITY | CONSTITUTION | INTELLIGENCE | WISDOM | CHARISMA",
-        "effect_on_save": "NEGATES | HALF_DAMAGE | NO_EFFECT_CHANGE" // What happens on a successful saving throw
-      },
-      "description": "string" // A brief text description of this specific effect
-    }
-  ]
-}
+      {
+        "dice": number // e.g. "8d6",
+        "type": string // e.g. "FIRE",
+        "on_save": "HALF" // Enum: HALF, NONE, SPECIAL_EFFECT
+      }
+    ]
+  }
 }
 `;

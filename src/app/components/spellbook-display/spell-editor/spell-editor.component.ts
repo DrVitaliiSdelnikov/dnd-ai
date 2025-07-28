@@ -1,0 +1,119 @@
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
+import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
+import { cloneDeep } from 'lodash';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { CheckboxModule } from 'primeng/checkbox';
+import { Spell, DamageEffect } from '../../../shared/interfaces/spells';
+import { PlayerCardStateService } from '../../../services/player-card-state.service';
+import { TextareaModule } from 'primeng/textarea';
+import { Component, inject, OnInit } from '@angular/core';
+import { Tooltip } from 'primeng/tooltip';
+
+@Component({
+  selector: 'app-spell-editor',
+  standalone: true,
+  imports: [
+    CommonModule, ReactiveFormsModule, DialogModule, ButtonModule,
+    InputTextModule, TextareaModule, InputNumberModule, CheckboxModule, Tooltip
+  ],
+  templateUrl: './spell-editor.component.html',
+  styleUrls: ['./spell-editor.component.scss']
+})
+export class SpellEditorComponent implements OnInit {
+  spellForm: FormGroup;
+  spell: Spell;
+
+  private fb = inject(FormBuilder);
+  public dialogRef = inject(DynamicDialogRef);
+  public config = inject(DynamicDialogConfig);
+  private playerCardStateService = inject(PlayerCardStateService);
+
+  ngOnInit(): void {
+    this.spell = cloneDeep(this.config.data.spell);
+    this.buildForm();
+  }
+
+  private buildForm(): void {
+    const props = this.spell.properties;
+
+    this.spellForm = this.fb.group({
+      name: [this.spell.name, Validators.required],
+      description: [this.spell.description || ''],
+      properties: this.fb.group({
+        target_type: [props.target_type || ''],
+        range: [props.range || ''],
+        is_passive: [props.is_passive || false],
+        school_of_magic: [props.school_of_magic || ''],
+        spell_components: [props.spell_components || ''],
+        spell_level: [props.spell_level ?? 0, Validators.min(0)],
+        attack_info: props.attack_info ? this.fb.group({
+          attack_type: [props.attack_info.attack_type || ''],
+          ability: [props.attack_info.ability || '']
+        }) : this.fb.group({ attack_type: [''], ability: [''] }),
+
+        damage_info: this.fb.group({
+          effects: this.fb.array(
+            props.damage_info?.effects?.map(effect => this.createDamageEffectGroup(effect)) || []
+          )
+        })
+      })
+    });
+  }
+
+  private createDamageEffectGroup(effect?: DamageEffect): FormGroup {
+    return this.fb.group({
+      dice: [effect?.dice || '', Validators.required],
+      type: [effect?.type || '', Validators.required],
+      on_save: [effect?.on_save || 'NONE', Validators.required]
+    });
+  }
+
+
+  get damageEffects(): FormArray {
+    return this.spellForm.get('properties.damage_info.effects') as FormArray;
+  }
+
+  addDamageEffect(): void {
+    this.damageEffects.push(this.createDamageEffectGroup());
+  }
+
+  removeDamageEffect(index: number): void {
+    this.damageEffects.removeAt(index);
+  }
+
+
+  save(): void {
+    if (this.spellForm.invalid) return;
+
+    const currentCard = this.playerCardStateService.playerCard$();
+    if (!currentCard) return;
+    const formValues = this.spellForm.getRawValue();
+    const updatedSpell = cloneDeep(this.spell);
+
+    updatedSpell.name = formValues.name;
+    updatedSpell.description = formValues.description;
+
+    updatedSpell.properties = {
+      ...updatedSpell.properties,
+      ...formValues.properties
+    };
+
+    const updatedSpells = currentCard.spells.map(spell =>
+      spell.id_suggestion === updatedSpell.id_suggestion ? updatedSpell : spell
+    );
+
+    const updatedPlayerCard = { ...currentCard, spells: updatedSpells };
+
+    this.playerCardStateService.updatePlayerCard(updatedPlayerCard);
+
+    this.dialogRef.close(true);
+  }
+
+  close(): void {
+    this.dialogRef.close();
+  }
+}

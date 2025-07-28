@@ -18,6 +18,14 @@
         </div>
         <div class="item-actions">
           <button
+            pButton
+            type="button"
+            class="p-button-text p-button-sm edit-button"
+            (click)="openEditModal(item)"
+            pTooltip="Edit Item">
+            <i class="pi pi-pencil"></i>
+          </button>
+          <button
             *ngIf="item.type === 'WEAPON' && item.properties.damage_dice"
             (click)="rollAttackAndDamage(item)"
             pButton

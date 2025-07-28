@@ -38,6 +38,7 @@ import {
 } from '../../shared/components/roll-options-panel/roll-options-panel.component';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SkillsDisplayComponent } from '../skills-display/skills-display.component';
+import { PlayerCardStateService } from '../../services/player-card-state.service';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -91,6 +92,7 @@ export class PlayerCardComponent implements OnInit {
     const level = this.playerCardForm.get('level').value ?? 1;
     return Math.ceil(level / 4) + 1;
   });
+  private playerCardStateService = inject(PlayerCardStateService);
   selectedItem: WritableSignal<string> = signal(null);
   readonly skillsDisabled = computed(() => {
     const skills = this.playerCard()?.skills;
@@ -247,7 +249,7 @@ export class PlayerCardComponent implements OnInit {
       ...this.playerCardForm.getRawValue()
     };
 
-    this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, JSON.stringify(concatPlayerCard))
+    this.playerCardStateService.updatePlayerCard(concatPlayerCard);
     this.editMode.set(false);
   }
 

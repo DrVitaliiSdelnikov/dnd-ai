@@ -104,7 +104,7 @@
       font-size: 0.65rem;
       font-weight: 600;
       letter-spacing: 0.05em;
-      color: #64748b; /* slate-400 */
+      color: #64748b;
       margin-bottom: 4px;
       text-align: center;
     }
@@ -237,5 +237,84 @@
     }
     .hp-box { width: 100%; flex-direction: row; justify-content: space-between; }
     .hp-label { margin-bottom: 0; }
+  }
+
+  form {
+    padding-top: 1rem;
+  }
+
+  ::ng-deep {
+    .p-panel {
+      margin-bottom: 1rem;
+
+      .p-panel-header {
+        font-size: 1.1rem;
+        font-weight: 600;
+        background-color: #f7f7f7;
+      }
+
+      .p-panel-content {
+        padding: 1.5rem;
+      }
+    }
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.5rem;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-weight: 500;
+      color: var(--text-color-secondary);
+      font-size: 0.875rem;
+    }
+
+    input[pInputText], p-inputNumber {
+      width: 100%;
+    }
+  }
+
+
+  .ability-grid {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    align-items: start;
+    gap: 1rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 480px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .ability.edit {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    p-inputNumber {
+      width: 80px;
+      ::ng-deep .p-inputtext {
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+    }
   }
 }
