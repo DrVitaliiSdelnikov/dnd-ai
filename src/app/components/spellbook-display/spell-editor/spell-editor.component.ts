@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgForOf, NgIf } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { cloneDeep } from 'lodash';
@@ -11,13 +11,15 @@ import { Spell, DamageEffect } from '../../../shared/interfaces/spells';
 import { PlayerCardStateService } from '../../../services/player-card-state.service';
 import { TextareaModule } from 'primeng/textarea';
 import { Component, inject, OnInit } from '@angular/core';
-import { Tooltip } from 'primeng/tooltip';
+import { Tooltip, TooltipModule } from 'primeng/tooltip';
+import { DropdownModule } from 'primeng/dropdown';
 
 @Component({
   selector: 'app-spell-editor',
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, DialogModule, ButtonModule,
+    TooltipModule, NgForOf, NgIf, DropdownModule,
     InputTextModule, TextareaModule, InputNumberModule, CheckboxModule, Tooltip
   ],
   templateUrl: './spell-editor.component.html',
@@ -26,6 +28,36 @@ import { Tooltip } from 'primeng/tooltip';
 export class SpellEditorComponent implements OnInit {
   spellForm: FormGroup;
   spell: Spell;
+  readonly targetTypes = [
+    { label: 'Self', value: 'SELF' }, { label: 'Single Enemy', value: 'SINGLE_ENEMY' },
+    { label: 'Single Ally', value: 'SINGLE_ALLY' }, { label: 'Area', value: 'AREA' },
+    { label: 'Multiple', value: 'MULTIPLE' }, { label: 'Object', value: 'OBJECT' }
+  ];
+
+  readonly schoolsOfMagic = [
+    { label: 'Abjuration', value: 'Abjuration' }, { label: 'Conjuration', value: 'Conjuration' },
+    { label: 'Divination', value: 'Divination' }, { label: 'Enchantment', value: 'Enchantment' },
+    { label: 'Evocation', value: 'Evocation' }, { label: 'Illusion', value: 'Illusion' },
+    { label: 'Necromancy', value: 'Necromancy' }, { label: 'Transmutation', value: 'Transmutation' }
+  ];
+
+  readonly attackAbilities = [
+    { label: 'Strength', value: 'STR' }, { label: 'Dexterity', value: 'DEX' },
+    { label: 'Constitution', value: 'CON' }, { label: 'Intelligence', value: 'INT' },
+    { label: 'Wisdom', value: 'WIS' }, { label: 'Charisma', value: 'CHA' }
+  ];
+
+  readonly damageOnSaveTypes = [
+    { label: 'Half Damage', value: 'HALF' },
+    { label: 'No Damage', value: 'NONE' },
+    { label: 'Special Effect', value: 'SPECIAL_EFFECT' }
+  ];
+
+  readonly damageTypes = [
+    { label: 'Fire', value: 'Fire' },
+    { label: 'Cold', value: 'Cold' },
+    { label: 'Slashing', value: 'Slashing' },
+  ];
 
   private fb = inject(FormBuilder);
   public dialogRef = inject(DynamicDialogRef);

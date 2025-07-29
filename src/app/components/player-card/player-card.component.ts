@@ -102,7 +102,7 @@ export class PlayerCardComponent implements OnInit {
   readonly equipmentBonuses: Signal<CalculatedBonuses> = computed(() => {
     const allItems = this.playerCard()?.loot ?? [];
     const bonuses: CalculatedBonuses = {
-      armorClass: 10,
+      armorClass: 0,
       statsBonuses: {}
     };
 
@@ -204,18 +204,19 @@ export class PlayerCardComponent implements OnInit {
     baseAbilities: { [key: string]: number | null }
   ): { [key: string]: number } {
 
-    if(!baseAbilities) return;
-
+    if (!baseAbilities) return {};
     const finalModifiers: { [key: string]: number } = {};
-
     const itemBonuses: { [key: string]: number } = {};
     allItems.forEach(item => {
       const props = item?.properties;
-      if (props?.effects && Array.isArray(props.effects)) {
-        props.effects.forEach(effect => {
+
+      if (props?.effect_details && Array.isArray(props.effect_details)) {
+        props.effect_details.forEach(effect => {
           if (effect.type === 'BUFF_STAT' && effect.stat_buffed && typeof effect.buff_value === 'number') {
             const statKey = effect.stat_buffed.toLowerCase();
-            itemBonuses[statKey] = (itemBonuses[statKey] || 0) + effect.buff_value;
+            const bonusValue = effect.buff_value;
+
+            itemBonuses[statKey] = (itemBonuses[statKey] || 0) + bonusValue;
           }
         });
       }
@@ -331,45 +332,61 @@ export class PlayerCardComponent implements OnInit {
     this.confirmationService.close();
   }
 
-  private calculateArmorClass(allItems: InventoryItem[], statsBonuses: { [key: string]: number }): number {
-    let calculatedAc = 10;
-    let armorIsPresent = false;
+  private calculateArmorClass(
+    allItems: InventoryItem[],
+    statsBonuses: { [key: string]: number }
+  ): number {
+    const mainArmor = allItems.find(item => item.type === 'ARMOR');
 
-    allItems.forEach(item => {
-      const props = item?.properties;
-      if (!props) return;
+    let baseAc = 10;
+    let armorType: string | null = null;
+    let maxDexBonus: number = null;
 
-      if (typeof props.armor_class_value === 'number') {
-        if (!armorIsPresent) {
-          calculatedAc = props.armor_class_value;
-          armorIsPresent = true;
-        } else {
-          calculatedAc += props.armor_class_value;
-        }
-      }
-
-      if (typeof props.magic_bonus === 'number' && (item.type === 'ARMOR' || item.type === 'SHIELD')) {
-        calculatedAc += props.magic_bonus;
-      }
-    });
+    if (mainArmor) {
+      baseAc = mainArmor.properties.armor_class_value ?? baseAc;
+      armorType = mainArmor.properties.armor_type || null;
+      maxDexBonus = mainArmor.properties.max_dex_bonus === 'NO_LIMIT'
+        ? Infinity
+        : Number(mainArmor.properties.max_dex_bonus ?? Infinity);
+    }
 
     const baseDex = this.playerCardForm.get('abilities.dex').value ?? 0;
     const bonusDexFromItems = statsBonuses?.dex || 0;
     const totalDex = baseDex + bonusDexFromItems;
     const dexModifier = this.getAbilityModifier(totalDex);
 
-    const heavyArmor = allItems.find(item => item.properties?.armor_type === 'Heavy Armor');
-    if (!heavyArmor) {
-      const mediumArmor = allItems.find(item => item.properties?.armor_type === 'Medium Armor');
-      if (mediumArmor) {
-        const maxDexBonus = Number(mediumArmor.properties.max_dex_bonus ?? 2);
-        calculatedAc += Math.min(dexModifier, maxDexBonus);
-      } else {
-        calculatedAc += dexModifier;
-      }
-    }
+    let finalDexBonusForAc = dexModifier;
 
-    return calculatedAc;
+    if (armorType === 'Heavy Armor') {
+      finalDexBonusForAc = 0;
+    } else if (armorType === 'Medium Armor') {
+      finalDexBonusForAc = Math.min(dexModifier, maxDexBonus);
+    }
+    let totalAc = baseAc;
+
+    totalAc += finalDexBonusForAc;
+
+    allItems.forEach(item => {
+      if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
+        totalAc += item.properties.armor_class_value;
+      }
+
+      if (typeof item.properties.magic_bonus === 'number') {
+        if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
+          totalAc += item.properties.magic_bonus;
+        }
+      }
+
+      if (item.properties.effect_details) {
+        item.properties.effect_details.forEach(effect => {
+          if (effect.type === 'BUFF_STAT' && effect.stat_buffed?.toUpperCase() === 'AC' && typeof effect.buff_value === 'number') {
+            totalAc += effect.buff_value;
+          }
+        });
+      }
+    });
+
+    return totalAc;
   }
 
   handleSpellCast($event: RollEvent): void {
