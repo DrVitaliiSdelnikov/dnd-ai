@@ -1,0 +1,90 @@
+<form [formGroup]="spellForm" (ngSubmit)="save()">
+  <div class="form-content p-fluid">
+
+    <div class="field">
+      <label for="name">Spell Name</label>
+      <input id="name" type="text" pInputText formControlName="name" />
+    </div>
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" pInputTextarea formControlName="description" rows="5" [autoResize]="true"></textarea>
+    </div>
+
+    <div formGroupName="properties">
+      <h4 class="properties-header">Properties</h4>
+      <div class="p-grid p-fluid">
+        <div class="p-col-12 p-md-6 field">
+          <label for="target_type">Target Type</label>
+          <p-dropdown id="target_type" [options]="targetTypes" formControlName="target_type"></p-dropdown>
+        </div>
+        <div class="p-col-12 p-md-6 field">
+          <label for="range">Range</label>
+          <input id="range" pInputText formControlName="range" />
+        </div>
+        <div class="p-col-12 p-md-6 field">
+          <label for="school_of_magic">School of Magic</label>
+          <p-dropdown id="school_of_magic" [options]="schoolsOfMagic" formControlName="school_of_magic"></p-dropdown>
+        </div>
+        <div class="p-col-12 p-md-6 field">
+          <label for="spell_components">Components</label>
+          <input id="spell_components" pInputText formControlName="spell_components" />
+        </div>
+        <div class="p-col-12 p-md-6 field">
+          <label for="spell_level">Spell Level</label>
+          <p-inputNumber id="spell_level" formControlName="spell_level"></p-inputNumber>
+        </div>
+        <div class="p-col-12 p-md-6 field flex align-items-center">
+          <p-checkbox formControlName="is_passive" [binary]="true" inputId="is_passive_check"></p-checkbox>
+          <label for="is_passive_check" class="ml-2">Is Passive Ability?</label>
+        </div>
+      </div>
+
+      <div formGroupName="attack_info" *ngIf="spellForm.get('properties.attack_info')">
+        <h5 class="properties-header sub-header">Attack Info</h5>
+        <div class="p-grid p-fluid">
+          <div class="p-col-12 p-md-6 field">
+            <label for="attack_type">Attack Type</label>
+            <input id="attack_type" pInputText formControlName="attack_type" />
+          </div>
+          <div class="p-col-12 p-md-6 field">
+            <label for="ability">Ability</label>
+            <p-dropdown id="ability" [options]="attackAbilities" formControlName="ability"></p-dropdown>
+          </div>
+        </div>
+      </div>
+
+      <div formGroupName="damage_info" *ngIf="spellForm.get('properties.damage_info')">
+        <h5 class="properties-header sub-header">Damage Effects</h5>
+        <div formArrayName="effects">
+          @for(effectControl of damageEffects.controls; track i; let i = $index) {
+            <div [formGroupName]="i" class="effect-group">
+              <div class="p-grid p-fluid">
+                <div class="p-col-12 p-md-4 field">
+                  <label [for]="'dice-' + i">Dice</label>
+                  <input [id]="'dice-' + i" type="text" pInputText formControlName="dice" />
+                </div>
+                <div class="p-col-12 p-md-4 field">
+                  <label [for]="'type-' + i">Type</label>
+                  <p-dropdown [id]="'type-' + i" [options]="damageTypes" formControlName="type"></p-dropdown>
+                </div>
+                <div class="p-col-12 p-md-3 field">
+                  <label [for]="'on-save-' + i">On Save</label>
+                  <p-dropdown [id]="'on-save-' + i" [options]="damageOnSaveTypes" formControlName="on_save"></p-dropdown>
+                </div>
+                <div class="p-col-12 p-md-1 field remove-button-container">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text" (click)="removeDamageEffect(i)" pTooltip="Remove Effect"></button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+        <button pButton type="button" label="Add Damage Effect" icon="pi pi-plus" class="p-button-sm p-button-secondary mt-2" (click)="addDamageEffect()"></button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="p-dialog-footer">
+  <button pButton type="button" label="Cancel" class="p-button-text" (click)="close()"></button>
+  <button pButton type="button" label="Save" class="p-button-success" (click)="save()" [disabled]="spellForm.invalid"></button>
+</div>

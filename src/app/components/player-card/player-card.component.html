@@ -142,23 +142,23 @@
     <form [formGroup]="playerCardForm">
       <p-panel header="Basic Information">
         <div class="info-grid">
-          <div>
+          <div class="ability-item-wrapper">
             <label>Name</label>
             <input pInputText name="name" formControlName="name" />
           </div>
-          <div>
+          <div class="ability-item-wrapper">
             <label>Race</label>
             <input pInputText name="race" formControlName="race" />
           </div>
-          <div>
+          <div class="ability-item-wrapper">
             <label>Class</label>
             <input pInputText name="class" formControlName="class" />
           </div>
-          <div>
+          <div class="ability-item-wrapper">
             <label>Level</label>
             <p-inputNumber name="level" formControlName="level" [min]="1"></p-inputNumber>
           </div>
-          <div>
+          <div class="ability-item-wrapper">
             <label>Exp</label>
             <p-inputNumber name="exp" formControlName="exp" [min]="0"></p-inputNumber>
           </div>

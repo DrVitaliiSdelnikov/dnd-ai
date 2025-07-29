@@ -12,16 +12,16 @@ import {
 } from '@angular/core';
 import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { NgForOf, NgIf } from '@angular/common';
-import { ButtonDirective } from 'primeng/button';
+import { ButtonDirective, ButtonIcon } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
-import { ContextMenu } from 'primeng/contextmenu';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import {
   RollOptionsPanelComponent,
   RollState, RollStateEnum
 } from '../../shared/components/roll-options-panel/roll-options-panel.component';
-import { Toast } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { ItemEditorComponent } from './item-editor/item-editor.component';
+import { DialogService } from 'primeng/dynamicdialog';
 
 @Component({
   selector: 'app-inventory-display',
@@ -32,14 +32,14 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     NgIf,
     ButtonDirective,
     Tooltip,
-    ContextMenu,
     ConfirmPopupModule,
     RollOptionsPanelComponent,
-    Toast
+    ButtonIcon
   ],
   providers: [
     MessageService,
-    ConfirmationService
+    ConfirmationService,
+    DialogService
   ],
   standalone: true
 })
@@ -48,6 +48,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   selectedMode: WritableSignal<string> = signal(RollStateEnum.NORMAL);
   selectedItem: WritableSignal<InventoryItem> = signal(null);
   private confirmationService: ConfirmationService = inject(ConfirmationService);
+  private dialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
   abilityModifiers = input({});
   modeLabels = {
@@ -222,6 +223,25 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       acceptVisible: false,
       rejectVisible: false,
       closable: true
+    });
+  }
+
+  openEditModal(item: InventoryItem): void {
+    const ref = this.dialogService.open(ItemEditorComponent, {
+      header: `Edit Item: ${item.name}`,
+      width: '50vw',
+      data: {
+        item: item
+      }
+    });
+
+    ref.onClose.subscribe((updatedItem: InventoryItem | undefined) => {
+      if (updatedItem) {
+        console.log('Item saved:', updatedItem);
+
+      } else {
+        console.log('Edit cancelled.');
+      }
     });
   }
 }

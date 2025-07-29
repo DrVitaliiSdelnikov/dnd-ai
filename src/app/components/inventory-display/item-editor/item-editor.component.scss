@@ -1,0 +1,96 @@
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+.properties-header {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--surface-d);
+  padding-bottom: 0.5rem;
+}
+
+
+.p-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--surface-d);
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+}
+
+.properties-header {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--surface-d);
+  padding-bottom: 0.5rem;
+}
+
+.properties-header.sub-header {
+  font-size: 1rem;
+  color: var(--text-color);
+  border-bottom: none;
+  margin-top: 1.5rem;
+}
+
+.effect-group {
+  padding: 1rem;
+  border: 1px solid var(--surface-d);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.p-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.remove-button-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.mt-2 {
+  margin-top: 1rem;
+}
+
+.p-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--surface-d);
+  margin-top: 1.5rem;
+}

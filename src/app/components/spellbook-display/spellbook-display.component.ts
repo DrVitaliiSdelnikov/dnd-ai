@@ -8,37 +8,34 @@ import {
   computed, inject, WritableSignal, signal
 } from '@angular/core';
 import { NgForOf, NgIf } from '@angular/common';
-import { ButtonDirective, ButtonIcon } from 'primeng/button';
+import { ButtonDirective } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import { ConfirmationService } from 'primeng/api';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
-import { ConfirmationService, MessageService } from 'primeng/api';
-import {
-  RollOptionsPanelComponent,
-  RollState,
-  RollStateEnum
-} from '../../shared/components/roll-options-panel/roll-options-panel.component';
-import { ConfirmPopup } from 'primeng/confirmpopup';
+import { RollOptionsPanelComponent, RollState, RollStateEnum } from '../../shared/components/roll-options-panel/roll-options-panel.component';
+import { Spell } from '../../shared/interfaces/spells';
+import { DialogService } from 'primeng/dynamicdialog';
+import { SpellEditorComponent } from './spell-editor/spell-editor.component';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ButtonIcon, ConfirmPopup, RollOptionsPanelComponent],
-  providers: [
-    ConfirmationService,
-    MessageService
-  ],
+  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent],
+  providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
 })
 export class SpellbookDisplayComponent implements OnInit {
-  spells = input([]);
-  selectedItem: WritableSignal<any> = signal(null);
-  private selectedMode: WritableSignal<string> = signal(RollStateEnum.NORMAL);
+  spells = input<Spell[]>([]);
+  selectedItem: WritableSignal<Spell | null> = signal(null);
+  private selectedMode: WritableSignal<RollState> = signal(RollStateEnum.NORMAL);
+  private dialogService = inject(DialogService);
   abilityModifiers: InputSignal<{ [key: string]: number }> = input<{ [key: string]: number }>({});
   private confirmationService: ConfirmationService = inject(ConfirmationService);
-  private messageService: MessageService = inject(MessageService);
   @Output() spellCast: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
   actionResults: { [spellId: string]: string | null } = {};
+
   readonly categorizedSpells = computed(() => {
     const currentSpells = this.spells();
     console.log('Computed categorizedSpells is running...');
@@ -60,28 +57,23 @@ export class SpellbookDisplayComponent implements OnInit {
     return grouped;
   });
 
-  ngOnInit(): void {
-
-  }
+  ngOnInit(): void { }
 
   objectKeys(obj: any): string[] {
-    return Object.keys(obj).sort();
+    return Object.keys(obj).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
   }
 
-  castSpell(spell: any, rollState: RollState = 'NORMAL'): void {
-    const mainEffect = spell.properties.effects[0];
-    if (!mainEffect) return;
+
+  castSpell(spell: Spell, rollState: RollState = 'NORMAL'): void {
+    const mainEffect = spell.properties.damage_info?.effects[0];
 
     let resultDescription = `Casts ${spell.name}`;
     let diceNotation: string | null = null;
     let resultType: 'Damage' | 'Heal' | null = null;
 
-    if (mainEffect.effect_type === 'DAMAGE' && mainEffect.damage_dice) {
-      diceNotation = mainEffect.damage_dice;
+    if (mainEffect && mainEffect.dice) {
+      diceNotation = mainEffect.dice;
       resultType = 'Damage';
-    } else if (mainEffect.effect_type === 'HEAL' && mainEffect.heal_dice) {
-      diceNotation = mainEffect.heal_dice;
-      resultType = 'Heal';
     }
 
     if (diceNotation) {
@@ -111,6 +103,7 @@ export class SpellbookDisplayComponent implements OnInit {
       type: `SPELL_CAST_${spell.id_suggestion}`,
       description: resultDescription
     });
+
     this.confirmationService.close();
   }
 
@@ -174,14 +167,38 @@ export class SpellbookDisplayComponent implements OnInit {
     }
   }
 
-  callModeDialog(item: any, $event: MouseEvent): void {
+  openEditModal(spell: Spell): void {
+    const ref = this.dialogService.open(SpellEditorComponent, {
+      header: `Edit Spell: ${spell.name}`,
+      width: '60vw',
+      data: {
+        spell: spell
+      }
+    });
+
+    ref.onClose.subscribe((wasSaved: boolean) => {
+      if (wasSaved) {
+        console.log('Spell was saved. State updated via service.');
+      }
+    });
+  }
+
+  callModeDialog(item: Spell, $event: MouseEvent): void {
     $event.preventDefault();
     this.selectedItem.set(item);
     this.confirmationService.confirm({
       target: $event.target as EventTarget,
       acceptVisible: false,
       rejectVisible: false,
-      closable: true
+      closable: true,
     });
+  }
+
+
+  executeRollFromPanel(rollState: RollState): void {
+    const spellToCast = this.selectedItem();
+    if (spellToCast) {
+      this.castSpell(spellToCast, rollState);
+    }
   }
 }
