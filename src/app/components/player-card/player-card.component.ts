@@ -342,7 +342,8 @@ export class PlayerCardComponent implements OnInit {
     let armorType: string | null = null;
     let maxDexBonus: number = null;
 
-    if (mainArmor) {
+    if (mainArmor && mainArmor.properties) // ИСПРАВИЛ БАГ: больше не пытается читать properties у предметов, которые не имеют его
+      {
       baseAc = mainArmor.properties.armor_class_value ?? baseAc;
       armorType = mainArmor.properties.armor_type || null;
       maxDexBonus = mainArmor.properties.max_dex_bonus === 'NO_LIMIT'
@@ -367,22 +368,25 @@ export class PlayerCardComponent implements OnInit {
     totalAc += finalDexBonusForAc;
 
     allItems.forEach(item => {
-      if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
-        totalAc += item.properties.armor_class_value;
-      }
-
-      if (typeof item.properties.magic_bonus === 'number') {
-        if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
-          totalAc += item.properties.magic_bonus;
+      if (item.properties) // ИСПРАВИЛ БАГ: больше не пытается читать properties у предметов, которые не имеют его
+        {
+        if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
+          totalAc += item.properties.armor_class_value;
         }
-      }
 
-      if (item.properties.effect_details) {
-        item.properties.effect_details.forEach(effect => {
-          if (effect.type === 'BUFF_STAT' && effect.stat_buffed?.toUpperCase() === 'AC' && typeof effect.buff_value === 'number') {
-            totalAc += effect.buff_value;
+        if (typeof item.properties.magic_bonus === 'number') {
+          if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
+            totalAc += item.properties.magic_bonus;
           }
-        });
+        }
+
+        if (Array.isArray(item.properties.effect_details)) {
+          item.properties.effect_details.forEach(effect => {
+            if (effect.type === 'BUFF_STAT' && effect.stat_buffed?.toUpperCase() === 'AC' && typeof effect.buff_value === 'number') {
+              totalAc += effect.buff_value;
+            }
+          });
+        }
       }
     });
 

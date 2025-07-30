@@ -45,7 +45,7 @@ export class SpellbookDisplayComponent implements OnInit {
     }
 
     const grouped = currentSpells.reduce((acc, spell) => {
-      const level = spell.properties.spell_level ?? -1;
+      const level = spell.properties?.spell_level ?? (spell.properties as any)?.level ?? 0; // иногда генерится как level, иногда как spell_level. 0 вместо -1 чтобы не выкидывало ошибку
       const key = level === 0 ? 'Cantrips' : (level > 0 ? `Level ${level}` : 'Abilities');
       if (!acc[key]) {
         acc[key] = [];
