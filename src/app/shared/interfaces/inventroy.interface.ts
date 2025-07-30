@@ -12,6 +12,12 @@ export interface ItemProperties {
   range_increment?: string;
   special_tags?: string[];
 
+  /**
+   * The designated ability score for attack and damage rolls with this weapon.
+   * This single property replaces the need to infer from 'Finesse' or 'range_type'.
+   */
+  attack_stat?: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
+
   // ARMOR / SHIELD
   armor_class_value?: number;
   armor_type?: string;

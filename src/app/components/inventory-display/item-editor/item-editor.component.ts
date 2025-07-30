@@ -41,6 +41,14 @@ export class ItemEditorComponent implements OnInit {
   public dialogRef = inject(DynamicDialogRef);
   public config = inject(DynamicDialogConfig);
 
+  readonly attackStatTypes = [
+    { label: 'Strength', value: 'str' },
+    { label: 'Dexterity', value: 'dex' },
+    { label: 'Constitution', value: 'con' },
+    { label: 'Intelligence', value: 'int' },
+    { label: 'Wisdom', value: 'wis' },
+    { label: 'Charisma', value: 'cha' }
+  ];
   readonly damageTypes = [
     { label: 'Slashing', value: 'Slashing' }, { label: 'Piercing', value: 'Piercing' },
     { label: 'Bludgeoning', value: 'Bludgeoning' }, { label: 'Fire', value: 'Fire' },
@@ -77,6 +85,7 @@ export class ItemEditorComponent implements OnInit {
       properties: this.fb.group({
         damage_dice: [props.damage_dice || ''],
         damage_type: [props.damage_type || ''],
+        attack_stat: [props.attack_stat || 'str'],
         effect_details: this.fb.array(
           props.effect_details?.map(effect => this.createEffectDetailGroup(effect)) || []
         )

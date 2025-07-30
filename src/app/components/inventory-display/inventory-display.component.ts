@@ -8,7 +8,7 @@ import {
   EventEmitter,
   input,
   inject,
-  WritableSignal, signal
+  WritableSignal, signal, computed
 } from '@angular/core';
 import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { NgForOf, NgIf } from '@angular/common';
@@ -22,6 +22,7 @@ import {
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ItemEditorComponent } from './item-editor/item-editor.component';
 import { DialogService } from 'primeng/dynamicdialog';
+import { PlayerCardStateService } from '../../services/player-card-state.service';
 
 @Component({
   selector: 'app-inventory-display',
@@ -50,7 +51,10 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   private confirmationService: ConfirmationService = inject(ConfirmationService);
   private dialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
-  abilityModifiers = input({});
+  private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
+  abilityModifiers = computed(() => {
+    return this.playerCardStateService.abilityModifiers$;
+  });
   modeLabels = {
     [RollStateEnum.ADVANTAGE]: 'Advantage',
     [RollStateEnum.NORMAL]: 'Normal',
@@ -69,6 +73,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   damageRollResults: { [itemId: string]: number | null } = {};
   actionResults: { [itemId: string]: string | null } = {};
   @Output() emitRollResults: EventEmitter<{[key: string]: string}> = new EventEmitter();
+  @Output() itemUsed = new EventEmitter<any>();
 
   ngOnInit(): void {
     this.categorizeItems();
@@ -110,10 +115,11 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
     if (item.type !== 'WEAPON' || !item.properties.damage_dice) return;
 
-    const abilityKey = (item.properties.range_type === 'RANGED' || item.properties.special_tags?.includes('Finesse')) ? 'dex' : 'str';
+    const abilityKey = item.properties.attack_stat ?? 'str';
     const modifier = this.abilityModifiers()[abilityKey] ?? 0;
     const magicBonus = item.properties.magic_bonus ?? 0;
-    const totalBonus = modifier + magicBonus;
+    const proficiencyBonus = item.properties.proficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
+    const totalBonus = modifier + magicBonus + proficiencyBonus;
 
     let d20Roll: number;
     let attackRollsString: string;
