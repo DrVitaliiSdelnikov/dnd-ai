@@ -105,7 +105,6 @@
           <p-accordionTab header="Inventory">
             <app-inventory-display
               (emitRollResults)="setFromInventoryDiceRollResult($event)"
-              [abilityModifiers]="equipmentBonuses()?.statsBonuses"
               [inventoryItems]="playerCard()?.loot"/>
           </p-accordionTab>
 

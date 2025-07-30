@@ -17,6 +17,7 @@ export interface ItemProperties {
    * This single property replaces the need to infer from 'Finesse' or 'range_type'.
    */
   attack_stat?: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
+  proficient?: boolean;
 
   // ARMOR / SHIELD
   armor_class_value?: number;

@@ -95,6 +95,7 @@ You MUST adhere strictly to the schema below. Pay close attention to nested 'pro
         "description": "string",
         "quantity": "number",
         "properties": {
+          "proficient": "boolean", // MANDATORY FOR WEAPONS: does the player have proficiency with this?
           "attack_stat": "string", // WEAPON-SPECIFIC: "str", "dex", "con", "int", "wis", "cha".
           "attunement_required": "boolean", // optional
           "magic_bonus": "number", // optional, e.g., 1 for a +1 item

@@ -49,11 +49,24 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   selectedMode: WritableSignal<string> = signal(RollStateEnum.NORMAL);
   selectedItem: WritableSignal<InventoryItem> = signal(null);
   private confirmationService: ConfirmationService = inject(ConfirmationService);
-  private dialogService = inject(DialogService);
+  private dialogService: DialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
+
+
+  // Computed properties
   abilityModifiers = computed(() => {
-    return this.playerCardStateService.abilityModifiers$;
+    return this.playerCardStateService.abilityModifiers$();
+  });
+  groupedByCategory = computed(() => {
+    return this.inventoryItems.reduce((acc, item) => {
+      const categoryName = this.categoryDisplayNames[item.type] || this.categoryDisplayNames['OTHER'];
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
+      }
+      acc[categoryName].push(item);
+      return acc;
+    }, {} as { [key: string]: InventoryItem[] });
   });
   modeLabels = {
     [RollStateEnum.ADVANTAGE]: 'Advantage',

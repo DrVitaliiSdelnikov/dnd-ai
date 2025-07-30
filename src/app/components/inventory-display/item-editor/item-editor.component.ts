@@ -11,6 +11,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { DropdownModule } from 'primeng/dropdown';
 import { TooltipModule } from 'primeng/tooltip';
 import { TextareaModule } from 'primeng/textarea';
+import { CheckboxModule } from 'primeng/checkbox';
 
 @Component({
   selector: 'app-item-editor',
@@ -26,7 +27,8 @@ import { TextareaModule } from 'primeng/textarea';
     TextareaModule,
     InputNumberModule,
     DropdownModule,
-    TooltipModule
+    TooltipModule,
+    CheckboxModule
   ],
   templateUrl: 'item-editor.component.html',
   styleUrl: 'item-editor.component.scss'
@@ -81,11 +83,12 @@ export class ItemEditorComponent implements OnInit {
     const props = this.item.properties;
     this.itemForm = this.fb.group({
       name: [this.item.name, Validators.required],
-      description: [this.item.description || ''],
+      description: [this.item.description],
       properties: this.fb.group({
-        damage_dice: [props.damage_dice || ''],
-        damage_type: [props.damage_type || ''],
-        attack_stat: [props.attack_stat || 'str'],
+        damage_dice: [this.item.properties.damage_dice],
+        damage_type: [this.item.properties.damage_type],
+        attack_stat: [this.item.properties.attack_stat],
+        proficient: [this.item.properties.proficient || false],
         effect_details: this.fb.array(
           props.effect_details?.map(effect => this.createEffectDetailGroup(effect)) || []
         )
