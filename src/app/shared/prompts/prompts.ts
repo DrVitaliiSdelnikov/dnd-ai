@@ -129,7 +129,7 @@ You MUST adhere strictly to the schema below. Pay close attention to nested 'pro
         "id_suggestion": "string",
         "name": "string",
         "type": "SPELL | ABILITY",
-        "description": "string",
+        "description": "string", // use DMG description here
         "properties": {
           "target_type": "SELF | SINGLE_ENEMY | SINGLE_ALLY | AREA | MULTIPLE",
           "range": "string",
