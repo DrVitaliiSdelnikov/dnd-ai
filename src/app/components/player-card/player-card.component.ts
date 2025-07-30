@@ -319,6 +319,10 @@ export class PlayerCardComponent implements OnInit {
       rollsString = `Roll: ${d20Roll}`;
     }
 
+    if (d20Roll === 20) {
+      rollsString += ' (natural 20!)';
+    }
+
     const finalResult = d20Roll + modifier;
 
     const abilityName = this.abilitiesMap[abilityKey] || 'Unknown';

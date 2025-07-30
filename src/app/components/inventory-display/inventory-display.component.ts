@@ -133,6 +133,10 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       attackRollsString = ``;
     }
 
+    if (d20Roll === 20) {
+      attackRollsString += ' (natural 20!)';
+    }
+
     const finalAttackResult = d20Roll + totalBonus;
     const attackBonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
     const attackResultDescription = `${item.name}: ${finalAttackResult} to hit${attackRollsString}`;

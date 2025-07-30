@@ -92,6 +92,10 @@ export class SpellbookDisplayComponent implements OnInit {
           rollString = ` (Roll: ${rollDetails.used})`;
         }
 
+        if (roll.details.isNat20) {
+          rollString += ' (natural 20!)';
+        }
+
         resultDescription += `. ${resultType}: ${resultValue} from ${diceNotation}${rollString}`;
         this.actionResults[spell.id_suggestion] = `${resultType}: ${resultValue}`;
       } else {
@@ -110,7 +114,11 @@ export class SpellbookDisplayComponent implements OnInit {
   private parseAndRollDice(
     diceNotation: string,
     rollState: RollState = 'NORMAL'
-  ): { total: number; details: { rolls: number[], used: number }; error: null } | { total: null; details: null; error: string } {
+  ): {
+    total: number;
+    details: { rolls: number[], used: number, isNat20?: boolean };
+    error: null
+  } | { total: null; details: null; error: string } {
 
     if (!diceNotation || typeof diceNotation !== 'string' || !diceNotation.trim()) {
       return { total: null, details: null, error: `Invalid notation` };
@@ -156,9 +164,11 @@ export class SpellbookDisplayComponent implements OnInit {
         baseRollResult = roll1;
       }
 
+      const isNat20 = numDice === 1 && diceType === 20 && baseRollResult === 20;
+
       return {
         total: baseRollResult + modifier,
-        details: { rolls: allRolls.sort((a, b) => b - a), used: baseRollResult },
+        details: { rolls: allRolls.sort((a, b) => b - a), used: baseRollResult, isNat20 },
         error: null
       };
 
