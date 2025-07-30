@@ -129,15 +129,15 @@ You MUST adhere strictly to the schema below. Pay close attention to nested 'pro
         "id_suggestion": "string",
         "name": "string",
         "type": "SPELL | ABILITY",
-        "description": "string", // use DMG description here
+        "description": "string", // take DMG description as basis, if the desc has numbers don't skip them. Compress the desc to 250 symbols max.
         "properties": {
-          "target_type": "SELF | SINGLE_ENEMY | SINGLE_ALLY | AREA | MULTIPLE",
+          
           "range": "string",
           "charges": "number", // Number of uses. Use -1 for spells that consume spell slots.
-          "is_passive": "boolean", // MANDATORY: true for auras or constant bonuses, false otherwise.
+          "is_passive": "boolean", // MANDATORY FIELD: true for constant bonuses, features, class and racial abilities. false otherwise.
           "reset_condition": "string", // e.g., "Long Rest", "Short Rest", "N/A"
           "school_of_magic": "string", // e.g., "Evocation", "Abjuration"
-          "spell_level": "number", // MANDATORY: 0 for cantrips, 1 for 1st-level, etc.
+          "spell_level": "number", // MANDATORY FIELD: 0 for cantrips, 1 for 1st-level, etc.
           "spell_components": "string", // optional, e.g. "V, S, M (a pinch of salt)"
           "action_type": "ATTACK_ROLL | SAVING_THROW | UTILITY | CONTESTED_CHECK",
           "attack_info": { // Use null if not applicable
