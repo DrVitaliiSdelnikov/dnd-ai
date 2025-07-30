@@ -153,8 +153,8 @@ You MUST adhere strictly to the schema below. Pay close attention to nested 'pro
           },
           "damage_info": { // Use null if not applicable
             "effects": [{
-              "dice": "string", // "3d6"
-              "type": "string", // "FIRE"
+              "dice": "string", // "3d6+1, etc"
+              "type": "string", // "FIRE, COLD, etc"
               "on_save": "HALF | NONE | SPECIAL_EFFECT"
             }]
           }

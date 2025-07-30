@@ -40,11 +40,11 @@
       </div>
 
       <div formGroupName="attack_info" *ngIf="spellForm.get('properties.attack_info')">
-        <h5 class="properties-header sub-header">Attack Info</h5>
+        <h5 class="properties-header sub-header"></h5>
         <div class="p-grid p-fluid">
           <div class="p-col-12 p-md-6 field">
-            <label for="attack_type">Attack Type</label>
-            <input id="attack_type" pInputText formControlName="attack_type" />
+            <label for="attack_type">Action Type</label>
+            <p-dropdown id="attack_type" [options]="attackTypes" formControlName="action_type"></p-dropdown>
           </div>
           <div class="p-col-12 p-md-6 field">
             <label for="ability">Ability</label>
