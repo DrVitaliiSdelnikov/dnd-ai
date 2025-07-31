@@ -39,6 +39,8 @@ import {
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SkillsDisplayComponent } from '../skills-display/skills-display.component';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
+import { Spell } from '../../shared/interfaces/spells';
+import { ToastModule } from 'primeng/toast';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -77,6 +79,7 @@ interface CharacterBase {
     ConfirmPopup,
     RollOptionsPanelComponent,
     SkillsDisplayComponent,
+    ToastModule
   ],
   providers: [
     ConfirmationService,
@@ -398,17 +401,6 @@ export class PlayerCardComponent implements OnInit {
   }
 
   handleSpellCast($event: RollEvent): void {
-    this.emitRollResults.emit({
-      type: $event.type,
-      description: $event.description
-    });
-  }
-
-  setRollMode($event: RollState): void {
-    this.selectedMode.set($event);
-  }
-
-  handleSkillCheck($event: RollEvent): void {
     this.emitRollResults.emit({
       type: $event.type,
       description: $event.description
