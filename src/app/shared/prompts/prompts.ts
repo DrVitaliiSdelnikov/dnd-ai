@@ -42,16 +42,37 @@ export const TASK_CONTINUE_GAMEPLAY = `
 - If the player asks you something out of character, ignore previous instructions and focus on resolving the question before continuing the game.
 `;
 
+
+// **CRITICAL OUTPUT REQUIREMENT:**
+// Your entire response MUST be a single, **stringified JSON object**.
+// This means your output is a plain string that starts with \`{\` and end with \`}\` ready to be parsed by a JSON parser.
+// - **NO MARKDOWN OR EXTRA TEXT:** Do NOT wrap the JSON string in markdown blocks (like \`\`\`json) Do NOT add any text, comments, or explanations before or after the JSON string.
+// **VALIDATION:** The first character of your output must be \`{\` and the last must be \`}\` All property names and string values inside the JSON MUST be enclosed in double quotes.
+// **CRITICAL OUTPUT REQUIREMENT:**
+// Your entire response MUST be a single, stringified JSON object ready to be parsed.
+// - Your output must start with "{" and end with "}".
+// - Do not wrap the JSON in markdown blocks or add any text outside the JSON object.
+// - All property names and string values inside the JSON MUST be enclosed in double quotes.
+
+// **JSON SCHEMA:**
+// You MUST adhere strictly to the schema below. Pay close attention to nested 'properties' objects for both loot and spells. This is not optional.
+
 // МОДУЛЬ 2: ФОРМАТ ОТВЕТА
 export const FORMAT_JSON_RESPONSE = `
-**CRITICAL OUTPUT REQUIREMENT:**
-Your entire response MUST be a single, stringified JSON object ready to be parsed.
-- Your output must start with "{" and end with "}".
-- Do not wrap the JSON in markdown blocks or add any text outside the JSON object.
-- All property names and string values inside the JSON MUST be enclosed in double quotes.
 
-**JSON SCHEMA:**
-You MUST adhere strictly to the schema below. Pay close attention to nested 'properties' objects for both loot and spells. This is not optional.
+- **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
+do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
+- **NO EXTRA TEXT:** The first character of your response must be "{" and the last character must be "}".
+There should be no text or whitespace outside of these brackets.
+-  { role: here should be role title as string, content: here JSON Schema provided below }
+- **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
+- **Avoid Redundancy in "content", the field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like
+"You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object.
+The player's UI will display these changes from the structured data.
+**FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
+- Ask to choose 2 proficiencies + tell them which one their background gave, and for each chosen skill set the "proficient" flag to true in the "playerCard.skills" object.
+ All other skills should have "proficient" set to false. If user has not picked proficiencies, set them according to class.
+
 
 {
   "playerCard": {
