@@ -33,7 +33,7 @@ export class SpellbookDisplayComponent implements OnInit {
   private dialogService = inject(DialogService);
   abilityModifiers: InputSignal<{ [key: string]: number }> = input<{ [key: string]: number }>({});
   private confirmationService: ConfirmationService = inject(ConfirmationService);
-  @Output() spellCast: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
+  @Output() spellCasted: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
   actionResults: { [spellId: string]: string | null } = {};
 
   readonly categorizedSpells = computed(() => {
@@ -103,7 +103,7 @@ export class SpellbookDisplayComponent implements OnInit {
       }
     }
 
-    this.spellCast.emit({
+    this.spellCasted.emit({
       type: `SPELL_CAST_${spell.id_suggestion}`,
       description: resultDescription
     });

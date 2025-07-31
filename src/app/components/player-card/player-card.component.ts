@@ -406,4 +406,15 @@ export class PlayerCardComponent implements OnInit {
       description: $event.description
     });
   }
+
+  handleSkillCheck($event: RollEvent): void {
+    this.emitRollResults.emit({
+      type: $event.type,
+      description: $event.description
+    });
+  }
+
+  handleItemAdded(newItem: InventoryItem): void {
+    this.playerCardStateService.addItemToInventory(newItem);
+  }
 }

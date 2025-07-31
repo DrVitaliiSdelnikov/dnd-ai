@@ -19,10 +19,11 @@ import {
   RollOptionsPanelComponent,
   RollState, RollStateEnum
 } from '../../shared/components/roll-options-panel/roll-options-panel.component';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { ItemEditorComponent } from './item-editor/item-editor.component';
 import { DialogService } from 'primeng/dynamicdialog';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
+import { SpeedDialModule } from 'primeng/speeddial';
 
 @Component({
   selector: 'app-inventory-display',
@@ -35,7 +36,8 @@ import { PlayerCardStateService } from '../../services/player-card-state.service
     Tooltip,
     ConfirmPopupModule,
     RollOptionsPanelComponent,
-    ButtonIcon
+    ButtonIcon,
+    SpeedDialModule
   ],
   providers: [
     MessageService,
@@ -86,9 +88,28 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   actionResults: { [itemId: string]: string | null } = {};
   @Output() emitRollResults: EventEmitter<{[key: string]: string}> = new EventEmitter();
   @Output() itemUsed = new EventEmitter<InventoryItem>();
+  @Output() itemAdded = new EventEmitter<InventoryItem>();
+  itemAddOptions: MenuItem[];
 
   ngOnInit(): void {
     this.categorizeItems();
+    this.itemAddOptions = [
+      {
+        icon: 'pi pi-shield',
+        tooltip: 'Add Armor',
+        command: () => this.addNewItem('ARMOR')
+      },
+      {
+        icon: 'pi pi-bolt',
+        tooltip: 'Add Weapon',
+        command: () => this.addNewItem('WEAPON')
+      },
+      {
+        icon: 'pi pi-fw pi-box',
+        tooltip: 'Add Item',
+        command: () => this.addNewItem('MISC_ITEM')
+      }
+    ];
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -248,9 +269,41 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
   }
 
+  addNewItem(itemType: 'WEAPON' | 'ARMOR' | 'MISC_ITEM'): void {
+    const newItem: InventoryItem = {
+      item_id_suggestion: `new-${Math.random().toString(36).substring(2, 9)}`,
+      name: '',
+      quantity: 1,
+      type: itemType,
+      description: '',
+      properties: {
+        effects: []
+      }
+    };
+
+    if (itemType === 'WEAPON') {
+      newItem.properties = {
+        ...newItem.properties,
+        damage_dice: '1d4',
+        attack_stat: 'str',
+        proficient: false
+      };
+    } else if (itemType === 'ARMOR') {
+      newItem.properties = {
+        ...newItem.properties,
+        armor_class_value: 10,
+        armor_type: 'Light Armor',
+        max_dex_bonus: 'NO_LIMIT'
+      };
+    }
+
+    this.itemAdded.emit(newItem);
+    this.openEditModal(newItem);
+  }
+
   openEditModal(item: InventoryItem): void {
     const ref = this.dialogService.open(ItemEditorComponent, {
-      header: `Edit Item: ${item.name}`,
+      header: `Edit Item: ${item.name || 'New Item'}`,
       width: '50vw',
       data: {
         item: item

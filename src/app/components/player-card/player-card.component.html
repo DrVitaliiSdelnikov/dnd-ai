@@ -106,7 +106,9 @@
           <p-accordionTab header="Inventory">
             <app-inventory-display
               (emitRollResults)="setFromInventoryDiceRollResult($event)"
-              [inventoryItems]="playerCard()?.loot"/>
+              [inventoryItems]="playerCard()?.loot"
+              (itemAdded)="handleItemAdded($event)"
+            />
           </p-accordionTab>
 
           <p-accordionTab header="Skills" [disabled]="skillsDisabled()">
@@ -119,7 +121,7 @@
           <p-accordionTab header="Spellbook" [disabled]="!playerCard()?.spells?.length">
             <app-spellbook-display
               [spells]="playerCard()?.spells"
-              (spellCast)="handleSpellCast($event)"
+              (spellCasted)="handleSpellCast($event)"
             ></app-spellbook-display>
           </p-accordionTab>
 
