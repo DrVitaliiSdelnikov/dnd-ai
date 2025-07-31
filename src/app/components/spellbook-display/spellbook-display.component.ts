@@ -11,17 +11,18 @@ import { NgForOf, NgIf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MenuItem } from 'primeng/api';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
 import { RollOptionsPanelComponent, RollState, RollStateEnum } from '../../shared/components/roll-options-panel/roll-options-panel.component';
 import { Spell } from '../../shared/interfaces/spells';
 import { DialogService } from 'primeng/dynamicdialog';
 import { SpellEditorComponent } from './spell-editor/spell-editor.component';
+import { SpeedDialModule } from 'primeng/speeddial';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent],
+  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent, SpeedDialModule],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
@@ -34,6 +35,8 @@ export class SpellbookDisplayComponent implements OnInit {
   abilityModifiers: InputSignal<{ [key: string]: number }> = input<{ [key: string]: number }>({});
   private confirmationService: ConfirmationService = inject(ConfirmationService);
   @Output() spellCasted: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
+  @Output() spellAdded = new EventEmitter<Spell>();
+  spellAddOptions: MenuItem[];
   actionResults: { [spellId: string]: string | null } = {};
 
   readonly categorizedSpells = computed(() => {
@@ -57,7 +60,15 @@ export class SpellbookDisplayComponent implements OnInit {
     return grouped;
   });
 
-  ngOnInit(): void { }
+  ngOnInit(): void {
+    this.spellAddOptions = [
+      {
+        icon: 'pi pi-book',
+        tooltip: 'Add new spell',
+        command: () => this.addNewSpell()
+      }
+    ];
+  }
 
   objectKeys(obj: any): string[] {
     return Object.keys(obj).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
@@ -191,6 +202,23 @@ export class SpellbookDisplayComponent implements OnInit {
         console.log('Spell was saved. State updated via service.');
       }
     });
+  }
+
+  addNewSpell(): void {
+    const newSpell: Spell = {
+      id_suggestion: `new-${Math.random().toString(36).substring(2, 9)}`,
+      name: 'New Spell',
+      description: '',
+      type: 'SPELL',
+      properties: {
+        spell_level: 0,
+        is_passive: true,
+        target_type: 'SELF',
+        range: 'Self'
+      }
+    };
+    this.spellAdded.emit(newSpell);
+    this.openEditModal(newSpell);
   }
 
   callModeDialog(item: Spell, $event: MouseEvent): void {
