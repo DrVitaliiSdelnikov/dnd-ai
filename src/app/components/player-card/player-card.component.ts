@@ -346,7 +346,7 @@ export class PlayerCardComponent implements OnInit {
     let armorType: string | null = null;
     let maxDexBonus: number = null;
 
-    if (mainArmor && mainArmor.properties) // ИСПРАВИЛ БАГ: больше не пытается читать properties у предметов, которые не имеют его
+    if (mainArmor && mainArmor.properties) 
       {
       baseAc = mainArmor.properties.armor_class_value ?? baseAc;
       armorType = mainArmor.properties.armor_type || null;
@@ -372,7 +372,7 @@ export class PlayerCardComponent implements OnInit {
     totalAc += finalDexBonusForAc;
 
     allItems.forEach(item => {
-      if (item.properties) // ИСПРАВИЛ БАГ: больше не пытается читать properties у предметов, которые не имеют его
+      if (item.properties) 
         {
         if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
           totalAc += item.properties.armor_class_value;

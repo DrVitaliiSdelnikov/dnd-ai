@@ -54,7 +54,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
 
 
-  // Computed properties
   abilityModifiers = computed(() => {
     return this.playerCardStateService.abilityModifiers$();
   });
@@ -86,7 +85,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   damageRollResults: { [itemId: string]: number | null } = {};
   actionResults: { [itemId: string]: string | null } = {};
   @Output() emitRollResults: EventEmitter<{[key: string]: string}> = new EventEmitter();
-  @Output() itemUsed = new EventEmitter<any>();
+  @Output() itemUsed = new EventEmitter<InventoryItem>();
 
   ngOnInit(): void {
     this.categorizeItems();
