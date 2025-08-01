@@ -5,7 +5,7 @@
     padding: 15px;
     border-radius: 8px;
     background-color: #f9f9f9;
-    position: relative; /* Ensure the container is a positioning context */
+    position: relative;
   }
 
   .inventory-container h2 {
@@ -129,7 +129,7 @@
 
 .add-item-fab {
   position: absolute;
-  bottom: -0.1rem; 
+  bottom: -0.1rem;
   right: 20rem;
   z-index: 1000;
 

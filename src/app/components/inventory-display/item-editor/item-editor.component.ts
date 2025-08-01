@@ -90,10 +90,10 @@ export class ItemEditorComponent implements OnInit {
       name: [this.item.name, Validators.required],
       description: [this.item.description],
       properties: this.fb.group({
-        damage_dice: [this.item.properties.damage_dice],
-        damage_type: [this.item.properties.damage_type],
-        attack_stat: [this.item.properties.attack_stat],
-        proficient: [this.item.properties.proficient || false],
+        damage_dice: [props.damage_dice],
+        damage_type: [props.damage_type],
+        attack_stat: [props.attack_stat],
+        proficient: [props.proficient || false],
         effect_details: this.fb.array(
           props.effect_details?.map(effect => this.createEffectDetailGroup(effect)) || []
         )
