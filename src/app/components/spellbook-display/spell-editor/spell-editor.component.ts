@@ -13,6 +13,8 @@ import { TextareaModule } from 'primeng/textarea';
 import { Component, inject, OnInit } from '@angular/core';
 import { Tooltip, TooltipModule } from 'primeng/tooltip';
 import { DropdownModule } from 'primeng/dropdown';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 @Component({
   selector: 'app-spell-editor',
@@ -20,10 +22,12 @@ import { DropdownModule } from 'primeng/dropdown';
   imports: [
     CommonModule, ReactiveFormsModule, DialogModule, ButtonModule,
     TooltipModule, NgForOf, NgIf, DropdownModule,
-    InputTextModule, TextareaModule, InputNumberModule, CheckboxModule, Tooltip
+    InputTextModule, TextareaModule, InputNumberModule, CheckboxModule, Tooltip,
+    ConfirmDialogModule
   ],
   templateUrl: './spell-editor.component.html',
-  styleUrls: ['./spell-editor.component.scss']
+  styleUrls: ['./spell-editor.component.scss'],
+  providers: [ConfirmationService]
 })
 export class SpellEditorComponent implements OnInit {
   spellForm: FormGroup;
@@ -47,6 +51,13 @@ export class SpellEditorComponent implements OnInit {
     { label: 'Wisdom', value: 'WIS' }, { label: 'Charisma', value: 'CHA' }
   ];
 
+  readonly attackTypes = [
+    { label: 'Attack Roll', value: 'ATTACK_ROLL' },
+    { label: 'Saving Throw', value: 'SAVING_THROW' },
+    { label: 'Utility', value: 'UTILITY' },
+    { label: 'Contested Check', value: 'CONTESTED_CHECK' }
+  ];
+
   readonly damageOnSaveTypes = [
     { label: 'Half Damage', value: 'HALF' },
     { label: 'No Damage', value: 'NONE' },
@@ -63,6 +74,7 @@ export class SpellEditorComponent implements OnInit {
   public dialogRef = inject(DynamicDialogRef);
   public config = inject(DynamicDialogConfig);
   private playerCardStateService = inject(PlayerCardStateService);
+  private confirmationService = inject(ConfirmationService);
 
   ngOnInit(): void {
     this.spell = cloneDeep(this.config.data.spell);
@@ -82,10 +94,10 @@ export class SpellEditorComponent implements OnInit {
         school_of_magic: [props.school_of_magic || ''],
         spell_components: [props.spell_components || ''],
         spell_level: [props.spell_level ?? 0, Validators.min(0)],
-        attack_info: props.attack_info ? this.fb.group({
-          attack_type: [props.attack_info.attack_type || ''],
-          ability: [props.attack_info.ability || '']
-        }) : this.fb.group({ attack_type: [''], ability: [''] }),
+        attack_info: this.fb.group({
+          action_type: [props.attack_info?.action_type || ''],
+          ability: [props.attack_info?.ability || '']
+        }),
 
         damage_info: this.fb.group({
           effects: this.fb.array(
@@ -147,5 +159,23 @@ export class SpellEditorComponent implements OnInit {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  delete(): void {
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete ${this.spell.name}?`,
+      header: 'Delete Spell',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        const currentCard = this.playerCardStateService.playerCard$();
+        if (!currentCard) return;
+
+        const updatedSpells = currentCard.spells.filter(spell => spell.id_suggestion !== this.spell.id_suggestion);
+        const updatedPlayerCard = { ...currentCard, spells: updatedSpells };
+
+        this.playerCardStateService.updatePlayerCard(updatedPlayerCard);
+        this.dialogRef.close(true);
+      }
+    });
   }
 }

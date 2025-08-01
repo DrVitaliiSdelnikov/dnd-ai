@@ -8,7 +8,7 @@ import {
   EventEmitter,
   input,
   inject,
-  WritableSignal, signal
+  WritableSignal, signal, computed
 } from '@angular/core';
 import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { NgForOf, NgIf } from '@angular/common';
@@ -19,9 +19,11 @@ import {
   RollOptionsPanelComponent,
   RollState, RollStateEnum
 } from '../../shared/components/roll-options-panel/roll-options-panel.component';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { ItemEditorComponent } from './item-editor/item-editor.component';
 import { DialogService } from 'primeng/dynamicdialog';
+import { PlayerCardStateService } from '../../services/player-card-state.service';
+import { SpeedDialModule } from 'primeng/speeddial';
 
 @Component({
   selector: 'app-inventory-display',
@@ -34,7 +36,8 @@ import { DialogService } from 'primeng/dynamicdialog';
     Tooltip,
     ConfirmPopupModule,
     RollOptionsPanelComponent,
-    ButtonIcon
+    ButtonIcon,
+    SpeedDialModule
   ],
   providers: [
     MessageService,
@@ -48,9 +51,24 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   selectedMode: WritableSignal<string> = signal(RollStateEnum.NORMAL);
   selectedItem: WritableSignal<InventoryItem> = signal(null);
   private confirmationService: ConfirmationService = inject(ConfirmationService);
-  private dialogService = inject(DialogService);
+  private dialogService: DialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
-  abilityModifiers = input({});
+  private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
+
+
+  abilityModifiers = computed(() => {
+    return this.playerCardStateService.abilityModifiers$();
+  });
+  groupedByCategory = computed(() => {
+    return this.inventoryItems.reduce((acc, item) => {
+      const categoryName = this.categoryDisplayNames[item.type] || this.categoryDisplayNames['OTHER'];
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
+      }
+      acc[categoryName].push(item);
+      return acc;
+    }, {} as { [key: string]: InventoryItem[] });
+  });
   modeLabels = {
     [RollStateEnum.ADVANTAGE]: 'Advantage',
     [RollStateEnum.NORMAL]: 'Normal',
@@ -69,9 +87,29 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   damageRollResults: { [itemId: string]: number | null } = {};
   actionResults: { [itemId: string]: string | null } = {};
   @Output() emitRollResults: EventEmitter<{[key: string]: string}> = new EventEmitter();
+  @Output() itemUsed = new EventEmitter<InventoryItem>();
+  @Output() itemAdded = new EventEmitter<InventoryItem>();
+  itemAddOptions: MenuItem[];
 
   ngOnInit(): void {
     this.categorizeItems();
+    this.itemAddOptions = [
+      {
+        icon: 'pi pi-shield',
+        tooltip: 'Add Armor',
+        command: () => this.addNewItem('ARMOR')
+      },
+      {
+        icon: 'pi pi-bolt',
+        tooltip: 'Add Weapon',
+        command: () => this.addNewItem('WEAPON')
+      },
+      {
+        icon: 'pi pi-fw pi-box',
+        tooltip: 'Add Item',
+        command: () => this.addNewItem('MISC_ITEM')
+      }
+    ];
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -110,10 +148,11 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
     if (item.type !== 'WEAPON' || !item.properties.damage_dice) return;
 
-    const abilityKey = (item.properties.range_type === 'RANGED' || item.properties.special_tags?.includes('Finesse')) ? 'dex' : 'str';
+    const abilityKey = item.properties.attack_stat ?? 'str';
     const modifier = this.abilityModifiers()[abilityKey] ?? 0;
     const magicBonus = item.properties.magic_bonus ?? 0;
-    const totalBonus = modifier + magicBonus;
+    const proficiencyBonus = item.properties.proficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
+    const totalBonus = modifier + magicBonus + proficiencyBonus;
 
     let d20Roll: number;
     let attackRollsString: string;
@@ -131,6 +170,10 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     } else {
       d20Roll = Math.floor(Math.random() * 20) + 1;
       attackRollsString = ``;
+    }
+
+    if (d20Roll === 20) {
+      attackRollsString += ' (natural 20!)';
     }
 
     const finalAttackResult = d20Roll + totalBonus;
@@ -226,9 +269,41 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
   }
 
+  addNewItem(itemType: 'WEAPON' | 'ARMOR' | 'MISC_ITEM'): void {
+    const newItem: InventoryItem = {
+      item_id_suggestion: `new-${Math.random().toString(36).substring(2, 9)}`,
+      name: '',
+      quantity: 1,
+      type: itemType,
+      description: '',
+      properties: {
+        effects: []
+      }
+    };
+
+    if (itemType === 'WEAPON') {
+      newItem.properties = {
+        ...newItem.properties,
+        damage_dice: '1d4',
+        attack_stat: 'str',
+        proficient: false
+      };
+    } else if (itemType === 'ARMOR') {
+      newItem.properties = {
+        ...newItem.properties,
+        armor_class_value: 10,
+        armor_type: 'Light Armor',
+        max_dex_bonus: 'NO_LIMIT'
+      };
+    }
+
+    this.itemAdded.emit(newItem);
+    this.openEditModal(newItem);
+  }
+
   openEditModal(item: InventoryItem): void {
     const ref = this.dialogService.open(ItemEditorComponent, {
-      header: `Edit Item: ${item.name}`,
+      header: `Edit Item: ${item.name || 'New Item'}`,
       width: '50vw',
       data: {
         item: item

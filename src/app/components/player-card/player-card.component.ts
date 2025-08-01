@@ -39,6 +39,8 @@ import {
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SkillsDisplayComponent } from '../skills-display/skills-display.component';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
+import { Spell } from '../../shared/interfaces/spells';
+import { ToastModule } from 'primeng/toast';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -77,6 +79,7 @@ interface CharacterBase {
     ConfirmPopup,
     RollOptionsPanelComponent,
     SkillsDisplayComponent,
+    ToastModule
   ],
   providers: [
     ConfirmationService,
@@ -319,6 +322,10 @@ export class PlayerCardComponent implements OnInit {
       rollsString = `Roll: ${d20Roll}`;
     }
 
+    if (d20Roll === 20) {
+      rollsString += ' (natural 20!)';
+    }
+
     const finalResult = d20Roll + modifier;
 
     const abilityName = this.abilitiesMap[abilityKey] || 'Unknown';
@@ -342,7 +349,8 @@ export class PlayerCardComponent implements OnInit {
     let armorType: string | null = null;
     let maxDexBonus: number = null;
 
-    if (mainArmor) {
+    if (mainArmor && mainArmor.properties) 
+      {
       baseAc = mainArmor.properties.armor_class_value ?? baseAc;
       armorType = mainArmor.properties.armor_type || null;
       maxDexBonus = mainArmor.properties.max_dex_bonus === 'NO_LIMIT'
@@ -367,22 +375,25 @@ export class PlayerCardComponent implements OnInit {
     totalAc += finalDexBonusForAc;
 
     allItems.forEach(item => {
-      if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
-        totalAc += item.properties.armor_class_value;
-      }
-
-      if (typeof item.properties.magic_bonus === 'number') {
-        if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
-          totalAc += item.properties.magic_bonus;
+      if (item.properties) 
+        {
+        if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
+          totalAc += item.properties.armor_class_value;
         }
-      }
 
-      if (item.properties.effect_details) {
-        item.properties.effect_details.forEach(effect => {
-          if (effect.type === 'BUFF_STAT' && effect.stat_buffed?.toUpperCase() === 'AC' && typeof effect.buff_value === 'number') {
-            totalAc += effect.buff_value;
+        if (typeof item.properties.magic_bonus === 'number') {
+          if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
+            totalAc += item.properties.magic_bonus;
           }
-        });
+        }
+
+        if (Array.isArray(item.properties.effect_details)) {
+          item.properties.effect_details.forEach(effect => {
+            if (effect.type === 'BUFF_STAT' && effect.stat_buffed?.toUpperCase() === 'AC' && typeof effect.buff_value === 'number') {
+              totalAc += effect.buff_value;
+            }
+          });
+        }
       }
     });
 
@@ -396,14 +407,14 @@ export class PlayerCardComponent implements OnInit {
     });
   }
 
-  setRollMode($event: RollState): void {
-    this.selectedMode.set($event);
-  }
-
   handleSkillCheck($event: RollEvent): void {
     this.emitRollResults.emit({
       type: $event.type,
       description: $event.description
     });
+  }
+
+  handleItemAdded(newItem: InventoryItem): void {
+    this.playerCardStateService.addItemToInventory(newItem);
   }
 }

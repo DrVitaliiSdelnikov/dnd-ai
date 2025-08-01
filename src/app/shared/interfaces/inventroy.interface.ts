@@ -12,6 +12,10 @@ export interface ItemProperties {
   range_increment?: string;
   special_tags?: string[];
 
+  
+  attack_stat?: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
+  proficient?: boolean;
+
   // ARMOR / SHIELD
   armor_class_value?: number;
   armor_type?: string;

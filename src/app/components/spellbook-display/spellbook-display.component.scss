@@ -1,4 +1,22 @@
+.spellbook-container {
+  position: relative;
+  padding-bottom: 3rem;
+}
+
 .managing-section {
   display: flex;
-  gap: 10px;
+  gap: 0.2rem;
+}
+
+.add-item-fab {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+
+  ::ng-deep .p-speeddial-button {
+    width: 2rem;
+    height: 2rem;
+  }
 }

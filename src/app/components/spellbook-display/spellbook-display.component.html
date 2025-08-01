@@ -30,7 +30,7 @@
               </button>
               <div class="item-actions">
                 <button
-                  *ngIf="!spell.properties.is_passive"
+                  *ngIf="!spell.properties?.is_passive"
                   pButton
                   class="action-button cast-button p-button-info p-button-outlined"
                   (click)="castSpell(spell, 'NORMAL')"
@@ -44,6 +44,9 @@
       </ul>
     </div>
   }
+  <div class="add-item-fab">
+    <p-speedDial [model]="spellAddOptions" direction="up" styleClass="p-speeddial-action-text" />
+  </div>
 </div>
 
 <p-confirmpopup>

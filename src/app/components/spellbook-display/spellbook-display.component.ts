@@ -11,17 +11,18 @@ import { NgForOf, NgIf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MenuItem } from 'primeng/api';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
 import { RollOptionsPanelComponent, RollState, RollStateEnum } from '../../shared/components/roll-options-panel/roll-options-panel.component';
 import { Spell } from '../../shared/interfaces/spells';
 import { DialogService } from 'primeng/dynamicdialog';
 import { SpellEditorComponent } from './spell-editor/spell-editor.component';
+import { SpeedDialModule } from 'primeng/speeddial';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent],
+  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent, SpeedDialModule],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
@@ -33,7 +34,9 @@ export class SpellbookDisplayComponent implements OnInit {
   private dialogService = inject(DialogService);
   abilityModifiers: InputSignal<{ [key: string]: number }> = input<{ [key: string]: number }>({});
   private confirmationService: ConfirmationService = inject(ConfirmationService);
-  @Output() spellCast: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
+  @Output() spellCasted: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
+  @Output() spellAdded = new EventEmitter<Spell>();
+  spellAddOptions: MenuItem[];
   actionResults: { [spellId: string]: string | null } = {};
 
   readonly categorizedSpells = computed(() => {
@@ -45,7 +48,7 @@ export class SpellbookDisplayComponent implements OnInit {
     }
 
     const grouped = currentSpells.reduce((acc, spell) => {
-      const level = spell.properties.spell_level ?? -1;
+      const level = spell.properties?.spell_level ?? (spell.properties as any)?.level ?? 0;
       const key = level === 0 ? 'Cantrips' : (level > 0 ? `Level ${level}` : 'Abilities');
       if (!acc[key]) {
         acc[key] = [];
@@ -57,7 +60,15 @@ export class SpellbookDisplayComponent implements OnInit {
     return grouped;
   });
 
-  ngOnInit(): void { }
+  ngOnInit(): void {
+    this.spellAddOptions = [
+      {
+        icon: 'pi pi-book',
+        tooltip: 'Add new spell',
+        command: () => this.addNewSpell()
+      }
+    ];
+  }
 
   objectKeys(obj: any): string[] {
     return Object.keys(obj).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
@@ -92,6 +103,10 @@ export class SpellbookDisplayComponent implements OnInit {
           rollString = ` (Roll: ${rollDetails.used})`;
         }
 
+        if (roll.details.isNat20) {
+          rollString += ' (natural 20!)';
+        }
+
         resultDescription += `. ${resultType}: ${resultValue} from ${diceNotation}${rollString}`;
         this.actionResults[spell.id_suggestion] = `${resultType}: ${resultValue}`;
       } else {
@@ -99,7 +114,7 @@ export class SpellbookDisplayComponent implements OnInit {
       }
     }
 
-    this.spellCast.emit({
+    this.spellCasted.emit({
       type: `SPELL_CAST_${spell.id_suggestion}`,
       description: resultDescription
     });
@@ -110,7 +125,11 @@ export class SpellbookDisplayComponent implements OnInit {
   private parseAndRollDice(
     diceNotation: string,
     rollState: RollState = 'NORMAL'
-  ): { total: number; details: { rolls: number[], used: number }; error: null } | { total: null; details: null; error: string } {
+  ): {
+    total: number;
+    details: { rolls: number[], used: number, isNat20?: boolean };
+    error: null
+  } | { total: null; details: null; error: string } {
 
     if (!diceNotation || typeof diceNotation !== 'string' || !diceNotation.trim()) {
       return { total: null, details: null, error: `Invalid notation` };
@@ -156,9 +175,11 @@ export class SpellbookDisplayComponent implements OnInit {
         baseRollResult = roll1;
       }
 
+      const isNat20 = numDice === 1 && diceType === 20 && baseRollResult === 20;
+
       return {
         total: baseRollResult + modifier,
-        details: { rolls: allRolls.sort((a, b) => b - a), used: baseRollResult },
+        details: { rolls: allRolls.sort((a, b) => b - a), used: baseRollResult, isNat20 },
         error: null
       };
 
@@ -181,6 +202,23 @@ export class SpellbookDisplayComponent implements OnInit {
         console.log('Spell was saved. State updated via service.');
       }
     });
+  }
+
+  addNewSpell(): void {
+    const newSpell: Spell = {
+      id_suggestion: `new-${Math.random().toString(36).substring(2, 9)}`,
+      name: 'New Spell',
+      description: '',
+      type: 'SPELL',
+      properties: {
+        spell_level: 0,
+        is_passive: true,
+        target_type: 'SELF',
+        range: 'Self'
+      }
+    };
+    this.spellAdded.emit(newSpell);
+    this.openEditModal(newSpell);
   }
 
   callModeDialog(item: Spell, $event: MouseEvent): void {
