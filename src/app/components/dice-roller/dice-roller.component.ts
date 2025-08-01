@@ -28,7 +28,7 @@ export class DiceRollerComponent {
   }
 
   private buildMenu(): MenuItem[] {
-    const dice = [4, 6, 8, 10, 12, 20];
+    const dice = [4, 6, 8, 10, 12, 20, 100];
     const mult = [1, 2, 3];
 
     return dice.map(sides => ({

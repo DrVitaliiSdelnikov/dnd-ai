@@ -19,10 +19,9 @@ export interface SpellProperties {
   school_of_magic?: string;
   spell_level: number;
   spell_components?: string;
-  action_type: ActionType;
 
   attack_info?: {
-    attack_type: string;
+    action_type: ActionType;
     ability?: AbilityKey;
   } | null;
 

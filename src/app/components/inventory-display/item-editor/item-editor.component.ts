@@ -11,6 +11,9 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { DropdownModule } from 'primeng/dropdown';
 import { TooltipModule } from 'primeng/tooltip';
 import { TextareaModule } from 'primeng/textarea';
+import { CheckboxModule } from 'primeng/checkbox';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 @Component({
   selector: 'app-item-editor',
@@ -24,10 +27,13 @@ import { TextareaModule } from 'primeng/textarea';
     TextareaModule,
     InputNumberModule,
     DropdownModule,
-    TooltipModule
+    TooltipModule,
+    CheckboxModule,
+    ConfirmDialogModule
   ],
   templateUrl: 'item-editor.component.html',
-  styleUrl: 'item-editor.component.scss'
+  styleUrl: 'item-editor.component.scss',
+  providers: [ConfirmationService]
 })
 export class ItemEditorComponent implements OnInit {
   itemForm: FormGroup;
@@ -38,7 +44,16 @@ export class ItemEditorComponent implements OnInit {
   private fb = inject(FormBuilder);
   public dialogRef = inject(DynamicDialogRef);
   public config = inject(DynamicDialogConfig);
+  private confirmationService = inject(ConfirmationService);
 
+  readonly attackStatTypes = [
+    { label: 'Strength', value: 'str' },
+    { label: 'Dexterity', value: 'dex' },
+    { label: 'Constitution', value: 'con' },
+    { label: 'Intelligence', value: 'int' },
+    { label: 'Wisdom', value: 'wis' },
+    { label: 'Charisma', value: 'cha' }
+  ];
   readonly damageTypes = [
     { label: 'Slashing', value: 'Slashing' }, { label: 'Piercing', value: 'Piercing' },
     { label: 'Bludgeoning', value: 'Bludgeoning' }, { label: 'Fire', value: 'Fire' },
@@ -71,10 +86,12 @@ export class ItemEditorComponent implements OnInit {
     const props = this.item.properties;
     this.itemForm = this.fb.group({
       name: [this.item.name, Validators.required],
-      description: [this.item.description || ''],
+      description: [this.item.description],
       properties: this.fb.group({
-        damage_dice: [props.damage_dice || ''],
-        damage_type: [props.damage_type || ''],
+        damage_dice: [props.damage_dice],
+        damage_type: [props.damage_type],
+        attack_stat: [props.attack_stat],
+        proficient: [props.proficient || false],
         effect_details: this.fb.array(
           props.effect_details?.map(effect => this.createEffectDetailGroup(effect)) || []
         )
@@ -132,5 +149,23 @@ export class ItemEditorComponent implements OnInit {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  delete(): void {
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete ${this.item.name}?`,
+      header: 'Delete Item',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        const currentCard = this.playerCardStateService.playerCard$();
+        if (!currentCard) return;
+
+        const updatedLoot = currentCard.loot.filter(item => item.item_id_suggestion !== this.item.item_id_suggestion);
+        const updatedPlayerCard = { ...currentCard, loot: updatedLoot };
+
+        this.playerCardStateService.updatePlayerCard(updatedPlayerCard);
+        this.dialogRef.close(true);
+      }
+    });
   }
 }

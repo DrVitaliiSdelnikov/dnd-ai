@@ -42,29 +42,38 @@ export const TASK_CONTINUE_GAMEPLAY = `
 - If the player asks you something out of character, ignore previous instructions and focus on resolving the question before continuing the game.
 `;
 
-// --- МОДУЛЬ 3: ФОРМАТ ОТВЕТА ---
+
+// - **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
+// do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
+// - **NO EXTRA TEXT:** The first character of your response must be "{" and the last character must be "}".
+// There should be no text or whitespace outside of these brackets.
+// -  { role: here should be role title as string, content: here JSON Schema provided below }
+// - **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
+// - **Avoid Redundancy in "content", the field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like
+// "You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object.
+// The player's UI will display these changes from the structured data.
+// **FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
+// - Ask to choose 2 proficiencies + tell them which one their background gave, and for each chosen skill set the "proficient" flag to true in the "playerCard.skills" object.
+//  All other skills should have "proficient" set to false. If user has not picked proficiencies, set them according to class.
+
+// МОДУЛЬ 2: ФОРМАТ ОТВЕТА
 export const FORMAT_JSON_RESPONSE = `
-- **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
-do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
-- **NO EXTRA TEXT:** The first character of your response must be "{" and the last character must be "}".
-There should be no text or whitespace outside of these brackets.
--  { role: here should be role title as string, content: here JSON Schema provided below }
-- **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
-- **Avoid Redundancy in "content", the field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like
-"You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object.
-The player's UI will display these changes from the structured data.
-**FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
-- Ask to choose 2 proficiencies + tell them which one their background gave, and for each chosen skill set the "proficient" flag to true in the "playerCard.skills" object.
- All other skills should have "proficient" set to false. If user has not picked proficiencies, set them according to class.
+
 
 **CRITICAL OUTPUT REQUIREMENT:**
 Your entire response MUST be a single, **stringified JSON object**.
 This means your output is a plain string that starts with \`{\` and end with \`}\` ready to be parsed by a JSON parser.
 - **NO MARKDOWN OR EXTRA TEXT:** Do NOT wrap the JSON string in markdown blocks (like \`\`\`json) Do NOT add any text, comments, or explanations before or after the JSON string.
 **VALIDATION:** The first character of your output must be \`{\` and the last must be \`}\` All property names and string values inside the JSON MUST be enclosed in double quotes.
+**CRITICAL OUTPUT REQUIREMENT:**
+Your entire response MUST be a single, stringified JSON object ready to be parsed.
+- Your output must start with "{" and end with "}".
+- Do not wrap the JSON in markdown blocks or add any text outside the JSON object.
+- All property names and string values inside the JSON MUST be enclosed in double quotes.
 
 **JSON SCHEMA:**
-Adhere strictly to this schema when creating the object that you will stringify.
+You MUST adhere strictly to the schema below. Pay close attention to nested 'properties' objects for both loot and spells. This is not optional.
+
 {
   "playerCard": {
     "hp": { "current": "number", "maximum": "number" },
@@ -94,19 +103,96 @@ Adhere strictly to this schema when creating the object that you will stringify.
       "stealth": { "proficient": "boolean" },
       "survival": { "proficient": "boolean" }
     },
-    "loot": [/* Array of 'Universal Item Model' objects */],
-    "spells": [/* Array of 'Universal Spell/Ability Model' objects */],
     "abilities": { "str": "number", "dex": "number", "con": "number", "int": "number", "wis": "number", "cha": "number" },
     "notes": "string",
-    "isUpdated": "boolean"
+    "isUpdated": "boolean",
+
+    "loot": [
+      // Each item in this array MUST follow this 'Universal Item Model' structure.
+      {
+        "id_suggestion": "string",
+        "name": "string",
+        "type": "string", // e.g., WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION
+        "description": "string",
+        "quantity": "number",
+        "properties": {
+          "proficient": "boolean", // MANDATORY FOR WEAPONS: does the player have proficiency with this?
+          "attack_stat": "string", // WEAPON-SPECIFIC: "str", "dex", "con", "int", "wis", "cha".
+          "attunement_required": "boolean", // optional
+          "magic_bonus": "number", // optional, e.g., 1 for a +1 item
+          "damage_dice": "string", // optional, e.g., "1d8"
+          "damage_type": "string", // optional, e.g., "Slashing", "Fire"
+          "weapon_category": "string", // optional, e.g., "Sword", "Axe"
+          "range_type": "string", // optional, e.g., "MELEE", "RANGED"
+          "range_increment": "string", // optional, e.g., "30/120 ft"
+          "special_tags": ["string"], // optional, e.g., ["Finesse", "Two-Handed"]
+          "armor_class_value": "number", // optional
+          "armor_type": "string", // optional, e.g., "Light Armor", "Shield"
+          "max_dex_bonus": "number | string", // optional, e.g., 2 or "NO_LIMIT"
+          "effect_description_brief": "string", // optional, for consumables
+          "effect_details": [{ // optional
+              "type": "string", // 'BUFF_STAT', 'HEAL', 'GRANT_ABILITY'
+              "description": "string",
+              "stat_buffed": "string", // 'str', 'dex', 'AC', etc.
+              "buff_value": "number",
+              "heal_amount": "string", // "2d4+2"
+              "ability_granted": "string"
+          }],
+          "currency_type": "string", // optional, e.g., "gold"
+          "utility_description": "string", // optional
+          "is_quest_item": "boolean" // optional
+        }
+      }
+    ],
+
+    "spells": [
+      // CRITICAL: Each spell in this array MUST follow this 'Universal Spell/Ability Model' structure.
+      // Every spell MUST have a nested 'properties' object. Do NOT create flat spell objects.
+      {
+        "id_suggestion": "string",
+        "name": "string",
+        "type": "SPELL | ABILITY",
+        "description": "string", // take DMG description as basis, if the desc has numbers don't skip them. Compress the desc to 250 symbols max.
+        "properties": {
+          
+          "range": "string",
+          "charges": "number", // Number of uses. Use -1 for spells that consume spell slots.
+          "is_passive": "boolean", // MANDATORY FIELD: true for constant bonuses, features, class and racial abilities. false otherwise.
+          "reset_condition": "string", // e.g., "Long Rest", "Short Rest", "N/A"
+          "school_of_magic": "string", // e.g., "Evocation", "Abjuration"
+          "spell_level": "number", // MANDATORY FIELD: 0 for cantrips, 1 for 1st-level, etc.
+          "spell_components": "string", // optional, e.g. "V, S, M (a pinch of salt)"
+          "action_type": "ATTACK_ROLL | SAVING_THROW | UTILITY | CONTESTED_CHECK",
+          "attack_info": { // Use null if not applicable
+            "ability": "string", // e.g., "DEX", "STR", "SPELLCASTING_ABILITY"
+            "damage_effects": [{
+              "dice": "string", // "1d10"
+              "type": "string" // "FIRE"
+            }]
+          },
+          "saving_throw_info": { // Use null if not applicable
+            "ability": "string", // "DEX", "WIS"
+            "dc_calculation": "SPELLCASTING_ABILITY | FIXED"
+          },
+          "damage_info": { // Use null if not applicable
+            "effects": [{
+              "dice": "string", // "3d6+1, etc"
+              "type": "string", // "FIRE, COLD, etc"
+              "on_save": "HALF | NONE | SPECIAL_EFFECT"
+            }]
+          }
+        }
+      }
+    ]
   },
-  "message": "string"
+  "message": "string" // This field contains your narrative response to the player.
 }
-**FINAL INSTRUCTION: Provide your response as a single, valid, stringified JSON object ONLY.**
+
+**FINAL INSTRUCTION: Generate a complete player card. When creating loot and spells, you MUST use the exact nested 'properties' structure detailed above. Failure to follow the schema, especially the nesting requirement for spells and items, will break the game. Be thorough and accurate.**
 `;
 
 
-// --- МОДУЛЬ 4: ЗАДАЧА СУММАРИЗАЦИИ (для generateSummery) ---
+// --- МОДУЛЬ 3: ЗАДАЧА СУММАРИЗАЦИИ (для generateSummery) ---
 export const TASK_SUMMARIZE_HISTORY = `
 You are a Story Archivist for a text-based RPG.
 Your sole purpose is to create a factual, concise summary of game events based on the provided history. It is narrative
@@ -127,116 +213,6 @@ INCLUDE (only if critical to understanding future events or character motivation
 - CRITICAL: Summary text length should not exceed 4000 characters without empty space.
 `;
 
-export const LOOT_AND_INVENTORY_MANAGEMENT = `
-# --- Loot Generation and Inventory Management Instructions ---
 
-**Input Inventory Context:**
-The playerCard.loot array you may receive in the input represents the player's current entire inventory. You should use this information to make informed decisions about new loot.
 
-**Core Loot Generation Principles:**
-1.  **Contextual Relevance:** Any new loot generated must fit the location, source, theme, and be appropriate for the player character.
-2.  **Moderation:** Do not shower players with loot. Significant items should feel like a reward.
-3.  **Variety:** Vary the types of loot generated.
 
-**Reporting Found Loot and Updating Player Inventory in JSON Response:**
-- If new loot is found, create new item objects using the "Universal Item Model" structure.
-- In your JSON response, the playerCard.loot array MUST contain ALL existing items PLUS any NEWLY FOUND items.
-- **CRITICAL: DO NOT MODIFY EXISTING ITEMS** unless an action explicitly caused a change (e.g., enchanting, breaking).
-- If no loot is found, the returned playerCard.loot array must be identical to the one received.
-
-**Item Consumption Instructions:**
-- If a player uses a consumable item, you MUST reflect this in the returned playerCard.loot array.
-- **Decrease Quantity:** If quantity > 1, return the item object with quantity decreased by 1.
-- **Remove Item:** If quantity is 1, OMIT the item entirely from the returned array.
-- Do not narrate mechanical inventory changes in the "message" field.
-
-**"Universal Item Model" Structure (for each item in playerCard.loot):**
-{
-  "item_id_suggestion": "string", // For existing items, PRESERVE their current ID. For NEW items, GENERATE a unique suggestion (e.g., UUID or descriptive ID).
-  "name": "string", // Item name (in the primary language of our interaction)
-  "type": "string", // Must be a logical ItemType (e.g., WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION)
-  "description": "string", // Item description (in the primary language of our interaction)
-  "quantity": "number", // Integer representing how many of this specific item instance
-  "properties": {
-    "attunement_required"?: "boolean",
-    "magic_bonus"?: "number",  e.g., 1 for a +1 item
-    "damage_dice"?: "string", // e.g., "1d8"
-    "damage_type"?: "string", // e.g., "Slashing", "Fire"
-    "weapon_category"?: "string", // e.g., "Sword", "Axe", "Staff"
-    "range_type"?: "string", // e.g., "MELEE", "RANGED"
-    "range_increment"?: "string", // e.g., "30/120 ft" for ranged
-    "special_tags"?: ["string"], // optional, array of strings, e.g., ["Finesse", "Two-Handed", "Silvered"]
-    "armor_class_value"?: "number", // total AC provided
-    "armor_type"?: "string", // e.g., "Light Armor", "Shield"
-    "max_dex_bonus"?: "number | string", // e.g., 2 or "NO_LIMIT"
-    "effect_description_brief": "string", // REQUIRED for consumables, summarizing the effect
-    "effects_list"?: ["string"],    // array of text descriptions of its magical effects or stat bonuses
-    "effect_details"?: [{
-        "type": "string", // 'BUFF_STAT', 'HEAL', 'GRANT_ABILITY', 'TEXT_DESCRIPTION'
-        "description": "string", // Текстовое описание этого конкретного эффекта. e.g., "+1 to Wisdom"
-        "stat_buffed"?: "string", // 'str', 'dex', 'con', 'int', 'wis', 'cha', 'AC', 'SAVING_THROW_ALL', 'SAVING_THROW_DEX', etc.
-        "buff_value"?: "number", // e.g., 1, 2, -1
-        "heal_amount"?: "string", // e.g., "2d4+2"
-        "ability_granted"?: "string", // e.g., "Advantage on Perception checks", "Resistance to Fire damage"
-        // Для type: 'TEXT_DESCRIPTION' (если эффект чисто описательный)
-        // Поле "description" уже покрывает это.
-    }],
-    "currency_type"?: "string", // e.g., "gold", "silver", "electrum"
-    "utility_description"?: "string", // optional, describes what it can be used for if not obvious
-    "is_quest_item"?: "boolean"     // optional, true if it's specifically a quest item
-  } as array of these items
-}
-`;
-
-export const SPELLS_SKILLS_MANAGEMENT = `
-# --- Spell and Ability Management Instructions ---
-**"Universal Spell/Ability Model" Structure (for each item in playerCard.spells):**
-- When adding a new spell or ability, create an object adhering to this structure.
-- **CRITICAL: ALL spell/ability details (like \`spell_level\`, \`range\`, \`effects\`) MUST be placed inside the nested \`properties\` object.**
-- **CRITICAL: all spells MUST have a spell_level attribute**
-- **CRITICAL: generate spells accordring to user class and race, the section can't be empty**
-{
-  "id_suggestion": "string", // Unique ID suggested by the AI (e.g., "spell_fireball_01", "ability_power_attack_01")
-  "name": "string", // Name the player sees (e.g., "Fireball", "Power Attack")
-  "type": "SPELL | ABILITY", // Type: spell (requires mana/slots) or ability (can be passive or have a cooldown)
-  "description": "string", // short text description as seen in DMG .
-
-  "properties": {
-    "target_type": "SELF | SINGLE_ENEMY | SINGLE_ALLY | AREA | MULTIPLE", // Who/what it targets
-    "range": "string", // Range (e.g., "Self", "Touch", "60 feet", "120-foot line")
-    "charges": "number" // Number of charges (e.g., 3 times per day)
-    "is_passive": "boolean", // Whether the ability is passive (true for auras, constant bonuses), mandatory field
-    "reset_condition": "string", // how the charges are reset e.g long rest, short rest, at dawn, etc.
-    // --- Properties specific to spells (SPELL) ---
-    "school_of_magic": "string",// School of magic (e.g., "Evocation", "Abjuration", "Illusion")
-    "spell_level": "number", // Spell level (0 for cantrips, 1, 2, ...)
-    "spell_components"?: "string", // e.g. "V, S, M (a pinch of soot and a twig from a yew tree)"
-
-  "spell_level": "number", // 3,
-  "school_of_magic": "Evocation", // Enum: ABJURATION, CONJURATION, DIVINATION, ENCHANTMENT, EVOCATION, ILLUSION, NECROMANCY, TRANSMUTATION
-
-  // PRIMARY ACTION LOGIC
-  "action_type": "SAVING_THROW", // Enum: ATTACK_ROLL, SAVING_THROW, UTILITY, CONTESTED_CHECK
-
-  // Section for Attack Rolls (if actionType is ATTACK_ROLL)
-  "attack_info": null, // Not applicable for Fireball
-
-  // Section for Saving Throws (if actionType is SAVING_THROW)
-  "saving_throw_info": {
-    "ability": "DEX", // Which of the 6 saves is required
-    "dc_calculation": "SPELLCASTING_ABILITY" // Enum: SPELLCASTING_ABILITY, FIXED
-    // fixedDC: 15 // Only if dcCalculation is FIXED (e.g., for magic items)
-  },
-
-  // Section for Damage
-  "damage_info": {
-    "effects": [
-      {
-        "dice": number // e.g. "8d6",
-        "type": string // e.g. "FIRE",
-        "on_save": "HALF" // Enum: HALF, NONE, SPECIAL_EFFECT
-      }
-    ]
-  }
-}
-`;

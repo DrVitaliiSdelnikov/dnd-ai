@@ -22,9 +22,7 @@ import { ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
 import {
   CORE_DM_BEHAVIOR,
   FORMAT_JSON_RESPONSE,
-  LOOT_AND_INVENTORY_MANAGEMENT,
   RULES_DICE_AND_CHECKS,
-  SPELLS_SKILLS_MANAGEMENT,
   TASK_CONTINUE_GAMEPLAY,
   TASK_NEW_CAMPAIGN,
   TASK_SUMMARIZE_HISTORY
@@ -210,10 +208,8 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     ---
     ${FORMAT_JSON_RESPONSE}
     ---
-    ${LOOT_AND_INVENTORY_MANAGEMENT}
-    ---
-    ${SPELLS_SKILLS_MANAGEMENT}
-    ---
+    
+    
     Player curren playerCard state -> ${JSON.stringify(this.playerCard())}
     ---
     **Game Context (History):**
@@ -314,7 +310,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   setDiceRollResult(rollEvent: {[key: string]: string}): void {
-    const newRollMarker = `Dice roll: ${rollEvent.description}.`;
+    const newRollMarker = `${rollEvent.description}.`;
 
     this.userInput = this.userInput.trim()
       ? `${this.userInput.trim()} ${newRollMarker}`

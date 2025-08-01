@@ -1,3 +1,4 @@
+<p-confirmDialog></p-confirmDialog>
 <form [formGroup]="itemForm" (ngSubmit)="save()">
   <div class="form-content p-fluid">
 
@@ -31,6 +32,23 @@
               formControlName="damage_type"
               placeholder="Select a type">
             </p-dropdown>
+          </div>
+          <div class="p-col-12 p-md-6 field">
+            <label for="attack_stat">Attack Stat</label>
+            <p-dropdown
+              id="attack_stat"
+              [options]="attackStatTypes"
+              formControlName="attack_stat"
+              placeholder="Select a stat">
+            </p-dropdown>
+          </div>
+          <div class="p-col-12 p-md-6 field flex align-items-center">
+            <p-checkbox
+              formControlName="proficient"
+              [binary]="true"
+              inputId="proficient_checkbox">
+            </p-checkbox>
+            <label for="proficient_checkbox" class="ml-2">Proficient</label>
           </div>
         </div>
       </div>
@@ -84,6 +102,7 @@
 </form>
 
 <div class="p-dialog-footer">
+  <button pButton type="button" label="Delete" class="p-button-danger" (click)="delete()"></button>
   <button pButton type="button" label="Cancel" class="p-button-text" (click)="close()"></button>
   <button pButton type="button" label="Save" class="p-button-success" (click)="save()" [disabled]="itemForm.invalid"></button>
 </div>

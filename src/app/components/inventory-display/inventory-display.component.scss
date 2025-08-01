@@ -5,6 +5,7 @@
     padding: 15px;
     border-radius: 8px;
     background-color: #f9f9f9;
+    position: relative;
   }
 
   .inventory-container h2 {
@@ -123,5 +124,17 @@
   .tooltip-container:hover .tooltip-text {
     visibility: visible;
     opacity: 1;
+  }
+}
+
+.add-item-fab {
+  position: absolute;
+  bottom: -0.1rem;
+  right: 20rem;
+  z-index: 1000;
+
+  ::ng-deep .p-speeddial-button {
+    width: 2.5rem;
+    height: 2.5rem;
   }
 }
