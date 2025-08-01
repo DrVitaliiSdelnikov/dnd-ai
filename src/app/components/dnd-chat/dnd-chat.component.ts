@@ -201,7 +201,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     this.userInput = '';
     this.isLoading.set(true);
 
-    const gameTurnPrompt = `
+    let gameTurnPrompt = `
     ${CORE_DM_BEHAVIOR}
     ---
     ${RULES_DICE_AND_CHECKS}
@@ -218,7 +218,14 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     ---
     **Game Context (History):**
     ${JSON.stringify(userMessage)}
-  `;
+    `;
+
+    /**
+     * TODO перенести на бек, до 10 первых сообщений, мы также будем отправлять промпт по созданию персонажа
+     */
+    if(this.messages?.length < 10) {
+      gameTurnPrompt = `${gameTurnPrompt} ${TASK_NEW_CAMPAIGN}`
+    }
 
     this.chatService.sendMessage([{ role: 'user', content: gameTurnPrompt }])
       .pipe(

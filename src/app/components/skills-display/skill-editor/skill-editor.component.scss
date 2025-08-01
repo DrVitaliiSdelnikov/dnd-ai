@@ -1,0 +1,17 @@
+.skill-editor-content {
+  padding: 1rem 0;
+}
+
+.field-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.p-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--surface-d);
+  margin-top: 1rem;
+}
