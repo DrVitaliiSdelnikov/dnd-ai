@@ -1,0 +1,27 @@
+<form [formGroup]="summaryForm" (ngSubmit)="save()" class="summary-editor-form">
+  <p-tabView>
+    <p-tabPanel header="General">
+      <ng-template pTemplate="content">
+        <textarea pInputTextarea formControlName="adventureHistory" rows="15" [autoResize]="true"></textarea>
+      </ng-template>
+    </p-tabPanel>
+
+    <p-tabPanel header="Characters">
+      <ng-template pTemplate="content">
+        <textarea pInputTextarea formControlName="keyRelationships" rows="15" [autoResize]="true"></textarea>
+      </ng-template>
+    </p-tabPanel>
+
+    <p-tabPanel header="Notes">
+      <ng-template pTemplate="content">
+        <textarea pInputTextarea formControlName="importantDecisions" rows="15" [autoResize]="true"></textarea>
+      </ng-template>
+    </p-tabPanel>
+  </p-tabView>
+</form>
+
+
+<div class="p-dialog-footer">
+  <button pButton type="button" label="Cancel" class="p-button-text" (click)="close()"></button>
+  <button pButton type="button" label="Save" class="p-button-success" (click)="save()" [disabled]="summaryForm.invalid"></button>
+</div>

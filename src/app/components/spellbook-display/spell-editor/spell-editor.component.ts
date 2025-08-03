@@ -1,4 +1,4 @@
-import { CommonModule, NgForOf, NgIf } from '@angular/common';
+import { CommonModule, NgIf } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { cloneDeep } from 'lodash';
@@ -21,7 +21,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
   standalone: true,
   imports: [
     CommonModule, ReactiveFormsModule, DialogModule, ButtonModule,
-    TooltipModule, NgForOf, NgIf, DropdownModule,
+    TooltipModule, NgIf, DropdownModule,
     InputTextModule, TextareaModule, InputNumberModule, CheckboxModule, Tooltip,
     ConfirmDialogModule
   ],

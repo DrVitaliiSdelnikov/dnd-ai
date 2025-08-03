@@ -3,6 +3,7 @@ import { PlayerCard } from '../shared/interfaces/player-card.interface';
 import { SessionStorageService } from './session-storage.service';
 import { sessionStorageKeys } from '../shared/const/session-storage-keys';
 import { InventoryItem } from '../shared/interfaces/inventroy.interface';
+import { AdventureSummary } from '../shared/interfaces/sammery';
 
 @Injectable({
   providedIn: 'root'
@@ -10,6 +11,8 @@ import { InventoryItem } from '../shared/interfaces/inventroy.interface';
 export class PlayerCardStateService {
   private readonly playerCardState: WritableSignal<PlayerCard | null> = signal(null);
   public readonly playerCard$ = this.playerCardState.asReadonly();
+  private readonly campaignSummaryState: WritableSignal<AdventureSummary | null> = signal(null);
+  public readonly campaignSummary$ = this.campaignSummaryState.asReadonly();
   public readonly abilityModifiers$ = computed(() => {
     const card = this.playerCardState();
     if (!card) return {};
@@ -35,8 +38,45 @@ export class PlayerCardStateService {
         console.error("Failed to parse player card from session storage", e);
       }
     }
+
+    const storedSummary = this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.SUMMERY);
+    if (storedSummary) {
+      try {
+        const { adventureHistory, keyRelationships, importantDecisions } = JSON.parse(storedSummary);
+        this.campaignSummaryState.set({
+          adventureHistory,
+          keyRelationships,
+          importantDecisions
+        });
+      } catch {
+        console.warn('Summery parsing problem')
+      }
+    }
   }
 
+  updateCampaignSummary(updatedSummery: AdventureSummary): void {
+    this.campaignSummaryState.set(updatedSummery);
+    this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.SUMMERY, JSON.stringify({
+      adventureHistory: updatedSummery.adventureHistory,
+      keyRelationships: updatedSummery.keyRelationships,
+      importantDecisions: updatedSummery.importantDecisions
+    }));
+  }
+
+  parseAndSaveSummery(newSummary: string): void {
+    const { summery } = JSON.parse(newSummary)
+
+    this.campaignSummaryState.set({
+      adventureHistory: summery.adventureHistory,
+      keyRelationships: summery.keyRelationships,
+      importantDecisions: summery.importantDecisions
+    });
+    this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.SUMMERY, JSON.stringify({
+      adventureHistory: summery.adventureHistory,
+      keyRelationships: summery.keyRelationships,
+      importantDecisions: summery.importantDecisions
+    }));
+  }
 
   updatePlayerCard(updatedCard: PlayerCard): void {
     this.playerCardState.set(updatedCard);

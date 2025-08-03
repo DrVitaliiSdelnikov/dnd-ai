@@ -1,0 +1,17 @@
+<div class="skill-editor-content">
+  <form [formGroup]="skillForm" (ngSubmit)="save()">
+    <div class="field-checkbox">
+      <p-checkbox
+        formControlName="proficient"
+        [binary]="true"
+        inputId="proficientCheck">
+      </p-checkbox>
+      <label for="proficientCheck" class="ml-2">Proficient in {{ skillData?.name }}</label>
+    </div>
+  </form>
+</div>
+
+<div class="p-dialog-footer">
+  <button pButton type="button" label="Cancel" class="p-button-text" (click)="close()"></button>
+  <button pButton type="button" label="Save" class="p-button-success" (click)="save()"></button>
+</div>

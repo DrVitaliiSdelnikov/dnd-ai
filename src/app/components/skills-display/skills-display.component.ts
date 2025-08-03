@@ -9,7 +9,8 @@ import {
 } from '../../shared/components/roll-options-panel/roll-options-panel.component';
 import { ConfirmPopup, ConfirmPopupModule } from 'primeng/confirmpopup';
 import { ConfirmationService, MessageService } from 'primeng/api';
-
+import { SkillEditorComponent } from './skill-editor/skill-editor.component';
+import { DialogService } from 'primeng/dynamicdialog';
 
 interface Skill {
   key: string;
@@ -27,7 +28,8 @@ interface Skill {
   styleUrls: ['./skills-display.component.scss'],
   providers: [
     ConfirmationService,
-    MessageService
+    MessageService,
+    DialogService
   ]
 })
 export class SkillsDisplayComponent {
@@ -39,6 +41,7 @@ export class SkillsDisplayComponent {
   private confirmationService: ConfirmationService = inject(ConfirmationService);
   private messageService: MessageService = inject(MessageService);
   @Output() skillCheck = new EventEmitter<RollEvent>();
+  private dialogService = inject(DialogService);
   private readonly skillAbilityMap: { [key: string]: string } = {
     acrobatics: 'dex', animal_handling: 'wis', arcana: 'int', athletics: 'str',
     deception: 'cha', history: 'int', insight: 'wis', intimidation: 'cha',
@@ -70,6 +73,27 @@ export class SkillsDisplayComponent {
     });
   });
 
+  openEditSkillModal(event: MouseEvent, skill: Skill): void {
+    event.stopPropagation();
+
+    const ref = this.dialogService.open(SkillEditorComponent, {
+      header: `Edit Skill: ${skill.name}`,
+      width: '350px',
+      data: {
+        skill: {
+          key: skill.key,
+          name: skill.name,
+          proficient: skill.proficient
+        }
+      }
+    });
+
+    ref.onClose.subscribe((wasSaved: boolean) => {
+      if (wasSaved) {
+        console.log(`Skill '${skill.name}' was updated.`);
+      }
+    });
+  }
 
   rollSkillCheck(skill: Skill, rollState: RollState = 'NORMAL'): void {
     let d20Roll: number;

@@ -1,0 +1,28 @@
+<div class="summary-container">
+  <div class="summary-header">
+    <h4>Adventure Summary</h4>
+    <div class="header-actions">
+      <button
+        [disabled]="!summaryData()"
+        pButton
+        label="Edit"
+        class="p-button-sm p-button-outlined"
+        (click)="openEditModal()">
+      </button>
+    </div>
+  </div>
+
+  <form [formGroup]="summaryForm">
+    <p-tabView>
+      <p-tabPanel header="General">
+        <p class="summary-text">{{ summaryData()?.adventureHistory || 'No summary yet.' }}</p>
+      </p-tabPanel>
+      <p-tabPanel header="Characters">
+        <p class="summary-text">{{ summaryData()?.keyRelationships || 'No character interactions recorded.' }}</p>
+      </p-tabPanel>
+      <p-tabPanel header="Notes">
+        <p class="summary-text">{{ summaryData()?.importantDecisions || 'No additional notes.' }}</p>
+      </p-tabPanel>
+    </p-tabView>
+  </form>
+</div>

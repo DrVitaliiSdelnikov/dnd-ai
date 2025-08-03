@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule, JsonPipe, NgForOf, NgIf } from '@angular/common';
+import { CommonModule, NgIf } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { InventoryItem, ItemEffect } from '../../../shared/interfaces/inventroy.interface';
@@ -22,8 +22,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
     CommonModule,
     ReactiveFormsModule,
     NgIf,
-    NgForOf,
-    JsonPipe,
     ButtonModule,
     InputTextModule,
     TextareaModule,
