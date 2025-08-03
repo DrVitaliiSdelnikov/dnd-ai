@@ -93,8 +93,7 @@
             <span
               class="bonus-oval"
               [ngClass]="{'bonus-oval-disabled': !ability.value}"
-              *ngIf="equipmentBonuses()?.statsBonuses?.[ability.key] && equipmentBonuses()?.statsBonuses?.[ability.key] > 0"
-            >+{{ equipmentBonuses()?.statsBonuses?.[ability.key] }}</span>
+            >{{ (equipmentBonuses()?.statsBonuses?.[ability.key] | statBonus)}}</span>
           </div>
         </ng-container>
       </div>
@@ -129,7 +128,7 @@
             header="Adventure summary"
             [disabled]="!campaignSummary()"
           >
-            <p>{{ campaignSummary() || '—' }}</p>
+            <app-adventure-summary/>
           </p-accordionTab>
 
         </p-accordion>
@@ -169,14 +168,14 @@
 
       <p-panel header="Attributes">
         <div class="ability-grid" formGroupName="abilities">
-          <ng-container *ngFor="let key of (abilities() | keyvalue)">
+          @for(key of (abilities() | keyvalue); track key.key) {
             <div class="ability edit">
-              <label>{{ key.key | uppercase }}</label>
+              <label>{{ abilitiesMap[key.key] | uppercase }}</label>
               <p-inputNumber
                 [formControlName]="key.key"
               ></p-inputNumber>
             </div>
-          </ng-container>
+          }
         </div>
       </p-panel>
 

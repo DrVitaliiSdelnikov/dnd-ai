@@ -41,6 +41,8 @@ import { SkillsDisplayComponent } from '../skills-display/skills-display.compone
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { Spell } from '../../shared/interfaces/spells';
 import { ToastModule } from 'primeng/toast';
+import { StatBonusPipe } from '../../shared/stat-bonus.pipe';
+import { AdventureSummaryComponent } from '../campaign-sammary/adventure-summary.component';
 
 interface AbilityMap { [k: string]: FormControl<number | null> }
 interface Item { name: string; qty: number }
@@ -79,7 +81,9 @@ interface CharacterBase {
     ConfirmPopup,
     RollOptionsPanelComponent,
     SkillsDisplayComponent,
-    ToastModule
+    ToastModule,
+    StatBonusPipe,
+    AdventureSummaryComponent
   ],
   providers: [
     ConfirmationService,
@@ -103,6 +107,8 @@ export class PlayerCardComponent implements OnInit {
     return !Object.values(skills).some(s => !!(s as {proficient: boolean})?.proficient);
   });
   readonly equipmentBonuses: Signal<CalculatedBonuses> = computed(() => {
+    if(!this.playerCard()) return;
+
     const allItems = this.playerCard()?.loot ?? [];
     const bonuses: CalculatedBonuses = {
       armorClass: 0,
@@ -113,17 +119,6 @@ export class PlayerCardComponent implements OnInit {
     bonuses.armorClass = this.calculateArmorClass(allItems, bonuses?.statsBonuses);
 
     if(!bonuses?.statsBonuses || !bonuses?.armorClass) return;
-
-    const baseDex = this.playerCardForm.get('abilities.dex').value;
-    const bonusDexFromItems = bonuses?.statsBonuses.dex || 0;
-    const totalDex = (baseDex || 0) + bonusDexFromItems;
-    const dexModifier = this.getAbilityModifier(totalDex);
-
-    const heavyArmor = allItems.find(item => item.properties?.armor_type === 'Heavy Armor');
-    if (!heavyArmor) {
-      bonuses.armorClass += dexModifier;
-    }
-
     return bonuses;
   });
   campaignSummary = input(null);
@@ -153,7 +148,7 @@ export class PlayerCardComponent implements OnInit {
   });
   private sessionStorageService = inject(SessionStorageService);
   readonly editMode = signal(false);
-  private readonly abilitiesMap = {
+  readonly abilitiesMap = {
     str: 'Strength',
     dex: 'Dexterity',
     con: 'Constitution',
@@ -348,14 +343,15 @@ export class PlayerCardComponent implements OnInit {
     let baseAc = 10;
     let armorType: string | null = null;
     let maxDexBonus: number = null;
+    const armorClassValue = mainArmor.properties.armor_class_value;
 
-    if (mainArmor && mainArmor.properties) 
+    if (mainArmor && mainArmor.properties)
       {
-      baseAc = mainArmor.properties.armor_class_value ?? baseAc;
+      baseAc = (armorClassValue > 0) ? armorClassValue : baseAc;
       armorType = mainArmor.properties.armor_type || null;
       maxDexBonus = mainArmor.properties.max_dex_bonus === 'NO_LIMIT'
         ? Infinity
-        : Number(mainArmor.properties.max_dex_bonus ?? Infinity);
+        : Number(armorClassValue ?? Infinity);
     }
 
     const baseDex = this.playerCardForm.get('abilities.dex').value ?? 0;
@@ -375,7 +371,7 @@ export class PlayerCardComponent implements OnInit {
     totalAc += finalDexBonusForAc;
 
     allItems.forEach(item => {
-      if (item.properties) 
+      if (item.properties)
         {
         if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
           totalAc += item.properties.armor_class_value;

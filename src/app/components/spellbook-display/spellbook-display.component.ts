@@ -7,7 +7,7 @@ import {
   InputSignal,
   computed, inject, WritableSignal, signal
 } from '@angular/core';
-import { NgIf } from '@angular/common';
+import { NgForOf, NgIf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';

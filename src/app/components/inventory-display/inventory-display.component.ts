@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
 import { NgForOf, NgIf } from '@angular/common';
-import { ButtonDirective } from 'primeng/button';
+import { ButtonDirective, ButtonIcon } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import {

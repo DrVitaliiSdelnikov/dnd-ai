@@ -37,30 +37,15 @@ export const TASK_CONTINUE_GAMEPLAY = `
 **Current Task: Narrate the Next Turn**
 - Analyze the player's last action and the provided game context, **including any dice roll results they have provided in their message.**
 - If an attack roll and a damage roll are provided together, first check if the attack roll hits the target's AC. If the attack hits, apply the provided damage roll. If the attack misses, IGNORE the provided damage roll.
+- Narrate Item Usage: When a consumable or limited-use item is used (e.g., a potion is drunk, an arrow is fired, a scroll is read, coins are spent), weave this action into the narrative description.
+- Focus on the Action, Not the Count: Describe the *act* of using the item, not the mechanical change in quantity. Good Example: "You uncork the vial and quickly drink the shimmering red liquid."
 - Describe the outcome of their action and the world's reaction based on these factors.
 - Present a new situation for the player to respond to.
 - If the player asks you something out of character, ignore previous instructions and focus on resolving the question before continuing the game.
 `;
 
-
-// - **MANDATORY FORMAT:** Your entire output **MUST** be a single, raw JSON object. Do not wrap it in markdown code blocks,
-// do not add any introductory text, explanations, greetings, or apologies before or after the JSON object. This is critical for stability and work.
-// - **NO EXTRA TEXT:** The first character of your response must be "{" and the last character must be "}".
-// There should be no text or whitespace outside of these brackets.
-// -  { role: here should be role title as string, content: here JSON Schema provided below }
-// - **SCHEMA ADHERENCE:** The JSON object MUST strictly adhere to the following schema. Ensure all property names are enclosed in double quotes.
-// - **Avoid Redundancy in "content", the field should contain the narrative, dialogues, and descriptions. Do not repeat mechanical results like
-// "You take 5 damage" or "You gain 10 EXP" if those changes are already reflected in the "playerCard" object.
-// The player's UI will display these changes from the structured data.
-// **FAILURE TO COMPLY with the JSON format will result in a system error. Double-check your response to ensure it is a valid, raw JSON object.**
-// - Ask to choose 2 proficiencies + tell them which one their background gave, and for each chosen skill set the "proficient" flag to true in the "playerCard.skills" object.
-//  All other skills should have "proficient" set to false. If user has not picked proficiencies, set them according to class.
-
-// МОДУЛЬ 2: ФОРМАТ ОТВЕТА
-export const FORMAT_JSON_RESPONSE = `
-
-
-**CRITICAL OUTPUT REQUIREMENT:**
+export const JSON_GENERATION = `
+  **CRITICAL OUTPUT REQUIREMENT:**
 Your entire response MUST be a single, **stringified JSON object**.
 This means your output is a plain string that starts with \`{\` and end with \`}\` ready to be parsed by a JSON parser.
 - **NO MARKDOWN OR EXTRA TEXT:** Do NOT wrap the JSON string in markdown blocks (like \`\`\`json) Do NOT add any text, comments, or explanations before or after the JSON string.
@@ -70,9 +55,23 @@ Your entire response MUST be a single, stringified JSON object ready to be parse
 - Your output must start with "{" and end with "}".
 - Do not wrap the JSON in markdown blocks or add any text outside the JSON object.
 - All property names and string values inside the JSON MUST be enclosed in double quotes.
+`
+
+// МОДУЛЬ 2: ФОРМАТ ОТВЕТА
+export const FORMAT_JSON_RESPONSE = `
+${JSON_GENERATION}
 
 **JSON SCHEMA:**
 You MUST adhere strictly to the schema below. Pay close attention to nested 'properties' objects for both loot and spells. This is not optional.
+
+
+To determine if the inventory (playerCard.loot) or spellbook (playerCard.spells) state needs modification, you will analyze **ONLY TWO MESSAGES**:
+the **very last "user message" and your own "assistant" message that immediately precedes it.
+IGNORE ALL OLDER MESSAGES for inventory (playerCard.loot) or spellbook (playerCard.spells) changes. Any requests or events from before the last two messages are considered
+COMPLETED for modifying inventory (playerCard.loot) or spellbook (playerCard.spells). Use them for narrative context only.
+- If the player's inventory (playerCard.loot) or spellbook (playerCard.spells) has NOT changed in any way during this turn,
+you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
+- If the inventory or spellbook HAS changed, you **MUST** return the **complete, new, updated array** for that field.
 
 {
   "playerCard": {
@@ -154,7 +153,7 @@ You MUST adhere strictly to the schema below. Pay close attention to nested 'pro
         "type": "SPELL | ABILITY",
         "description": "string", // take DMG description as basis, if the desc has numbers don't skip them. Compress the desc to 250 symbols max.
         "properties": {
-          
+
           "range": "string",
           "charges": "number", // Number of uses. Use -1 for spells that consume spell slots.
           "is_passive": "boolean", // MANDATORY FIELD: true for constant bonuses, features, class and racial abilities. false otherwise.
@@ -202,7 +201,7 @@ game chronicle without stats, spells or loot description, unless they are critic
 - The summary must be a neutral, third-person narrative.
 - Your output must be a single block of plain text containing only the summary. Do not add greetings.
 - The summary MUST NOT be a JSON object. Do not include the playerCard object or any other JSON elements, only narrative aspects.
-- Focus strictly on narratively significant events, character choices with lasting consequences, and the progression of major plotlines.
+- Focus strictly on narrative significant events, character choices with lasting consequences, and the progression of major plotlines.
 EXCLUDE: Specific roll numbers, exact damage figures, precise gold/XP amounts, and turn-by-turn combat minutiae. Stats listing. e.g. "Intelligence 15, Wisdom 12..."
 INCLUDE (only if critical to understanding future events or character motivations):
 - The acquisition/loss of unique plot-relevant items or powerful magical gear.
@@ -210,8 +209,17 @@ INCLUDE (only if critical to understanding future events or character motivation
 - The outcome of critical skill checks that significantly altered events (e.g., "successfully negotiated past the guardian," "failed to disarm the trap leading to X").
 - Significant environmental discoveries or alterations.
 - The goal is a concise summary useful for the DM to quickly recall the key story beats and character developments. Provide the appended summary text in chat.
-- CRITICAL: Summary text length should not exceed 4000 characters without empty space.
-`;
+- CRITICAL: Overall summary text length should not exceed 4000 characters without empty space.
+
+${JSON_GENERATION}
+---
+{
+  summery: {
+    adventureHistory: string, // summary of key plot events, locations discovered, and major goals achieved.
+    keyRelationships: string, // summary of significant interactions with NPCs, changes in their attitudes, and relationship developments.
+    importantDecisions: string, // summary of critical player choices, significant skill check outcomes, and unique events with lasting consequences.
+  }
+}`;
 
 
 

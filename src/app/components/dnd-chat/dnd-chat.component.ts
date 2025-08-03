@@ -32,6 +32,7 @@ import { PlayerCard } from '../../shared/interfaces/player-card.interface';
 import { Tooltip } from 'primeng/tooltip';
 import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator.component';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
+import { AdventureSummary } from '../../shared/interfaces/sammery';
 
 @Component({
   selector: 'app-dnd-chat',
@@ -61,7 +62,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   instructions: string = '';
   playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
   playerCard: Signal<PlayerCard | null> = this.playerCardStateService.playerCard$;
-  campaignSummary: WritableSignal<string> = signal(null);
+  campaignSummary: Signal<AdventureSummary | null> = this.playerCardStateService.campaignSummary$;
 
   @ViewChild('messagesArea') private messagesArea!: ElementRef<HTMLDivElement>;
 
@@ -100,17 +101,17 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   private buildOutgoingHistory(): ChatMessage[] {
-    const summary = this.campaignSummary();
-    if (!summary) {
+    if (!this.campaignSummary()) {
       return this.wipeMessagesIds()
-    };
+    }
+    const stringifySummery = JSON.stringify(this.campaignSummary());
 
     const preparedMessages = this.wipeMessagesIds();
     const unsummarised = preparedMessages.length % 10 || 10;
     const tail = preparedMessages.slice(-unsummarised);
 
     return [
-      { role: 'system', content: summary },
+      { role: 'system', content: stringifySummery },
       ...tail
     ];
   }
@@ -118,7 +119,6 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   private checkCampaignHistory(): void {
     this.isLoading.set(true);
     const messagesHistory = this.getCampaignMessages();
-    this.campaignSummary.set(this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.SUMMERY));
     this.isNewCampaign.set(!messagesHistory?.length);
     if(messagesHistory?.length) {
       this.messages = JSON.parse(messagesHistory) ?? [];
@@ -163,10 +163,6 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.MESSAGES_HISTORY, messages);
   }
 
-  private saveHeroModelToSession(heroStats: string): void {
-    this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, heroStats);
-  }
-
   private getCampaignMessages(): string | null {
     return this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.MESSAGES_HISTORY);
   }
@@ -208,18 +204,13 @@ export class DndChatComponent implements OnInit, AfterViewInit {
     ---
     ${FORMAT_JSON_RESPONSE}
     ---
-    
-    
     Player curren playerCard state -> ${JSON.stringify(this.playerCard())}
     ---
     **Game Context (History):**
     ${JSON.stringify(userMessage)}
     `;
 
-    /**
-     * TODO перенести на бек, до 10 первых сообщений, мы также будем отправлять промпт по созданию персонажа
-     */
-    if(this.messages?.length < 10) {
+    if(this.messages?.length < 20) {
       gameTurnPrompt = `${gameTurnPrompt} ${TASK_NEW_CAMPAIGN}`
     }
 
@@ -228,9 +219,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
         tap(result => this.parseMessage(result)),
         switchMap(result => {
           const count = this.messages?.length ?? 0;
-          return count !== 0 && (count - 1) % 10 === 0
-            ? this.generateSummery(result)
-            : of(result);
+          return this.resolveGenerateSummeryObservble(count, result);
         }),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoading.set(false))
@@ -238,22 +227,55 @@ export class DndChatComponent implements OnInit, AfterViewInit {
       .subscribe();
   }
 
+  private resolveGenerateSummeryObservble(count: number, result: ChatMessage): Observable<ChatMessage> {
+    return count !== 0 && (count - 1) % 10 === 0
+      ? this.generateSummery(result)
+      : of(result);
+  }
 
   private parseMessage(result: {content: string, role: string}): void {
     const rawContent = this.stripMarkdownJson(result?.content);
     try {
       const parsedAnswer = JSON.parse(rawContent);
+
       this.pushMessage({
         content: parsedAnswer.message,
         role: result.role
       });
+
+      const newCardFromAI = parsedAnswer.playerCard;
+      const currentCard = this.playerCard();
+      const finalUpdatedCard = { ...currentCard };
+
+      Object.assign(finalUpdatedCard, {
+        hp: newCardFromAI.hp,
+        currency: newCardFromAI.currency,
+        name: newCardFromAI.name,
+        race: newCardFromAI.race,
+        class: newCardFromAI.class,
+        level: newCardFromAI.level,
+        exp: newCardFromAI.exp,
+        skills: newCardFromAI.skills,
+        abilities: newCardFromAI.abilities,
+        notes: newCardFromAI.notes,
+        isUpdated: newCardFromAI.isUpdated,
+      });
+
+
+      if (newCardFromAI.loot !== 'SAME') {
+        finalUpdatedCard.loot = newCardFromAI.loot;
+      }
+
+      if (newCardFromAI.spells !== 'SAME') {
+        finalUpdatedCard.spells = newCardFromAI.spells;
+      }
+
+      this.playerCardStateService.updatePlayerCard(finalUpdatedCard as PlayerCard);
       this.saveMessageToHistory(JSON.stringify(this.messages));
-      this.saveHeroModelToSession(JSON.stringify(parsedAnswer.playerCard));
-      this.playerCardStateService.updatePlayerCard(parsedAnswer.playerCard);
     } catch (error) {
-      console.error("Failed to parse AI response as JSON. Treating as plain text.", error);
+      console.error("Failed to parse AI response as JSON.", error, { rawContent: rawContent });
       this.messages.push({
-        content: "Unfortunately, error occurred. Please, repeat your answer",
+        content: "Unfortunately, an error occurred. Please, repeat your answer.",
         role: result.role
       });
     }
@@ -297,8 +319,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
         delay(1000),
         take(1),
         tap(result => {
-          this.campaignSummary.set(result.content);
-          this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.SUMMERY, this.campaignSummary());
+          this.playerCardStateService.parseAndSaveSummery(result.content);
         }),
         map(() => message),
       )

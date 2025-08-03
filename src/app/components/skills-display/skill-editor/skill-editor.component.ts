@@ -7,7 +7,6 @@ import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { PlayerCardStateService } from '../../../services/player-card-state.service';
 
-
 interface SkillEditData {
   key: string;
   name: string;
