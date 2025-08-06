@@ -206,13 +206,13 @@ export class PlayerCardComponent implements OnInit {
     const finalModifiers: { [key: string]: number } = {};
     const itemBonuses: { [key: string]: number } = {};
     allItems.forEach(item => {
-      const props = item?.properties;
+      const effects = item.properties?.action_template?.effects;
 
-      if (props?.effect_details && Array.isArray(props.effect_details)) {
-        props.effect_details.forEach(effect => {
-          if (effect.type === 'BUFF_STAT' && effect.stat_buffed && typeof effect.buff_value === 'number') {
-            const statKey = effect.stat_buffed.toLowerCase();
-            const bonusValue = effect.buff_value;
+      if (effects && Array.isArray(effects)) {
+        effects.forEach(effect => {
+          if (effect.type === 'MODIFIER' && effect.stat && !isNaN(parseInt(effect.value, 10))) {
+            const statKey = effect.stat.toLowerCase();
+            const bonusValue = parseInt(effect.value, 10);
 
             itemBonuses[statKey] = (itemBonuses[statKey] || 0) + bonusValue;
           }
@@ -343,7 +343,7 @@ export class PlayerCardComponent implements OnInit {
     let baseAc = 10;
     let armorType: string | null = null;
     let maxDexBonus: number = null;
-    const armorClassValue = mainArmor.properties.armor_class_value;
+    const armorClassValue = mainArmor?.properties?.armor_class_value ?? 0;
 
     if (mainArmor && mainArmor.properties)
       {
@@ -383,10 +383,11 @@ export class PlayerCardComponent implements OnInit {
           }
         }
 
-        if (Array.isArray(item.properties.effect_details)) {
-          item.properties.effect_details.forEach(effect => {
-            if (effect.type === 'BUFF_STAT' && effect.stat_buffed?.toUpperCase() === 'AC' && typeof effect.buff_value === 'number') {
-              totalAc += effect.buff_value;
+        const effects = item.properties?.action_template?.effects;
+        if (effects && Array.isArray(effects)) {
+          effects.forEach(effect => {
+            if (effect.type === 'MODIFIER' && effect.applyTo === 'ARMOR_CLASS' && !isNaN(parseInt(effect.value, 10))) {
+              totalAc += parseInt(effect.value, 10);
             }
           });
         }

@@ -1,8 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule, NgIf } from '@angular/common';
+import { CommonModule, JsonPipe, NgForOf, NgIf } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
-import { InventoryItem, ItemEffect } from '../../../shared/interfaces/inventroy.interface';
+import { InventoryItem, ActionEffect } from '../../../shared/interfaces/inventroy.interface';
 import { PlayerCardStateService } from '../../../services/player-card-state.service';
 import cloneDeep from 'lodash/cloneDeep';
 import { ButtonModule } from 'primeng/button';
@@ -84,6 +84,8 @@ export class ItemEditorComponent implements OnInit {
 
   private buildForm(): void {
     const props = this.item.properties;
+    const actionTemplate = props.action_template;
+
     this.itemForm = this.fb.group({
       name: [this.item.name, Validators.required],
       description: [this.item.description],
@@ -92,32 +94,39 @@ export class ItemEditorComponent implements OnInit {
         damage_type: [props.damage_type],
         attack_stat: [props.attack_stat],
         proficient: [props.proficient || false],
-        effect_details: this.fb.array(
-          props.effect_details?.map(effect => this.createEffectDetailGroup(effect)) || []
-        )
+        action_template: this.fb.group({
+          outputString: [actionTemplate?.outputString || ''],
+          effects: this.fb.array(
+            actionTemplate?.effects?.map(effect => this.createEffectGroup(effect)) || []
+          )
+        })
       })
     });
   }
 
-  private createEffectDetailGroup(effect?: ItemEffect): FormGroup {
+  private createEffectGroup(effect?: ActionEffect): FormGroup {
     return this.fb.group({
-      type: [effect?.type || 'BUFF_STAT', Validators.required],
-      description: [effect?.description || ''],
-      stat_buffed: [effect?.stat_buffed || ''],
-      buff_value: [effect?.buff_value || null]
+      id: [effect?.id || crypto.randomUUID()],
+      name: [effect?.name || '', Validators.required],
+      type: [effect?.type || 'DAMAGE', Validators.required],
+      applyTo: [effect?.applyTo || 'ANY', Validators.required],
+      value: [effect?.value || '', Validators.required],
+      stat: [effect?.stat],
+      damageType: [effect?.damageType],
+      condition: [effect?.condition]
     });
   }
 
-  get effectDetails(): FormArray {
-    return this.itemForm.get('properties.effect_details') as FormArray;
+  get effects(): FormArray {
+    return this.itemForm.get('properties.action_template.effects') as FormArray;
   }
 
-  addEffectDetail(): void {
-    this.effectDetails.push(this.createEffectDetailGroup());
+  addEffect(): void {
+    this.effects.push(this.createEffectGroup());
   }
 
-  removeEffectDetail(index: number): void {
-    this.effectDetails.removeAt(index);
+  removeEffect(index: number): void {
+    this.effects.removeAt(index);
   }
 
   save(): void {

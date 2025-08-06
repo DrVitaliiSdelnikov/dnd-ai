@@ -25,7 +25,14 @@ export interface ItemProperties {
 
   // CONSUMABLE
   effect_description_brief?: string; // Важно для отображения
-  effect_details?: ItemEffect[];
+  action_template?: {
+    // The output template that the user can edit.
+    // Placeholders like {name}, {attack}, {damage} will be replaced on execution.
+    outputString: string;
+
+    // An array of all the "block" effects that make up this action.
+    effects: ActionEffect[];
+  }
 
   // ACCESSORY
   effects_list?: string[];
@@ -37,16 +44,25 @@ export interface ItemProperties {
   is_quest_item?: boolean;
 }
 
-export interface ItemEffect {
-  type?: "HEAL" | "BUFF_STAT" | "GRANT_EFFECT" | "DAMAGE";
-  heal_amount?: string;
-  stat_buffed?: string;
-  buff_value?: number | string;
-  buff_duration_rounds?: number | string;
-  effect_granted?: string;
-  damage_amount?: string;
-  description?: string;
-  damage_type_inflicted?: string;
+export interface ActionEffect {
+  id: string; // Unique ID for this block in the editor
+  name: string; // Display name, e.g., "Base Damage", "Bonus from Strength"
+  type: 'MODIFIER' | 'DAMAGE' | 'RE_ROLL' | 'SET_CRITICAL_RANGE' | 'CONDITION';
+
+  // Which part of the action the effect applies to
+  applyTo: 'ATTACK_ROLL' | 'DAMAGE_ROLL' | 'ARMOR_CLASS' | 'ANY';
+
+  // For 'MODIFIER' type, which stat is being affected.
+  stat?: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha' | 'AC';
+
+  // The value: can be a number ("+2"), a dice string ("1d6"), or a stat reference ("strength_modifier")
+  value: string;
+
+  damageType?: string; // e.g., "Fire", "Slashing" (for type: 'DAMAGE')
+
+  // Conditions under which the effect triggers (e.g., "when having advantage")
+  // This part can be expanded in the future for more complex logic.
+  condition?: 'HAS_ADVANTAGE' | 'WEAPON_IS_TWO_HANDED' | null;
 }
 
 export interface CalculatedBonuses {

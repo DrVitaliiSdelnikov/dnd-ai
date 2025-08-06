@@ -53,48 +53,36 @@
         </div>
       </div>
 
-      <div>
+      <div formGroupName="action_template">
         <h5 class="properties-header sub-header">Effects</h5>
 
-        <div formArrayName="effect_details">
-          @for(effectControl of effectDetails.controls; track i; let i = $index) {
+        <div class="field">
+          <label for="outputString">Output Template</label>
+          <textarea id="outputString" pInputTextarea formControlName="outputString" rows="3" [autoResize]="true"
+                    pTooltip="Define how the roll is displayed. Use placeholders like {name}, {attack}, {damage}."></textarea>
+        </div>
+
+        <div formArrayName="effects">
+          @for(effectControl of effects.controls; track i; let i = $index) {
             <div [formGroupName]="i" class="effect-group">
               <div class="p-grid p-fluid">
                 <div class="p-col-12 p-md-3 field">
-                  <label [for]="'effect-type-' + i">Effect Type</label>
-                  <p-dropdown
-                    [id]="'effect-type-' + i"
-                    [options]="effectTypes"
-                    formControlName="type"
-                    placeholder="Select a type">
-                  </p-dropdown>
+                  <label [for]="'effect-name-' + i">Effect Name</label>
+                  <input [id]="'effect-name-' + i" pInputText formControlName="name" />
                 </div>
                 <div class="p-col-12 p-md-3 field">
-                  <label [for]="'stat-buffed-' + i">Stat Buffed</label>
-                  <p-dropdown
-                    [id]="'stat-buffed-' + i"
-                    [options]="statsToBuff"
-                    formControlName="stat_buffed"
-                    placeholder="Select a stat">
-                  </p-dropdown>
-                </div>
-                <div class="p-col-12 p-md-2 field">
-                  <label [for]="'buff-value-' + i">Buff Value</label>
-                  <p-inputNumber [id]="'buff-value-' + i" formControlName="buff_value"></p-inputNumber>
-                </div>
-                <div class="p-col-12 p-md-3 field">
-                  <label [for]="'effect-desc-' + i">Description</label>
-                  <input [id]="'effect-desc-' + i" pInputText formControlName="description" />
+                  <label [for]="'effect-value-' + i">Value</label>
+                  <input [id]="'effect-value-' + i" pInputText formControlName="value" placeholder="e.g., 1d6 or +2"/>
                 </div>
                 <div class="p-col-12 p-md-1 field remove-button-container">
-                  <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text" (click)="removeEffectDetail(i)" pTooltip="Remove Effect"></button>
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text" (click)="removeEffect(i)" pTooltip="Remove Effect"></button>
                 </div>
               </div>
             </div>
           }
         </div>
 
-        <button pButton type="button" label="Add Effect" icon="pi pi-plus" class="p-button-sm p-button-secondary mt-2" (click)="addEffectDetail()"></button>
+        <button pButton type="button" label="Add Effect" icon="pi pi-plus" class="p-button-sm p-button-secondary mt-2" (click)="addEffect()"></button>
       </div>
 
     </div>
