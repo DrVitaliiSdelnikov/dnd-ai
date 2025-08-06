@@ -24,6 +24,7 @@ import { ItemEditorComponent } from './item-editor/item-editor.component';
 import { DialogService } from 'primeng/dynamicdialog';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { SpeedDialModule } from 'primeng/speeddial';
+import { ActionExecutionService } from '../../services/action-execution.service';
 
 @Component({
   selector: 'app-inventory-display',
@@ -54,6 +55,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   private dialogService: DialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
+  private readonly actionExecutionService = inject(ActionExecutionService);
 
 
   abilityModifiers = computed(() => {
@@ -317,6 +319,16 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       } else {
         console.log('Edit cancelled.');
       }
+    });
+  }
+
+  handleRightClick(item: InventoryItem, event: MouseEvent): void {
+    event.preventDefault();
+    const executionResult = this.actionExecutionService.executeAction(item);
+
+    this.emitRollResults.emit({
+      type: executionResult.rollEvent.type,
+      description: executionResult.finalString
     });
   }
 }
