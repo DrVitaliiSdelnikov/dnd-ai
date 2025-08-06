@@ -1,0 +1,14 @@
+<div class="editable-roll-container">
+  <div
+    class="editable-area"
+    contenteditable="true"
+    (input)="onContentChange($event)"
+  >
+    {{ editableContent() }}
+  </div>
+  <div class="parsed-output">
+    <p><strong>Final Output:</strong></p>
+    <p>{{ parsedOutput() }}</p>
+  </div>
+  <button (click)="emitFinalString()">Confirm</button>
+</div> 

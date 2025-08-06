@@ -61,12 +61,12 @@ export class ActionExecutionService {
       }
     }
 
-    let finalString = template.outputString;
-    for (const key in placeholderValues) {
-      finalString = finalString.replace(`{${key}}`, placeholderValues[key].breakdown);
-    }
-
-    finalString = finalString.replace(`{name}`, item.name);
+    const finalString = this.replacePlaceholders(template.outputString, {
+      ...placeholderValues,
+      name: { total: 0, breakdown: item.name },
+      damage_dice: { total: 0, breakdown: item.properties.damage_dice || '' },
+      // Add other top-level item properties if needed
+    });
 
     const description = finalString;
     const eventType = `ITEM_ACTION_${item.name.toUpperCase().replace(/\s+/g, '_')}`;
@@ -86,9 +86,7 @@ export class ActionExecutionService {
       let part = '';
       const effectValueStr = (effect.value || '').toLowerCase().replace('_modifier', '');
 
-      // @ts-ignore - isDiceNotation is a new method we will add
       if (this.diceRoller.isDiceNotation(effect.value)) {
-        // @ts-ignore - rollDetailed is a new method we will add
         const roll = this.diceRoller.rollDetailed(effect.value);
         value = roll.total;
         part = `${value} (${effect.name}: ${roll.breakdown})`;
@@ -104,10 +102,10 @@ export class ActionExecutionService {
       breakdownParts.push(part);
     });
 
-    const overallBreakdown = breakdownParts.length > 1 ? `(${breakdownParts.join(' + ')})` : '';
+    const overallBreakdown = breakdownParts.join(' + ');
     return {
       total,
-      breakdown: `${total} ${overallBreakdown}`,
+      breakdown: breakdownParts.length > 1 ? `(${overallBreakdown})` : overallBreakdown,
     };
   }
 
@@ -128,5 +126,16 @@ export class ActionExecutionService {
       'DAMAGE_ROLL': 'damage',
     };
     return map[applyTo] || applyTo.toLowerCase();
+  }
+
+  private replacePlaceholders(template: string, values: { [key: string]: RollResult | { total: number, breakdown: string } }): string {
+    let result = template;
+    for (const key in values) {
+      const placeholder = `{${key}}`;
+      if (result.includes(placeholder)) {
+        result = result.replace(new RegExp(placeholder, 'g'), values[key].breakdown);
+      }
+    }
+    return result;
   }
 } 

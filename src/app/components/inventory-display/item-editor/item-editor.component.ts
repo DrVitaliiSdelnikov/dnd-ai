@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule, JsonPipe, NgForOf, NgIf } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
 import { InventoryItem, ActionEffect } from '../../../shared/interfaces/inventroy.interface';
 import { PlayerCardStateService } from '../../../services/player-card-state.service';
@@ -20,6 +20,16 @@ import {
   startWith,
   tap
 } from 'rxjs/operators';
+import { ActionExecutionService } from '../../../services/action-execution.service';
+import { InputGroupModule } from 'primeng/inputgroup';
+import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragPlaceholder,
+  CdkDropList,
+  CdkDropListGroup,
+  moveItemInArray
+} from "@angular/cdk/drag-drop";
 
 @Component({
   selector: 'app-item-editor',
@@ -35,7 +45,12 @@ import {
     DropdownModule,
     TooltipModule,
     CheckboxModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    InputGroupModule,
+    CdkDropListGroup,
+    CdkDropList,
+    CdkDrag,
+    CdkDragPlaceholder
   ],
   templateUrl: 'item-editor.component.html',
   styleUrl: 'item-editor.component.scss',
@@ -44,6 +59,7 @@ import {
 export class ItemEditorComponent implements OnInit {
   itemForm: FormGroup;
   item: InventoryItem;
+  previewString: string = '';
 
   // Injections
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
@@ -51,6 +67,7 @@ export class ItemEditorComponent implements OnInit {
   public dialogRef = inject(DynamicDialogRef);
   public config = inject(DynamicDialogConfig);
   private confirmationService = inject(ConfirmationService);
+  private actionExecutionService = inject(ActionExecutionService);
 
   readonly attackStatTypes = [
     { label: 'Strength', value: 'str' },
@@ -102,7 +119,13 @@ export class ItemEditorComponent implements OnInit {
     if (this.item) {
       this.itemForm.patchValue(this.item);
     }
-    this.setupEffectsSubscription();
+    this.itemForm.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+    ).subscribe(() => {
+      this.updatePreview();
+    });
+    this.updatePreview(); // For initial preview
   }
 
   private buildForm(): void {
@@ -152,47 +175,21 @@ export class ItemEditorComponent implements OnInit {
     this.effects.removeAt(index);
   }
 
-  private setupEffectsSubscription(): void {
-    this.effects.valueChanges.pipe(
-      startWith(this.effects.value),
-      debounceTime(300),
-      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-      tap((effects: ActionEffect[]) => {
-        const outputString = this.generateOutputString(effects);
-        this.itemForm.get('properties.action_template.outputString').setValue(outputString, {
-          emitEvent: false
-        });
-      })
-    ).subscribe();
-  }
+  private updatePreview(): void {
+    if (this.itemForm.invalid) return;
 
-  private generateOutputString(effects: ActionEffect[]): string {
-    if (!effects || effects.length === 0) {
-      return '';
-    }
-
-    const attackEffects = effects.filter(e => e.applyTo === 'ATTACK_ROLL');
-    const damageEffects = effects.filter(e => e.applyTo === 'DAMAGE_ROLL');
-
-    let output = '{name} attacks with their weapon.';
-
-    if (attackEffects.length > 0) {
-      const attackRolls = attackEffects.map(e => e.value).join(' + ');
-      output += ` Attack: {attack_roll} (${attackRolls}).`;
-    }
-
-    if (damageEffects.length > 0) {
-      const damageParts = damageEffects.map(e => {
-        let part = e.value;
-        if (e.damageType) {
-          part += ` ${e.damageType}`;
-        }
-        return part;
-      });
-      output += ` Damage: {damage_roll} (${damageParts.join(' + ')}).`;
-    }
-
-    return output;
+    const currentItemState = this.itemForm.getRawValue();
+    const mockItem: InventoryItem = {
+      ...this.item,
+      name: currentItemState.name,
+      description: currentItemState.description,
+      properties: {
+        ...this.item.properties,
+        ...currentItemState.properties
+      }
+    };
+    const result = this.actionExecutionService.executeAction(mockItem);
+    this.previewString = result.finalString;
   }
 
   save(): void {
@@ -242,5 +239,11 @@ export class ItemEditorComponent implements OnInit {
         this.dialogRef.close(true);
       }
     });
+  }
+
+  drop(event: CdkDragDrop<AbstractControl[]>) {
+    const effectsArray = this.itemForm.get('properties.action_template.effects') as FormArray;
+    moveItemInArray(effectsArray.controls, event.previousIndex, event.currentIndex);
+    this.updatePreview();
   }
 }

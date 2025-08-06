@@ -27,7 +27,7 @@
           <div class="p-col-12 p-md-6 field">
             <label for="damage_type">Damage Type</label>
             <p-dropdown
-              id="damage_type"
+              inputId="damage_type"
               [options]="damageTypes"
               formControlName="damage_type"
               placeholder="Select a type">
@@ -36,7 +36,7 @@
           <div class="p-col-12 p-md-6 field">
             <label for="attack_stat">Attack Stat</label>
             <p-dropdown
-              id="attack_stat"
+              inputId="attack_stat"
               [options]="attackStatTypes"
               formControlName="attack_stat"
               placeholder="Select a stat">
@@ -58,58 +58,65 @@
 
         <div class="field">
           <label for="outputString">Output Template</label>
-          <textarea id="outputString" pInputTextarea formControlName="outputString" rows="3" [autoResize]="true"
-                    pTooltip="Define how the roll is displayed. Use placeholders like {name}, {attack}, {damage}."></textarea>
+          <textarea id="outputString" pInputTextarea formControlName="outputString" rows="3" [autoResize]="true"></textarea>
+          <small class="p-text-muted">
+            Use placeholders like {{ '{' }}name{{ '}' }}, {{ '{' }}damage_dice{{ '}' }}, {{ '{' }}attack_roll{{ '}' }}.
+            You can also define custom placeholders in the effects below.
+          </small>
         </div>
 
-        <div formArrayName="effects">
-          @for(effectControl of effects.controls; track i; let i = $index) {
-            <div [formGroupName]="i" class="effect-group p-card p-3 mb-3">
-              <div class="grid p-fluid">
-                <!-- Row 1: Name and Type -->
-                <div class="col-12 md:col-4 field">
-                  <label [for]="'effect-name-' + i">Effect Name</label>
-                  <input [id]="'effect-name-' + i" pInputText formControlName="name" />
-                </div>
-                <div class="col-12 md:col-4 field">
-                  <label [for]="'effect-type-' + i">Effect Type</label>
-                  <p-dropdown [id]="'effect-type-' + i" [options]="effectTypes" formControlName="type"></p-dropdown>
-                </div>
-                <div class="col-12 md:col-4 field">
-                  <label [for]="'effect-applyTo-' + i">Apply To</label>
-                  <p-dropdown [id]="'effect-applyTo-' + i" [options]="applyToTypes" formControlName="applyTo"></p-dropdown>
-                </div>
+        <div class="field">
+          <label>Live Preview</label>
+          <div class="preview-box">
+            {{ previewString }}
+          </div>
+        </div>
 
-                <!-- Row 2: Value, Damage Type, Stat (Conditional) -->
-                <div class="col-12 md:col-4 field">
-                  <label [for]="'effect-value-' + i">Value</label>
-                  <input [id]="'effect-value-' + i" pInputText formControlName="value" placeholder="e.g., 1d6 or +2"/>
-                </div>
-
-                <div class="col-12 md:col-4 field" *ngIf="effectControl.get('type').value === 'DAMAGE'">
-                  <label [for]="'effect-damageType-' + i">Damage Type</label>
-                  <p-dropdown [id]="'effect-damageType-' + i" [options]="damageTypes" formControlName="damageType"></p-dropdown>
-                </div>
-
-                <div class="col-12 md:col-4 field" *ngIf="effectControl.get('type').value === 'MODIFIER'">
-                  <label [for]="'effect-stat-' + i">Stat</label>
-                  <p-dropdown [id]="'effect-stat-' + i" [options]="statsToBuff" formControlName="stat"></p-dropdown>
-                </div>
-
-                 <!-- Row 3: Condition and Remove Button -->
-                <div class="col-10 md:col-4 field">
-                  <label [for]="'effect-condition-' + i">Condition</label>
-                  <p-dropdown [id]="'effect-condition-' + i" [options]="conditionTypes" formControlName="condition" [showClear]="true"></p-dropdown>
-                </div>
-                <div class="col-2 md:col-1 field remove-button-container">
-                  <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text" (click)="removeEffect(i)" pTooltip="Remove Effect"></button>
+        <div cdkDropList [cdkDropListData]="effects.controls" (cdkDropListDropped)="drop($event)" class="effects-list">
+          @for (effect of effects.controls; track i; let i = $index) {
+            <div cdkDrag class="effect-card p-4 mb-3">
+              <div class="effect-header">
+                <i class="pi pi-bars drag-handle" cdkDragHandle></i>
+                <h6 class="effect-title">Effect #{{ i + 1 }}</h6>
+                <button pButton pRipple type="button" icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-text" (click)="removeEffect(i)"></button>
+              </div>
+              <div [formGroupName]="i">
+                <div class="p-grid">
+                  <div class="p-col-12 field">
+                    <label for="effect-name-{{i}}">Effect Name</label>
+                    <input id="effect-name-{{i}}" type="text" pInputText formControlName="name">
+                  </div>
+                  <div class="p-col-12 p-md-6 field">
+                    <label for="effect-type-{{i}}">Effect Type</label>
+                    <p-dropdown inputId="effect-type-{{i}}" [options]="effectTypes" formControlName="type"></p-dropdown>
+                  </div>
+                  <div class="p-col-12 p-md-6 field">
+                    <label for="apply-to-{{i}}">Apply To</label>
+                    <p-dropdown inputId="apply-to-{{i}}" [options]="applyToTypes" formControlName="applyTo"></p-dropdown>
+                  </div>
+                  <div class="p-col-12 field">
+                    <label for="value-{{i}}">Value</label>
+                    <input id="value-{{i}}" type="text" pInputText formControlName="value" placeholder="e.g., +2, 1d6">
+                  </div>
+                  <div class="p-col-12 p-md-6 field" *ngIf="effect.get('type').value === 'DAMAGE'">
+                    <label for="damage-type-{{i}}">Damage Type</label>
+                    <p-dropdown inputId="damage-type-{{i}}" [options]="damageTypes" formControlName="damageType"></p-dropdown>
+                  </div>
+                  <div class="p-col-12 p-md-6 field" *ngIf="effect.get('type').value === 'MODIFIER'">
+                    <label for="stat-{{i}}">Stat to Buff</label>
+                    <p-dropdown inputId="stat-{{i}}" [options]="statsToBuff" formControlName="stat"></p-dropdown>
+                  </div>
+                  <div class="p-col-12 field">
+                    <label for="condition-{{i}}">Condition</label>
+                    <p-dropdown inputId="condition-{{i}}" [options]="conditionTypes" formControlName="condition" [showClear]="true" placeholder="Optional condition"></p-dropdown>
+                  </div>
                 </div>
               </div>
             </div>
           }
         </div>
+        <button pButton pRipple type="button" label="Add Effect" icon="pi pi-plus" (click)="addEffect()" class="p-button-outlined mt-3"></button>
 
-        <button pButton type="button" label="Add Effect" icon="pi pi-plus" class="p-button-sm p-button-secondary mt-2" (click)="addEffect()"></button>
       </div>
 
     </div>

@@ -33,6 +33,7 @@ import { Tooltip } from 'primeng/tooltip';
 import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator.component';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { AdventureSummary } from '../../shared/interfaces/sammery';
+import { EditableRollOutputComponent } from '../editable-roll-output/editable-roll-output.component';
 
 @Component({
   selector: 'app-dnd-chat',
@@ -44,7 +45,8 @@ import { AdventureSummary } from '../../shared/interfaces/sammery';
     Tooltip,
     ButtonLabel,
     ButtonIcon,
-    LoadingIndicatorComponent
+    LoadingIndicatorComponent,
+    EditableRollOutputComponent
   ],
   templateUrl: './dnd-chat.component.html',
   styleUrls: ['./dnd-chat.component.scss'],
@@ -60,6 +62,7 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   isLoading: WritableSignal<boolean> = signal(false);
   isNewCampaign: WritableSignal<boolean> = signal(true)
   instructions: string = '';
+  editableRollString: WritableSignal<string | null> = signal(null);
   playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
   playerCard: Signal<PlayerCard | null> = this.playerCardStateService.playerCard$;
   campaignSummary: Signal<AdventureSummary | null> = this.playerCardStateService.campaignSummary$;
@@ -332,9 +335,13 @@ export class DndChatComponent implements OnInit, AfterViewInit {
 
   setDiceRollResult(rollEvent: {[key: string]: string}): void {
     const newRollMarker = `${rollEvent.description}.`;
+    this.editableRollString.set(newRollMarker);
+  }
 
+  handleFinalRollString(finalString: string): void {
     this.userInput = this.userInput.trim()
-      ? `${this.userInput.trim()} ${newRollMarker}`
-      : newRollMarker;
+      ? `${this.userInput.trim()} ${finalString}`
+      : finalString;
+    this.editableRollString.set(null);
   }
 }

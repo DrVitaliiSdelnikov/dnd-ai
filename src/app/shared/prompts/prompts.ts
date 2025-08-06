@@ -109,35 +109,52 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
     "loot": [
       // Each item in this array MUST follow this 'Universal Item Model' structure.
       {
-        "id_suggestion": "string",
+        "item_id_suggestion": "string",
         "name": "string",
-        "type": "string", // e.g., WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION
+        "type": "string", // e.g., WEAPON, ARMOR, SHIELD, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL
         "description": "string",
         "quantity": "number",
         "properties": {
-          "proficient": "boolean", // MANDATORY FOR WEAPONS: does the player have proficiency with this?
-          "attack_stat": "string", // WEAPON-SPECIFIC: "str", "dex", "con", "int", "wis", "cha".
+          "effects": "ActionEffect[]", // This should be an array of ActionEffect objects
           "attunement_required": "boolean", // optional
-          "magic_bonus": "number", // optional, e.g., 1 for a +1 item
+          "magic_bonus": "number", // optional
+          // WEAPON specific
           "damage_dice": "string", // optional, e.g., "1d8"
           "damage_type": "string", // optional, e.g., "Slashing", "Fire"
           "weapon_category": "string", // optional, e.g., "Sword", "Axe"
           "range_type": "string", // optional, e.g., "MELEE", "RANGED"
           "range_increment": "string", // optional, e.g., "30/120 ft"
           "special_tags": ["string"], // optional, e.g., ["Finesse", "Two-Handed"]
+          "attack_stat": "string", // 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha'
+          "proficient": "boolean",
+          // ARMOR / SHIELD specific
           "armor_class_value": "number", // optional
           "armor_type": "string", // optional, e.g., "Light Armor", "Shield"
           "max_dex_bonus": "number | string", // optional, e.g., 2 or "NO_LIMIT"
-          "effect_description_brief": "string", // optional, for consumables
-          "effect_details": [{ // optional
-              "type": "string", // 'BUFF_STAT', 'HEAL', 'GRANT_ABILITY'
-              "description": "string",
-              "stat_buffed": "string", // 'str', 'dex', 'AC', etc.
-              "buff_value": "number",
-              "heal_amount": "string", // "2d4+2"
-              "ability_granted": "string"
-          }],
-          "currency_type": "string", // optional, e.g., "gold"
+          "stealth_disadvantage": "boolean", // optional
+          "strength_requirement": "number", // optional
+          // CONSUMABLE specific
+          "effect_description_brief": "string", // optional, for display purposes
+          "action_template": { // optional
+            "outputString": "string", // Editable template, e.g., "{name} attacks with {damage}"
+            "effects": [
+              {
+                "id": "string",
+                "name": "string",
+                "type": "string", // 'MODIFIER' | 'DAMAGE' | 'RE_ROLL' | 'SET_CRITICAL_RANGE' | 'CONDITION'
+                "applyTo": "string", // 'ATTACK_ROLL' | 'DAMAGE_ROLL' | 'ARMOR_CLASS' | 'ANY'
+                "stat": "string", // optional, 'str', 'dex', etc.
+                "value": "string", // e.g., "+2", "1d6", "strength_modifier"
+                "damageType": "string", // optional, e.g., "Fire"
+                "condition": "string" // optional, e.g., 'HAS_ADVANTAGE'
+              }
+            ]
+          },
+          // ACCESSORY specific
+          "effects_list": ["string"], // optional
+          // CURRENCY specific
+          "currency_type": "string", // optional
+          // OTHER
           "utility_description": "string", // optional
           "is_quest_item": "boolean" // optional
         }
@@ -153,32 +170,31 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
         "type": "SPELL | ABILITY",
         "description": "string", // take DMG description as basis, if the desc has numbers don't skip them. Compress the desc to 250 symbols max.
         "properties": {
-
+          "target_type": "string", // 'SELF' | 'SINGLE_ENEMY' | 'SINGLE_ALLY' | 'AREA' | 'MULTIPLE' | 'OBJECT'
           "range": "string",
-          "charges": "number", // Number of uses. Use -1 for spells that consume spell slots.
-          "is_passive": "boolean", // MANDATORY FIELD: true for constant bonuses, features, class and racial abilities. false otherwise.
-          "reset_condition": "string", // e.g., "Long Rest", "Short Rest", "N/A"
-          "school_of_magic": "string", // e.g., "Evocation", "Abjuration"
-          "spell_level": "number", // MANDATORY FIELD: 0 for cantrips, 1 for 1st-level, etc.
-          "spell_components": "string", // optional, e.g. "V, S, M (a pinch of salt)"
-          "action_type": "ATTACK_ROLL | SAVING_THROW | UTILITY | CONTESTED_CHECK",
-          "attack_info": { // Use null if not applicable
-            "ability": "string", // e.g., "DEX", "STR", "SPELLCASTING_ABILITY"
-            "damage_effects": [{
-              "dice": "string", // "1d10"
-              "type": "string" // "FIRE"
-            }]
+          "charges": "number", // optional
+          "is_passive": "boolean",
+          "reset_condition": "string", // optional
+          "school_of_magic": "string", // optional
+          "spell_level": "number",
+          "spell_components": "string", // optional
+          "attack_info": { // optional, use null if not applicable
+            "action_type": "string", // 'ATTACK_ROLL' | 'SAVING_THROW' | 'UTILITY' | 'CONTESTED_CHECK'
+            "ability": "string" // optional, 'STR' | 'DEX', etc.
           },
-          "saving_throw_info": { // Use null if not applicable
-            "ability": "string", // "DEX", "WIS"
-            "dc_calculation": "SPELLCASTING_ABILITY | FIXED"
+          "saving_throw_info": { // optional, use null if not applicable
+            "ability": "string", // 'DEX', 'WIS', etc.
+            "dc_calculation": "string", // 'SPELLCASTING_ABILITY' | 'FIXED'
+            "fixed_dc": "number" // optional
           },
-          "damage_info": { // Use null if not applicable
-            "effects": [{
-              "dice": "string", // "3d6+1, etc"
-              "type": "string", // "FIRE, COLD, etc"
-              "on_save": "HALF | NONE | SPECIAL_EFFECT"
-            }]
+          "damage_info": { // optional, use null if not applicable
+            "effects": [
+              {
+                "dice": "string", // "1d10"
+                "type": "string", // "FIRE"
+                "on_save": "string" // 'HALF' | 'NONE' | 'SPECIAL_EFFECT'
+              }
+            ]
           }
         }
       }

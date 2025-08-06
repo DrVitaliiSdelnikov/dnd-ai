@@ -34,7 +34,7 @@
             Attack ({{ item.properties.damage_dice }})
           </button>
           <button
-            *ngIf="item.type === 'CONSUMABLE' && item.properties.effect_details"
+            *ngIf="item.type === 'CONSUMABLE' && item.properties.action_template"
             (click)="useConsumable(item)"
             pButton
             class="action-button use-button p-button-success p-button-outlined">

@@ -86,6 +86,12 @@
           </div>
         }
       </div>
+      @if (editableRollString()) {
+        <app-editable-roll-output
+          [initialString]="editableRollString()"
+          (finalString)="handleFinalRollString($event)"
+        ></app-editable-roll-output>
+      }
       <div class="input-area">
         <textarea
           [(ngModel)]="userInput"
