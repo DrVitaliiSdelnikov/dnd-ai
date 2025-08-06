@@ -14,6 +14,12 @@ import { TextareaModule } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  startWith,
+  tap
+} from 'rxjs/operators';
 
 @Component({
   selector: 'app-item-editor',
@@ -64,9 +70,25 @@ export class ItemEditorComponent implements OnInit {
     { label: 'Psychic', value: 'Psychic' }
   ];
   readonly effectTypes = [
-    { label: 'Buff Stat', value: 'BUFF_STAT' }, { label: 'Heal', value: 'HEAL' },
-    { label: 'Grant Ability', value: 'GRANT_ABILITY' }, { label: 'Text Description', value: 'TEXT_DESCRIPTION' }
+    { label: 'Modifier', value: 'MODIFIER' },
+    { label: 'Damage', value: 'DAMAGE' },
+    { label: 'Re-roll', value: 'RE_ROLL' },
+    { label: 'Set Critical Range', value: 'SET_CRITICAL_RANGE' },
+    { label: 'Condition', value: 'CONDITION' }
   ];
+
+  readonly applyToTypes = [
+    { label: 'Attack Roll', value: 'ATTACK_ROLL' },
+    { label: 'Damage Roll', value: 'DAMAGE_ROLL' },
+    { label: 'Armor Class', value: 'ARMOR_CLASS' },
+    { label: 'Any', value: 'ANY' }
+  ];
+
+  readonly conditionTypes = [
+    { label: 'Has Advantage', value: 'HAS_ADVANTAGE' },
+    { label: 'Weapon is Two-Handed', value: 'WEAPON_IS_TWO_HANDED' }
+  ];
+
   readonly statsToBuff = [
     { label: 'Strength (str)', value: 'str' }, { label: 'Dexterity (dex)', value: 'dex' },
     { label: 'Constitution (con)', value: 'con' }, { label: 'Intelligence (int)', value: 'int' },
@@ -80,6 +102,7 @@ export class ItemEditorComponent implements OnInit {
     if (this.item) {
       this.itemForm.patchValue(this.item);
     }
+    this.setupEffectsSubscription();
   }
 
   private buildForm(): void {
@@ -127,6 +150,49 @@ export class ItemEditorComponent implements OnInit {
 
   removeEffect(index: number): void {
     this.effects.removeAt(index);
+  }
+
+  private setupEffectsSubscription(): void {
+    this.effects.valueChanges.pipe(
+      startWith(this.effects.value),
+      debounceTime(300),
+      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+      tap((effects: ActionEffect[]) => {
+        const outputString = this.generateOutputString(effects);
+        this.itemForm.get('properties.action_template.outputString').setValue(outputString, {
+          emitEvent: false
+        });
+      })
+    ).subscribe();
+  }
+
+  private generateOutputString(effects: ActionEffect[]): string {
+    if (!effects || effects.length === 0) {
+      return '';
+    }
+
+    const attackEffects = effects.filter(e => e.applyTo === 'ATTACK_ROLL');
+    const damageEffects = effects.filter(e => e.applyTo === 'DAMAGE_ROLL');
+
+    let output = '{name} attacks with their weapon.';
+
+    if (attackEffects.length > 0) {
+      const attackRolls = attackEffects.map(e => e.value).join(' + ');
+      output += ` Attack: {attack_roll} (${attackRolls}).`;
+    }
+
+    if (damageEffects.length > 0) {
+      const damageParts = damageEffects.map(e => {
+        let part = e.value;
+        if (e.damageType) {
+          part += ` ${e.damageType}`;
+        }
+        return part;
+      });
+      output += ` Damage: {damage_roll} (${damageParts.join(' + ')}).`;
+    }
+
+    return output;
   }
 
   save(): void {

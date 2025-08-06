@@ -64,17 +64,44 @@
 
         <div formArrayName="effects">
           @for(effectControl of effects.controls; track i; let i = $index) {
-            <div [formGroupName]="i" class="effect-group">
-              <div class="p-grid p-fluid">
-                <div class="p-col-12 p-md-3 field">
+            <div [formGroupName]="i" class="effect-group p-card p-3 mb-3">
+              <div class="grid p-fluid">
+                <!-- Row 1: Name and Type -->
+                <div class="col-12 md:col-4 field">
                   <label [for]="'effect-name-' + i">Effect Name</label>
                   <input [id]="'effect-name-' + i" pInputText formControlName="name" />
                 </div>
-                <div class="p-col-12 p-md-3 field">
+                <div class="col-12 md:col-4 field">
+                  <label [for]="'effect-type-' + i">Effect Type</label>
+                  <p-dropdown [id]="'effect-type-' + i" [options]="effectTypes" formControlName="type"></p-dropdown>
+                </div>
+                <div class="col-12 md:col-4 field">
+                  <label [for]="'effect-applyTo-' + i">Apply To</label>
+                  <p-dropdown [id]="'effect-applyTo-' + i" [options]="applyToTypes" formControlName="applyTo"></p-dropdown>
+                </div>
+
+                <!-- Row 2: Value, Damage Type, Stat (Conditional) -->
+                <div class="col-12 md:col-4 field">
                   <label [for]="'effect-value-' + i">Value</label>
                   <input [id]="'effect-value-' + i" pInputText formControlName="value" placeholder="e.g., 1d6 or +2"/>
                 </div>
-                <div class="p-col-12 p-md-1 field remove-button-container">
+
+                <div class="col-12 md:col-4 field" *ngIf="effectControl.get('type').value === 'DAMAGE'">
+                  <label [for]="'effect-damageType-' + i">Damage Type</label>
+                  <p-dropdown [id]="'effect-damageType-' + i" [options]="damageTypes" formControlName="damageType"></p-dropdown>
+                </div>
+
+                <div class="col-12 md:col-4 field" *ngIf="effectControl.get('type').value === 'MODIFIER'">
+                  <label [for]="'effect-stat-' + i">Stat</label>
+                  <p-dropdown [id]="'effect-stat-' + i" [options]="statsToBuff" formControlName="stat"></p-dropdown>
+                </div>
+
+                 <!-- Row 3: Condition and Remove Button -->
+                <div class="col-10 md:col-4 field">
+                  <label [for]="'effect-condition-' + i">Condition</label>
+                  <p-dropdown [id]="'effect-condition-' + i" [options]="conditionTypes" formControlName="condition" [showClear]="true"></p-dropdown>
+                </div>
+                <div class="col-2 md:col-1 field remove-button-container">
                   <button pButton type="button" icon="pi pi-trash" class="p-button-danger p-button-text" (click)="removeEffect(i)" pTooltip="Remove Effect"></button>
                 </div>
               </div>
