@@ -166,6 +166,10 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       this.effects[existingIndex] = this.editingEffect;
     } else {
       this.effects.push(this.editingEffect);
+      const newEffectDefinition = this.effectDefinitionsService.getEffectDefinition(this.editingEffect.type);
+      if (!newEffectDefinition.isSystemEffect) {
+        this.addEffectToTemplate(this.editingEffect.id);
+      }
     }
 
     this.updatePreview();
@@ -210,14 +214,14 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       if (!effect) return `<span class="missing-effect">[${effectId}]</span>`;
       
       const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
-      if (definition.isSystemEffect) return ''; // System effects don't appear in preview
-      
-      const output = definition.outputTemplate(effect.properties);
+      if (definition.isSystemEffect) return '';
+
+      const output = definition.outputTemplate ? definition.outputTemplate(effect.properties) : '';
       if (!output) return '';
       
       // Make dice notation blue
       const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1</span>');
-      return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
+      return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false" (click)="$event.preventDefault()">${styledOutput}</span>`;
     });
 
     this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
@@ -337,5 +341,12 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   onCancel(): void {
     this.cancel.emit();
+  }
+
+  private addEffectToTemplate(effectId: string): void {
+    const newPlaceholder = ` {{${effectId}}}`;
+    this.editableTemplate += newPlaceholder;
+    this.updatePreview();
+    this.emitItemChanged();
   }
 } 

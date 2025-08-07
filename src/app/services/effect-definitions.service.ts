@@ -31,6 +31,17 @@ export class EffectDefinitionsService {
       outputTemplate: (props: EffectProperties) => `heals ${props.healAmount} HP`
     },
 
+    BUFF_STAT: {
+      name: 'Buff Stat',
+      description: 'Temporarily or permanently buffs a stat.',
+      fields: [
+        { key: 'stat', label: 'Stat', type: 'select', required: true, options: ['str', 'dex', 'con', 'int', 'wis', 'cha', 'ac'] },
+        { key: 'buffValue', label: 'Buff Value', type: 'number', required: true },
+        { key: 'duration', label: 'Duration (in rounds)', type: 'number', placeholder: 'Leave empty for permanent' }
+      ],
+      outputTemplate: (props: EffectProperties) => `${props.buffValue > 0 ? '+' : ''}${props.buffValue} to ${props.stat.toUpperCase()}`
+    },
+
     GREAT_WEAPON_FIGHTING: {
       name: 'Great Weapon Fighting',
       description: 'Rerolls 1s and 2s on damage dice',
@@ -98,6 +109,16 @@ export class EffectDefinitionsService {
       ],
       outputTemplate: () => '',
       isSystemEffect: true
+    },
+
+    CONDITION: {
+      name: 'Condition',
+      description: 'Applies a condition to a target.',
+      fields: [
+        { key: 'condition', label: 'Condition', type: 'select', required: true, options: ['Blinded', 'Charmed', 'Deafened', 'Frightened', 'Grappled', 'Incapacitated', 'Invisible', 'Paralyzed', 'Petrified', 'Poisoned', 'Prone', 'Restrained', 'Stunned', 'Unconscious'] },
+        { key: 'duration', label: 'Duration (in rounds)', type: 'number', placeholder: 'Leave empty for permanent' }
+      ],
+      outputTemplate: (props: EffectProperties) => `applies the ${props.condition} condition`
     },
 
     MAGIC_BONUS: {

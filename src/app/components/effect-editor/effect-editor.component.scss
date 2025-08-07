@@ -80,6 +80,35 @@
         }
       }
 
+      .effect-pill {
+        background-color: var(--pill-bg, #0d6efd);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        
+        &:hover {
+          background-color: var(--highlight-color, #2b79ff);
+        }
+      }
+
+      .is-pulsing {
+        animation: pulse 0.8s ease-out;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 var(--highlight-color, #2b79ff);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(13, 111, 253, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(13, 111, 253, 0);
+        }
+      }
+
       .template-editor {
         margin-top: 1rem;
 
