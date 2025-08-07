@@ -193,10 +193,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const finalAttackResult = d20Roll + totalBonus;
     const attackResultDescription = `${item.name}: ${finalAttackResult} to hit${attackRollsString}`;
 
-    console.log('Emitting attack roll:', {
-      type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
-      description: attackResultDescription
-    });
     this.emitRollResults.emit({
       type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
       description: attackResultDescription
@@ -225,10 +221,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
 
     if (damageDescriptions.length > 0) {
       const damageResultDescription = template || `DMG: ${damageDescriptions.join(' + ')}`;
-      console.log('Emitting damage roll:', {
-        type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
-        description: damageResultDescription
-      });
       this.emitRollResults.emit({
         type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
         description: damageResultDescription
@@ -356,7 +348,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   openEditModal(item: InventoryItem, isNew: boolean = false): void {
-    console.log('ITEM EDITOR | Opening edit modal for item:', JSON.parse(JSON.stringify(item)));
     const ref = this.dialogService.open(ItemEditorComponent, {
       header: `Edit Item: ${item.name || 'New Item'}`,
       width: '50vw',
@@ -365,20 +356,14 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       }
     });
 
-    ref.onClose.subscribe((updatedItem: InventoryItem | undefined) => {
-      console.log('ITEM EDITOR | Edit modal closed. Received data:', updatedItem);
-      if (updatedItem) {
-        console.log('ITEM EDITOR | Item saved:', updatedItem);
-        // @ts-ignore
-        if(isNew) {
-          // @ts-ignore
-          this.playerCardStateService.addItemToInventory(updatedItem);
+    ref.onClose.subscribe((result: {item: InventoryItem, isNew: boolean} | undefined) => {
+      if (result) {
+        if(result.isNew) {
+          this.playerCardStateService.addItemToInventory(result.item);
         } else {
-          // @ts-ignore
-          this.playerCardStateService.updateItemInInventory(updatedItem);
+          this.playerCardStateService.updateItemInInventory(result.item);
         }
       } else {
-        console.log('ITEM EDITOR | Edit cancelled.');
         if(isNew) {
           this.playerCardStateService.removeItemFromInventory(item.item_id_suggestion);
         }

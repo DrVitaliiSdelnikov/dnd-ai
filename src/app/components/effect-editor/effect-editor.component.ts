@@ -229,7 +229,6 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     });
 
     this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
-    console.log('Generated Preview HTML:', newPreviewHtml);
   }
 
   private generateDefaultTemplate(): string {

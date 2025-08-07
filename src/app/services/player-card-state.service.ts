@@ -81,7 +81,6 @@ export class PlayerCardStateService {
   updatePlayerCard(updatedCard: PlayerCard): void {
     this.playerCardState.set(updatedCard);
     this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, JSON.stringify(updatedCard));
-    console.log('PlayerCardStateService: State updated and saved.');
   }
 
   addItemToInventory(newItem: InventoryItem): void {
