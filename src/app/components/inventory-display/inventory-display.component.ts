@@ -148,12 +148,24 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
-    if (item.type !== 'WEAPON' || !item.properties.damage_dice) return;
+    if (item.type !== 'WEAPON' || !item.properties.effects) { return; }
 
-    const abilityKey = item.properties.attack_stat ?? 'str';
+    const effects = item.properties.effects;
+    const attackStatEffect = effects.find(e => e.type === 'ATTACK_STAT');
+    const proficiencyEffect = effects.find(e => e.type === 'WEAPON_PROFICIENCY');
+    const damageEffects = effects.filter(e => e.type === 'DAMAGE');
+    const magicBonusEffect = effects.find(e => e.type === 'MAGIC_BONUS');
+
+    if (!attackStatEffect || damageEffects.length === 0) {
+      this.actionResults[item.item_id_suggestion] = 'Cannot attack with this item';
+      return;
+    }
+
+    const abilityKey = attackStatEffect.properties.attackStat ?? 'str';
     const modifier = this.abilityModifiers()[abilityKey] ?? 0;
-    const magicBonus = item.properties.magic_bonus ?? 0;
-    const proficiencyBonus = item.properties.proficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
+    const magicBonus = magicBonusEffect?.properties.bonus ?? 0;
+    const isProficient = proficiencyEffect?.properties.proficient ?? false;
+    const proficiencyBonus = isProficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
     const totalBonus = modifier + magicBonus + proficiencyBonus;
 
     let d20Roll: number;
@@ -171,7 +183,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       attackRollsString = ` DISADVANTAGE: [${roll1}, ${roll2}] -> ${d20Roll}`;
     } else {
       d20Roll = Math.floor(Math.random() * 20) + 1;
-      attackRollsString = ``;
+      attackRollsString = '';
     }
 
     if (d20Roll === 20) {
@@ -179,34 +191,47 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     }
 
     const finalAttackResult = d20Roll + totalBonus;
-    const attackBonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
     const attackResultDescription = `${item.name}: ${finalAttackResult} to hit${attackRollsString}`;
 
+    console.log('Emitting attack roll:', {
+      type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
+      description: attackResultDescription
+    });
     this.emitRollResults.emit({
       type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
       description: attackResultDescription
     });
 
-    const diceNotation = item.properties.damage_dice;
-    const damageRollResult = this.parseAndRollDice(diceNotation);
+    const damageBonus = modifier + magicBonus;
+    let totalDamage = 0;
+    const damageDescriptions = [];
 
-    if (damageRollResult.error) {
-      this.actionResults[item.item_id_suggestion] = 'Damage roll error';
-      return;
-    }
-
-    const damageBonus = totalBonus;
-    const finalDamage = damageRollResult.total + damageBonus;
-
-    const damageBonusString = damageBonus === 0 ? '' : (damageBonus > 0 ? ` + ${damageBonus}` : ` - ${Math.abs(damageBonus)}`);
-    const damageResultDescription = `DMG: ${finalDamage}`;
-
-    this.emitRollResults.emit({
-      type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
-      description: damageResultDescription
+    damageEffects.forEach(effect => {
+      const diceNotation = effect.properties.dice;
+      const damageRollResult = this.parseAndRollDice(diceNotation);
+      if (damageRollResult.error) {
+        this.actionResults[item.item_id_suggestion] = 'Damage roll error';
+        return;
+      }
+      const damageType = effect.properties.damageType || '';
+      const finalDamageForEffect = damageRollResult.total + damageBonus;
+      totalDamage += finalDamageForEffect;
+      damageDescriptions.push(`${finalDamageForEffect} ${damageType}`);
     });
 
-    this.actionResults[item.item_id_suggestion] = `Damage: ${finalDamage}`;
+    if (damageDescriptions.length > 0) {
+      const damageResultDescription = `DMG: ${damageDescriptions.join(' + ')}`;
+      console.log('Emitting damage roll:', {
+        type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
+        description: damageResultDescription
+      });
+      this.emitRollResults.emit({
+        type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
+        description: damageResultDescription
+      });
+      this.actionResults[item.item_id_suggestion] = `Damage: ${totalDamage}`;
+    }
+
     this.confirmationService.close();
   }
 
