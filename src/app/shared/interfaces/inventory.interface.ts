@@ -57,10 +57,11 @@ export interface CalculatedBonuses {
 export interface InventoryItem {
   item_id_suggestion: string;
   name: string;
-  type: "WEAPON" | "ARMOR" | "SHIELD" | "CONSUMABLE" | "ACCESSORY" | "CURRENCY" | "MISC_ITEM" | "TOOL" | "MATERIAL" | string;
-  description?: string;
   quantity: number;
-  properties: ItemProperties;
+  type: 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MISC_ITEM' | 'OTHER' | 'SHIELD' | 'ACCESSORY';
+  description?: string;
+  properties?: ItemProperties;
+  template?: string;
 }
 
 export interface Spell {

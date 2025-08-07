@@ -205,6 +205,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const damageBonus = modifier + magicBonus;
     let totalDamage = 0;
     const damageDescriptions = [];
+    let template = item.template || '';
 
     damageEffects.forEach(effect => {
       const diceNotation = effect.properties.dice;
@@ -217,10 +218,13 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       const finalDamageForEffect = damageRollResult.total + damageBonus;
       totalDamage += finalDamageForEffect;
       damageDescriptions.push(`${finalDamageForEffect} ${damageType}`);
+      if (template) {
+        template = template.replace(`{{${effect.id}}}`, `${finalDamageForEffect} ${damageType}`);
+      }
     });
 
     if (damageDescriptions.length > 0) {
-      const damageResultDescription = `DMG: ${damageDescriptions.join(' + ')}`;
+      const damageResultDescription = template || `DMG: ${damageDescriptions.join(' + ')}`;
       console.log('Emitting damage roll:', {
         type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
         description: damageResultDescription
@@ -299,7 +303,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   addNewItem(itemType: 'WEAPON' | 'ARMOR' | 'MISC_ITEM'): void {
     const newItem: InventoryItem = {
       item_id_suggestion: `new-${Math.random().toString(36).substring(2, 9)}`,
-      name: '',
+      name: 'New Item',
       quantity: 1,
       type: itemType,
       description: '',
@@ -309,13 +313,35 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     };
 
     if (itemType === 'WEAPON') {
-      newItem.properties = {
-        ...newItem.properties,
-        damage_dice: '1d4',
-        damage_type: 'slashing',
-        attack_stat: 'str',
-        proficient: false
-      };
+      newItem.template = '{{name}} attacks for {{damage_1}}';
+      newItem.properties.effects = [
+        {
+          id: 'attack_stat',
+          name: 'Attack Stat',
+          type: 'ATTACK_STAT',
+          properties: { attackStat: 'str' },
+          isSystemEffect: true,
+          order: 1
+        },
+        {
+          id: 'proficiency',
+          name: 'Proficiency',
+          type: 'WEAPON_PROFICIENCY',
+          properties: { proficient: true },
+          isSystemEffect: true,
+          order: 2
+        },
+        {
+          id: 'damage_1',
+          name: 'Damage',
+          type: 'DAMAGE',
+          properties: {
+            dice: '1d6',
+            damageType: 'slashing'
+          },
+          order: 3
+        }
+      ];
     } else if (itemType === 'ARMOR') {
       newItem.properties = {
         ...newItem.properties,

@@ -212,13 +212,16 @@ export class ItemEditorComponent implements OnInit {
       }
     });
 
+    const itemType = newItem.type as InventoryItem['type'];
+
     return {
       item_id_suggestion: newItem.id_suggestion,
       name: newItem.name,
-      type: newItem.type,
+      type: itemType,
       description: newItem.description,
       quantity: newItem.quantity || 1,
-      properties: properties
+      properties: properties,
+      template: newItem.template
     };
   }
 

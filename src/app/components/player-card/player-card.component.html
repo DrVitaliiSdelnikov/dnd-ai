@@ -102,35 +102,43 @@
 
       <div class="inventory-wrapper">
         <p-accordion>
-          <p-accordionTab header="Inventory">
-            <app-inventory-display
-              (emitRollResults)="setFromInventoryDiceRollResult($event)"
-              [inventoryItems]="playerCard()?.loot"
-              (itemAdded)="handleItemAdded($event)"
-            />
-          </p-accordionTab>
+          <p-accordion-tab>
+            <ng-template pTemplate="header">Inventory</ng-template>
+            <ng-template pTemplate="content">
+              <app-inventory-display
+                (emitRollResults)="setFromInventoryDiceRollResult($event)"
+                [inventoryItems]="playerCard()?.loot"
+                (itemAdded)="handleItemAdded($event)"
+              />
+            </ng-template>
+          </p-accordion-tab>
 
-          <p-accordionTab header="Skills" [disabled]="skillsDisabled()">
-            <app-skills-display
-              [skillsData]="playerCard()?.skills"
-              [proficiencyBonus]="proficiencyBonus()"
-              (skillCheck)="handleSkillCheck($event)"/>
-          </p-accordionTab>
+          <p-accordion-tab [disabled]="skillsDisabled()">
+            <ng-template pTemplate="header">Skills</ng-template>
+            <ng-template pTemplate="content">
+              <app-skills-display
+                [skillsData]="playerCard()?.skills"
+                [proficiencyBonus]="proficiencyBonus()"
+                (skillCheck)="handleSkillCheck($event)"/>
+            </ng-template>
+          </p-accordion-tab>
 
-          <p-accordionTab header="Spellbook" [disabled]="!playerCard()?.spells?.length">
-            <app-spellbook-display
-              [spells]="playerCard()?.spells"
-              (spellCasted)="handleSpellCast($event)"
-            ></app-spellbook-display>
-          </p-accordionTab>
+          <p-accordion-tab [disabled]="!playerCard()?.spells?.length">
+            <ng-template pTemplate="header">Spellbook</ng-template>
+            <ng-template pTemplate="content">
+              <app-spellbook-display
+                [spells]="playerCard()?.spells"
+                (spellCasted)="handleSpellCast($event)"
+              ></app-spellbook-display>
+            </ng-template>
+          </p-accordion-tab>
 
-          <p-accordionTab
-            header="Adventure summary"
-            [disabled]="!campaignSummary()"
-          >
-            <app-adventure-summary/>
-          </p-accordionTab>
-
+          <p-accordion-tab [disabled]="!campaignSummary()">
+            <ng-template pTemplate="header">Adventure summary</ng-template>
+            <ng-template pTemplate="content">
+              <app-adventure-summary/>
+            </ng-template>
+          </p-accordion-tab>
         </p-accordion>
       </div>
 

@@ -127,6 +127,9 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   stripMarkdownJson(raw: string): string {
+    if (!raw) {
+      return '';
+    }
     const match = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     return match ? match[1] : raw;
   };

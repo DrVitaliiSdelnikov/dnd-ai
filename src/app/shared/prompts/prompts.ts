@@ -107,18 +107,16 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
     "isUpdated": "boolean",
 
     "loot": [
-      // Each item uses the NEW EFFECT SYSTEM. Build items using modular effects.
       {
         "id_suggestion": "string",
         "name": "string",
         "type": "string", // WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION
         "description": "string",
         "quantity": "number",
-        "template": "string", // Template for display like "{{name}} deals {{damage}} damage"
+        "template": "string", // Template for display like "{{name}} deals {{damage_effect_id}} damage"
         "effects": [
-          // Each effect is a modular component. Examples:
           {
-            "id": "string", // unique identifier like "damage_1", "healing_effect"
+            "id": "string", // unique identifier like "damage_1", "healing_effect". Used in templates.
             "name": "string", // display name like "Slashing Damage"
             "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | WEAPON_PROFICIENCY | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT",
             "properties": {
@@ -167,12 +165,14 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 }
 
 **EFFECT SYSTEM GUIDELINES:**
-- Build items and spells using modular effects
-- Combat effects (DAMAGE, HEALING, etc.) appear in the preview template
-- System effects (WEAPON_PROFICIENCY, SPELL_LEVEL, etc.) are for mechanics only
-- Use descriptive templates with {{effectId}} placeholders
-- Example weapon: "{{name}} strikes for {{slashing_damage}} plus {{fire_damage}}"
-- Example spell: "{{name}} heals {{healing_amount}} hit points"
+- Build items and spells using modular effects.
+- The "To Hit" roll is always calculated as: 1d20 + Ability Modifier (from ATTACK_STAT) + Proficiency Bonus (if WEAPON_PROFICIENCY is true) + Magic Bonus (from MAGIC_BONUS). The front-end handles this calculation.
+- Your main responsibility is to create the item with the correct effects. A typical WEAPON should have: ATTACK_STAT, WEAPON_PROFICIENCY, and at least one DAMAGE effect.
+- Combat effects (DAMAGE, HEALING, etc.) appear in the preview template.
+- System effects (WEAPON_PROFICIENCY, SPELL_LEVEL, etc.) are for mechanics only.
+- Use descriptive templates with {{effectId}} placeholders.
+- Example weapon: "{{name}} strikes for {{slashing_damage}} plus {{fire_damage}}".
+- Example spell: "{{name}} heals {{healing_amount}} hit points".
 
 **FINAL INSTRUCTION: Use the new effect system for all items and spells. Each effect is modular and reusable. Build complex items by combining multiple effects.**
 `;
