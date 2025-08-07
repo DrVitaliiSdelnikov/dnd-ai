@@ -212,9 +212,12 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     this.effects.forEach((effect, index) => {
       effect.order = index + 1;
     });
+
+    console.log('🔁 EffectEditor:onEffectReorder new order:', this.effects.map(e => ({ id: e.id, order: e.order })));
     
     // Synchronize template placeholder positions with new order
     this.remapPlaceholdersToNewOrder();
+    console.log('🧭 EffectEditor:onEffectReorder remapped template:', this.editableTemplate);
     
     // Update the main effects array
     this.updatePreview();
@@ -230,19 +233,35 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     const template = this.editableTemplate || this.generateDefaultTemplate();
     const itemName = this.itemForm.get('name')?.value || '';
 
+    console.log('🧩 EffectEditor:updatePreview template before:', template);
+
     // First, replace the item name placeholder
     let processedTemplate = template.replace(/\{\{name\}\}/g, itemName);
 
+    // Collect placeholders for debugging
+    const placeholders = Array.from(processedTemplate.matchAll(/\{\{([^}]+)\}\}/g)).map(m => m[1].trim());
+    console.log('🔎 EffectEditor:updatePreview placeholders found:', placeholders);
+
     // Then, replace effect placeholders with chips
     const newPreviewHtml = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
-      const effect = this.effects.find(e => e.id === effectId.trim());
-      if (!effect) return `<span class="missing-effect">[${effectId}]</span>`;
+      const trimmedId = (effectId as string).trim();
+      const effect = this.effects.find(e => e.id === trimmedId);
+      if (!effect) {
+        console.warn('⚠️ EffectEditor:updatePreview missing effect for placeholder:', trimmedId);
+        return `<span class="missing-effect">[${trimmedId}]</span>`;
+      }
       
       const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
-      if (definition.isSystemEffect) return '';
+      if (definition.isSystemEffect) {
+        console.log('ℹ️ EffectEditor:updatePreview system effect skipped:', trimmedId, effect.type);
+        return '';
+      }
 
       const output = definition.outputTemplate ? definition.outputTemplate(effect.properties) : '';
-      if (!output) return '';
+      if (!output) {
+        console.warn('⚠️ EffectEditor:updatePreview no output for effect:', trimmedId, effect.type, effect.properties);
+        return '';
+      }
       
       // Make dice notation blue
       const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1</span>');
@@ -250,6 +269,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     });
 
     this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
+    console.log('🧷 EffectEditor:updatePreview rendered HTML updated');
   }
 
   private generateDefaultTemplate(): string {
@@ -391,11 +411,23 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       ...(this.isSpell ? {} : { quantity: formValue.quantity })
     };
 
+    console.log('📤 EffectEditor:emitItemChanged emitting item:', {
+      name: updatedItem.name,
+      template: updatedItem.template,
+      effectIds: this.effects.map(e => e.id),
+      effects: this.effects
+    });
+
     this.itemChanged.emit(updatedItem);
   }
 
   onSave(): void {
     if (this.itemForm.invalid) return;
+    console.log('💾 EffectEditor:onSave current item about to emit:', {
+      name: this.itemForm.value.name,
+      template: this.editableTemplate,
+      effects: this.effects
+    });
     this.emitItemChanged();
     this.save.emit();
   }
@@ -467,5 +499,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     this.editableTemplate = remappedParts
       .map(p => (p.type === 'text' ? p.value : `{{${p.id}}}`))
       .join('');
+
+    console.log('🧱 EffectEditor:remapPlaceholdersToNewOrder result:', this.editableTemplate);
   }
 } 

@@ -384,6 +384,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   openEditModal(item: InventoryItem, isNew: boolean = false): void {
+    console.log('🪟 InventoryDisplay:openEditModal with item:', item);
     const ref = this.dialogService.open(ItemEditorComponent, {
       header: `Edit Item: ${item.name || 'New Item'}`,
       width: '50vw',
@@ -393,10 +394,13 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
 
     ref.onClose.subscribe((result: {item: InventoryItem, isNew: boolean} | undefined) => {
+      console.log('🪟 InventoryDisplay:edit dialog closed with result:', result);
       if (result) {
         if(result.isNew) {
+          console.log('➕ InventoryDisplay:addItemToInventory', result.item);
           this.playerCardStateService.addItemToInventory(result.item);
         } else {
+          console.log('✏️ InventoryDisplay:updateItemInInventory', result.item);
           this.playerCardStateService.updateItemInInventory(result.item);
         }
       } else {

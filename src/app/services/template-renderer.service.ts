@@ -23,6 +23,11 @@ export class TemplateRendererService {
     const template = item.template;
     const effects = item.properties.effects as Effect[];
     
+    console.log('��️ TemplateRenderer:renderItemTemplate item:', item.name, {
+      template: item.template,
+      effectIds: Array.isArray(effects) ? effects.map(e => e.id) : effects
+    });
+
     // First, replace the item name placeholder
     let processedTemplate = template.replace(/\{\{name\}\}/g, item.name);
 
@@ -31,6 +36,7 @@ export class TemplateRendererService {
       
       const effect = effects.find(e => e.id === effectId.trim());
       if (!effect) {
+        console.warn('⚠️ TemplateRenderer: missing effect for placeholder:', effectId, 'in item', item.name);
         return `<span class="missing-effect">[${effectId}]</span>`;
       }
       
@@ -43,6 +49,7 @@ export class TemplateRendererService {
       const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
       
       if (!output) {
+        console.warn('⚠️ TemplateRenderer: no output for effect:', effectId, effect);
         return '';
       }
       

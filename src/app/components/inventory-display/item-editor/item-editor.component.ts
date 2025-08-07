@@ -38,6 +38,8 @@ export class ItemEditorComponent implements OnInit {
   ngOnInit(): void {
     this.item = this.config.data.item;
     this.convertedItem = this.convertOldItemToNewFormat(this.item);
+    console.log('🧰 ItemEditor: ngOnInit original item:', this.item);
+    console.log('🧰 ItemEditor: ngOnInit convertedItem:', this.convertedItem);
   }
 
   private convertOldItemToNewFormat(oldItem: InventoryItem): ItemWithEffects {
@@ -181,11 +183,13 @@ export class ItemEditorComponent implements OnInit {
       template: oldItem.template || ''
     };
 
+    console.log('🧪 ItemEditor: convertOldItemToNewFormat result:', newFormatItem);
     return newFormatItem;
   }
 
   onItemChanged(newItem: ItemWithEffects): void {
     this.convertedItem = newItem;
+    console.log('📥 ItemEditor:onItemChanged received:', newItem);
   }
 
   save(): void {
@@ -195,6 +199,7 @@ export class ItemEditorComponent implements OnInit {
 
     // Convert back to old format for compatibility
     const updatedOldItem = this.convertNewItemToOldFormat(this.convertedItem);
+    console.log('💾 ItemEditor: save -> convertNewItemToOldFormat result:', updatedOldItem);
 
     const currentLoot = this.playerCardStateService.playerCard$().loot;
     
@@ -203,6 +208,7 @@ export class ItemEditorComponent implements OnInit {
       return lootItemId === updatedOldItem.item_id_suggestion;
     });
 
+    console.log('📦 ItemEditor: save closing dialog with isNew:', isNew);
     this.dialogRef.close({item: updatedOldItem, isNew: isNew});
   }
 
@@ -211,6 +217,7 @@ export class ItemEditorComponent implements OnInit {
 
     // Convert effects back to old properties
     newItem.effects.forEach(effect => {
+      console.log('🔁 ItemEditor:convertNewItemToOldFormat processing effect:', effect);
       switch (effect.type) {
         case 'WEAPON_PROFICIENCY':
           properties.proficient = effect.properties.proficient;
@@ -239,6 +246,9 @@ export class ItemEditorComponent implements OnInit {
       }
     });
 
+    // Preserve full effects array in the saved item to support the new renderer
+    properties.effects = newItem.effects;
+
     // Handle both property names for compatibility - use the original item's ID
     const originalId = (this.item as any).item_id_suggestion || (this.item as any).id_suggestion;
 
@@ -252,6 +262,7 @@ export class ItemEditorComponent implements OnInit {
       template: newItem.template
     };
 
+    console.log('🧯 ItemEditor:convertNewItemToOldFormat final oldFormatItem:', oldFormatItem);
     return oldFormatItem;
   }
 
