@@ -108,50 +108,50 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 
     "loot": [
       {
-        "id_suggestion": "string",
-        "name": "string",
+        "id_suggestion": "string", // unique identifier like "longsword_1"
+        "name": "string", // display name like "Longsword"
         "type": "string", // WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION
-        "description": "string",
+        "description": "string", // flavor description
         "quantity": "number",
-        "template": "string", // Template for display like "{{name}} deals {{damage_effect_id}} damage"
+        "template": "string", // CRITICAL: Template for display with effect placeholders. Example: "{{name}} {{magic_bonus}} ({{attack_stat}}) deals {{slashing_damage}}"
         "effects": [
           {
-            "id": "string", // unique identifier like "damage_1", "healing_effect". Used in templates.
-            "name": "string", // display name like "Slashing Damage"
+            "id": "string", // CRITICAL: Must match template placeholders! Examples: "attack_stat", "slashing_damage", "magic_bonus", "proficiency"
+            "name": "string", // Human-readable name like "Attack Stat" or "Slashing Damage"
             "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | WEAPON_PROFICIENCY | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT",
             "properties": {
-              // For DAMAGE: { "dice": "1d8+2", "damageType": "Slashing" }
-              // For HEALING: { "healAmount": "2d4+2" }
-              // For WEAPON_PROFICIENCY: { "proficient": true }
-              // For ARMOR_CLASS: { "acValue": 15, "maxDexBonus": 2 }
-              // For ATTACK_STAT: { "attackStat": "str" }
-              // For MAGIC_BONUS: { "bonus": 1 }
-              // For STATIC_TEXT: { "text": "glows with magical light" }
-              // For CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
+              // DAMAGE: { "dice": "1d8+2", "damageType": "Slashing" }
+              // HEALING: { "healAmount": "2d4+2" }
+              // WEAPON_PROFICIENCY: { "proficient": true }
+              // ARMOR_CLASS: { "acValue": 15, "maxDexBonus": 2 }
+              // ATTACK_STAT: { "attackStat": "str" } // str, dex, con, int, wis, cha
+              // MAGIC_BONUS: { "bonus": 1 }
+              // STATIC_TEXT: { "text": "glows with magical light" }
+              // CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
             },
-            "isSystemEffect": "boolean", // true for proficiency, AC, spell level - these don't appear in preview
-            "order": "number" // for ordering in display
+            "isSystemEffect": "boolean", // true for WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL - these don't appear in preview but affect mechanics
+            "order": "number" // for ordering in display (1, 2, 3...)
           }
         ]
       }
     ],
 
     "spells": [
-      // Spells also use the NEW EFFECT SYSTEM
+      // Spells follow the SAME EFFECT SYSTEM as items
       {
         "id_suggestion": "string",
         "name": "string",
         "type": "SPELL | ABILITY",
         "description": "string",
-        "template": "string", // Template like "{{name}} deals {{damage}} to targets"
+        "template": "string", // Template like "{{name}} deals {{fire_damage}} to targets within {{range}}"
         "effects": [
           {
-            "id": "string",
+            "id": "string", // Must match template placeholders
             "name": "string", 
             "type": "DAMAGE | HEALING | SPELL_LEVEL | SPELL_PASSIVE | STATIC_TEXT | CONDITIONAL_EFFECT",
             "properties": {
-              // For SPELL_LEVEL: { "level": 2 }
-              // For SPELL_PASSIVE: { "isPassive": true }
+              // SPELL_LEVEL: { "level": 2 }
+              // SPELL_PASSIVE: { "isPassive": true }
               // Other effects same as items
             },
             "isSystemEffect": "boolean", // true for spell level, passive - don't appear in preview
@@ -165,16 +165,26 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 }
 
 **EFFECT SYSTEM GUIDELINES:**
-- Build items and spells using modular effects.
-- The "To Hit" roll is always calculated as: 1d20 + Ability Modifier (from ATTACK_STAT) + Proficiency Bonus (if WEAPON_PROFICIENCY is true) + Magic Bonus (from MAGIC_BONUS). The front-end handles this calculation.
-- Your main responsibility is to create the item with the correct effects. A typical WEAPON should have: ATTACK_STAT, WEAPON_PROFICIENCY, and at least one DAMAGE effect.
-- Combat effects (DAMAGE, HEALING, etc.) appear in the preview template.
-- System effects (WEAPON_PROFICIENCY, SPELL_LEVEL, etc.) are for mechanics only.
-- Use descriptive templates with {{effectId}} placeholders.
-- Example weapon: "{{name}} strikes for {{slashing_damage}} plus {{fire_damage}}".
-- Example spell: "{{name}} heals {{healing_amount}} hit points".
+- Build items and spells using modular effects that work together.
+- The "To Hit" roll is calculated as: 1d20 + Ability Modifier (from ATTACK_STAT effect) + Proficiency Bonus (if WEAPON_PROFICIENCY effect has proficient: true) + Magic Bonus (from MAGIC_BONUS effect). The front-end handles this calculation.
+- Each effect has an "id" that MUST match the placeholders in the template string.
+- System effects (WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL, etc.) are for mechanics only and don't appear in the visual preview.
+- Combat effects (DAMAGE, HEALING, MAGIC_BONUS, etc.) appear as visual chips in the preview.
+- Use descriptive templates with {{effectId}} placeholders that match your effect IDs exactly.
 
-**FINAL INSTRUCTION: Use the new effect system for all items and spells. Each effect is modular and reusable. Build complex items by combining multiple effects.**
+**WEAPON EXAMPLE (Longsword +1):**
+- id_suggestion: "longsword_plus_1"
+- name: "Longsword +1" 
+- type: "WEAPON"
+- template: "{{name}} {{magic_bonus}} ({{attack_stat}}) deals {{slashing_damage}}"
+- effects: [
+  { id: "attack_stat", type: "ATTACK_STAT", properties: { attackStat: "str" }, isSystemEffect: false },
+  { id: "proficiency", type: "WEAPON_PROFICIENCY", properties: { proficient: true }, isSystemEffect: true },
+  { id: "magic_bonus", type: "MAGIC_BONUS", properties: { bonus: 1 }, isSystemEffect: false },
+  { id: "slashing_damage", type: "DAMAGE", properties: { dice: "1d8+1", damageType: "Slashing" }, isSystemEffect: false }
+]
+
+**FINAL INSTRUCTION: Use the new effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match template placeholders exactly.**
 `;
 
 

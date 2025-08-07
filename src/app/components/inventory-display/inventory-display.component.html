@@ -12,6 +12,9 @@
             {{ item.name }}
             <span *ngIf="item.quantity > 1" class="item-quantity"> (x{{ item.quantity }})</span>
           </span>
+          <div *ngIf="item.template && item.properties?.effects" class="item-template" 
+               [innerHTML]="getRenderedTemplate(item)">
+          </div>
           <span *ngIf="item.description">
             <i class="pi pi-info-circle" [pTooltip]="item.description" tooltipPosition="top"></i>
           </span>
@@ -26,12 +29,12 @@
             <i class="pi pi-pencil"></i>
           </button>
           <button
-            *ngIf="item.type === 'WEAPON' && item.properties.damage_dice"
+            *ngIf="item.type === 'WEAPON' && item.properties?.effects"
             (click)="rollAttackAndDamage(item)"
             pButton
             (contextmenu)="callModeDialog(item, $event)"
             class="action-button attack-button p-button-danger p-button-outlined">
-            Attack ({{ item.properties.damage_dice }})
+            Attack
           </button>
           <button
             *ngIf="item.type === 'CONSUMABLE' && item.properties.effect_details"
@@ -54,10 +57,11 @@
   </div>
 </div>
 
-
 <p-confirmpopup>
   <ng-template #content let-message>
-    <app-roll-options-panel (rollEmit)="rollAttackAndDamage(this.selectedItem(), $event)"/>
+    <app-roll-options-panel
+      (rollEmit)="rollAttackAndDamage(this.selectedItem(), $event)">
+    </app-roll-options-panel>
   </ng-template>
 </p-confirmpopup>
 

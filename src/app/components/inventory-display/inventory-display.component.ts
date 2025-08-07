@@ -23,6 +23,7 @@ import { ItemEditorComponent } from './item-editor/item-editor.component';
 import { DialogService } from 'primeng/dynamicdialog';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { SpeedDialModule } from 'primeng/speeddial';
+import { TemplateRendererService } from '../../services/template-renderer.service';
 
 @Component({
   selector: 'app-inventory-display',
@@ -52,6 +53,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   private dialogService: DialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
+  private templateRenderer = inject(TemplateRendererService);
 
   abilityModifiers = computed(() => {
     return this.playerCardStateService.abilityModifiers$();
@@ -141,10 +143,27 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
   }
 
+  private rollD20(): number {
+    return Math.floor(Math.random() * 20) + 1;
+  }
+
+  private rollD20WithMode(mode: RollState): number {
+    if (mode === RollStateEnum.ADVANTAGE) {
+      return Math.max(this.rollD20(), this.rollD20());
+    } else if (mode === RollStateEnum.DISADVANTAGE) {
+      return Math.min(this.rollD20(), this.rollD20());
+    } else {
+      return this.rollD20();
+    }
+  }
+
   objectKeys(obj: any): string[] {
-    return this.categoryOrder
-      .map(key => this.categoryDisplayNames[key])
+    return Object.keys(obj || {})
       .filter(displayName => obj[displayName] && obj[displayName].length > 0);
+  }
+
+  getRenderedTemplate(item: InventoryItem) {
+    return this.templateRenderer.renderItemTemplate(item);
   }
 
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
@@ -153,40 +172,29 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const effects = item.properties.effects;
     const attackStatEffect = effects.find(e => e.type === 'ATTACK_STAT');
     const proficiencyEffect = effects.find(e => e.type === 'WEAPON_PROFICIENCY');
-    const damageEffects = effects.filter(e => e.type === 'DAMAGE');
     const magicBonusEffect = effects.find(e => e.type === 'MAGIC_BONUS');
+    const damageEffects = effects.filter(e => e.type === 'DAMAGE');
 
-    if (!attackStatEffect || damageEffects.length === 0) {
-      this.actionResults[item.item_id_suggestion] = 'Cannot attack with this item';
+    if (!attackStatEffect || !damageEffects.length) {
+      this.messageService.add({severity: 'error', summary: 'Error', detail: 'Weapon missing required effects'});
       return;
     }
 
-    const abilityKey = attackStatEffect.properties.attackStat ?? 'str';
-    const modifier = this.abilityModifiers()[abilityKey] ?? 0;
-    const magicBonus = magicBonusEffect?.properties.bonus ?? 0;
-    const isProficient = proficiencyEffect?.properties.proficient ?? false;
-    const proficiencyBonus = isProficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
-    const totalBonus = modifier + magicBonus + proficiencyBonus;
+    const attackStat = attackStatEffect.properties.attackStat;
+    const modifier = this.abilityModifiers()[attackStat] || 0;
+    const proficiencyBonus = proficiencyEffect?.properties.proficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
+    const magicBonus = magicBonusEffect?.properties.bonus || 0;
+    const totalBonus = modifier + proficiencyBonus + magicBonus;
 
-    let d20Roll: number;
-    let attackRollsString: string;
+    // Roll attack
+    const d20Roll = this.rollD20WithMode(mode);
+    const isNatural20 = d20Roll === 20;
+    const isNatural1 = d20Roll === 1;
 
-    if (mode === RollStateEnum.ADVANTAGE) {
-      const roll1 = Math.floor(Math.random() * 20) + 1;
-      const roll2 = Math.floor(Math.random() * 20) + 1;
-      d20Roll = Math.max(roll1, roll2);
-      attackRollsString = ` ADVANTAGE: [${roll1}, ${roll2}] -> ${d20Roll}`;
-    } else if (mode === RollStateEnum.DISADVANTAGE) {
-      const roll1 = Math.floor(Math.random() * 20) + 1;
-      const roll2 = Math.floor(Math.random() * 20) + 1;
-      d20Roll = Math.min(roll1, roll2);
-      attackRollsString = ` DISADVANTAGE: [${roll1}, ${roll2}] -> ${d20Roll}`;
-    } else {
-      d20Roll = Math.floor(Math.random() * 20) + 1;
-      attackRollsString = '';
-    }
-
-    if (d20Roll === 20) {
+    let attackRollsString = `(${d20Roll}${totalBonus >= 0 ? '+' : ''}${totalBonus})`;
+    if (isNatural1) {
+      attackRollsString += ' (natural 1!)';
+    } else if (isNatural20) {
       attackRollsString += ' (natural 20!)';
     }
 
@@ -198,11 +206,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       description: attackResultDescription
     });
 
+    // Roll damage and build template results
     const damageBonus = modifier + magicBonus;
     let totalDamage = 0;
-    const damageDescriptions = [];
-    let template = item.template || '';
+    const rollResults: {[effectId: string]: string} = {};
 
+    // Process each damage effect
     damageEffects.forEach(effect => {
       const diceNotation = effect.properties.dice;
       const damageRollResult = this.parseAndRollDice(diceNotation);
@@ -213,14 +222,23 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       const damageType = effect.properties.damageType || '';
       const finalDamageForEffect = damageRollResult.total + damageBonus;
       totalDamage += finalDamageForEffect;
-      damageDescriptions.push(`${finalDamageForEffect} ${damageType}`);
-      if (template) {
-        template = template.replace(`{{${effect.id}}}`, `${finalDamageForEffect} ${damageType}`);
-      }
+      
+      // Store the rolled result for template rendering
+      rollResults[effect.id] = `${finalDamageForEffect} ${damageType}`;
     });
 
-    if (damageDescriptions.length > 0) {
-      const damageResultDescription = template || `DMG: ${damageDescriptions.join(' + ')}`;
+    // Add non-damage effects to roll results
+    if (attackStatEffect) {
+      rollResults[attackStatEffect.id] = `using ${attackStatEffect.properties.attackStat?.toUpperCase()}`;
+    }
+    if (magicBonusEffect) {
+      rollResults[magicBonusEffect.id] = `+${magicBonusEffect.properties.bonus}`;
+    }
+
+    if (damageEffects.length > 0) {
+      // Use template renderer to create the chat message
+      const damageResultDescription = this.templateRenderer.renderTemplateForChat(item, rollResults);
+      
       this.emitRollResults.emit({
         type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
         description: damageResultDescription
