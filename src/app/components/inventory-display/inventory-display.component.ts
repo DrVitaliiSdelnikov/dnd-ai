@@ -352,10 +352,11 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     }
 
     this.itemAdded.emit(newItem);
-    this.openEditModal(newItem);
+    this.openEditModal(newItem, true);
   }
 
-  openEditModal(item: InventoryItem): void {
+  openEditModal(item: InventoryItem, isNew: boolean = false): void {
+    console.log('ITEM EDITOR | Opening edit modal for item:', JSON.parse(JSON.stringify(item)));
     const ref = this.dialogService.open(ItemEditorComponent, {
       header: `Edit Item: ${item.name || 'New Item'}`,
       width: '50vw',
@@ -365,10 +366,22 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
 
     ref.onClose.subscribe((updatedItem: InventoryItem | undefined) => {
+      console.log('ITEM EDITOR | Edit modal closed. Received data:', updatedItem);
       if (updatedItem) {
-        console.log('Item saved:', updatedItem);
+        console.log('ITEM EDITOR | Item saved:', updatedItem);
+        // @ts-ignore
+        if(isNew) {
+          // @ts-ignore
+          this.playerCardStateService.addItemToInventory(updatedItem);
+        } else {
+          // @ts-ignore
+          this.playerCardStateService.updateItemInInventory(updatedItem);
+        }
       } else {
-        console.log('Edit cancelled.');
+        console.log('ITEM EDITOR | Edit cancelled.');
+        if(isNew) {
+          this.playerCardStateService.removeItemFromInventory(item.item_id_suggestion);
+        }
       }
     });
   }

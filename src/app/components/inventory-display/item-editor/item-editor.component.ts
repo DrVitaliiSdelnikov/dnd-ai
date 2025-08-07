@@ -38,6 +38,8 @@ export class ItemEditorComponent implements OnInit {
   ngOnInit(): void {
     this.item = this.config.data.item;
     this.convertedItem = this.convertOldItemToNewFormat(this.item);
+    console.log('ITEM EDITOR | Item received in editor:', JSON.parse(JSON.stringify(this.item)));
+    console.log('ITEM EDITOR | Item converted for editor:', JSON.parse(JSON.stringify(this.convertedItem)));
   }
 
   private convertOldItemToNewFormat(oldItem: InventoryItem): ItemWithEffects {
@@ -163,6 +165,7 @@ export class ItemEditorComponent implements OnInit {
 
     // Convert back to old format for compatibility
     const updatedOldItem = this.convertNewItemToOldFormat(this.convertedItem);
+    console.log('ITEM EDITOR | Item converted back to old format:', JSON.parse(JSON.stringify(updatedOldItem)));
     
     const currentCard = this.playerCardStateService.playerCard$();
     if (!currentCard) return;
@@ -172,11 +175,14 @@ export class ItemEditorComponent implements OnInit {
         item.item_id_suggestion === updatedOldItem.item_id_suggestion ? updatedOldItem : item
       );
 
+      const isNew = !currentCard.loot.some(i => i.item_id_suggestion === updatedOldItem.item_id_suggestion);
+      console.log('ITEM EDITOR | Is new item?', isNew);
+
       const updatedPlayerCard = { ...currentCard, loot: updatedItems };
       this.playerCardStateService.updatePlayerCard(updatedPlayerCard);
     }
 
-    this.dialogRef.close(true);
+    this.dialogRef.close(updatedOldItem);
   }
 
   private convertNewItemToOldFormat(newItem: ItemWithEffects): InventoryItem {
@@ -226,6 +232,7 @@ export class ItemEditorComponent implements OnInit {
   }
 
   close(): void {
+    console.log('ITEM EDITOR | Closing dialog without saving.');
     this.dialogRef.close();
   }
 }

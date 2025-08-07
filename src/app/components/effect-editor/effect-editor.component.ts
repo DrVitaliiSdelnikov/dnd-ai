@@ -327,6 +327,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     const formValue = this.itemForm.value;
     const updatedItem = {
       ...this.item,
+      id_suggestion: this.item.id_suggestion,
       name: formValue.name,
       description: formValue.description,
       template: this.editableTemplate,

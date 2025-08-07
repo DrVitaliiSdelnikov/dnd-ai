@@ -93,6 +93,26 @@ export class PlayerCardStateService {
     }
   }
 
+  updateItemInInventory(updatedItem: InventoryItem): void {
+    const currentCard = this.playerCardState();
+    if (currentCard) {
+      const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+      const updatedLoot = currentLoot.map(item =>
+        item.item_id_suggestion === updatedItem.item_id_suggestion ? updatedItem : item
+      );
+      this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
+    }
+  }
+
+  removeItemFromInventory(itemId: string): void {
+    const currentCard = this.playerCardState();
+    if (currentCard) {
+      const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+      const updatedLoot = currentLoot.filter(item => item.item_id_suggestion !== itemId);
+      this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
+    }
+  }
+
   getProficiencyBonus(level: number): number {
     if (level < 1) return 0;
     return 1 + Math.ceil(level / 4);
