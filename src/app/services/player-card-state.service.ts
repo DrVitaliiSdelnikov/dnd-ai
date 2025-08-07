@@ -96,9 +96,14 @@ export class PlayerCardStateService {
     const currentCard = this.playerCardState();
     if (currentCard) {
       const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
-      const updatedLoot = currentLoot.map(item =>
-        item.item_id_suggestion === updatedItem.item_id_suggestion ? updatedItem : item
-      );
+      // Handle both property names for compatibility
+      const updatedItemId = (updatedItem as any).item_id_suggestion || (updatedItem as any).id_suggestion;
+      
+      const updatedLoot = currentLoot.map(item => {
+        const currentItemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+        return currentItemId === updatedItemId ? updatedItem : item;
+      });
+      
       this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
     }
   }

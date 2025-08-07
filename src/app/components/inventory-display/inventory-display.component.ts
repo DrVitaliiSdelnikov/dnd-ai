@@ -365,7 +365,9 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
         }
       } else {
         if(isNew) {
-          this.playerCardStateService.removeItemFromInventory(item.item_id_suggestion);
+          // Handle both property names for compatibility
+          const itemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+          this.playerCardStateService.removeItemFromInventory(itemId);
         }
       }
     });

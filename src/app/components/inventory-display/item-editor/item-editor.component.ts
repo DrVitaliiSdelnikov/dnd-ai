@@ -44,6 +44,9 @@ export class ItemEditorComponent implements OnInit {
     const effects: Effect[] = [];
     let order = 0;
 
+    // Handle both property names for compatibility
+    const itemId = (oldItem as any).item_id_suggestion || (oldItem as any).id_suggestion;
+
     // Convert old properties to effects
     if (oldItem.properties) {
       // Weapon proficiency
@@ -143,15 +146,17 @@ export class ItemEditorComponent implements OnInit {
       template = `{{name}} is a ${oldItem.type.toLowerCase()}.`;
     }
 
-    return {
-      id_suggestion: oldItem.item_id_suggestion,
-      name: oldItem.name,
+    const newFormatItem: ItemWithEffects = {
+      id_suggestion: itemId,
+      name: oldItem.name || '',
       type: oldItem.type,
       description: oldItem.description || '',
       quantity: oldItem.quantity,
       effects: effects,
-      template: template
+      template: oldItem.template || ''
     };
+
+    return newFormatItem;
   }
 
   onItemChanged(newItem: ItemWithEffects): void {
@@ -159,13 +164,19 @@ export class ItemEditorComponent implements OnInit {
   }
 
   save(): void {
-    if (!this.convertedItem) return;
+    if (!this.convertedItem) {
+      return;
+    }
 
     // Convert back to old format for compatibility
     const updatedOldItem = this.convertNewItemToOldFormat(this.convertedItem);
 
     const currentLoot = this.playerCardStateService.playerCard$().loot;
-    const isNew = Array.isArray(currentLoot) && !currentLoot.some(i => i.item_id_suggestion === updatedOldItem.item_id_suggestion);
+    
+    const isNew = Array.isArray(currentLoot) && !currentLoot.some(i => {
+      const lootItemId = (i as any).item_id_suggestion || (i as any).id_suggestion;
+      return lootItemId === updatedOldItem.item_id_suggestion;
+    });
 
     this.dialogRef.close({item: updatedOldItem, isNew: isNew});
   }
@@ -203,17 +214,20 @@ export class ItemEditorComponent implements OnInit {
       }
     });
 
-    const itemType = newItem.type as InventoryItem['type'];
+    // Handle both property names for compatibility - use the original item's ID
+    const originalId = (this.item as any).item_id_suggestion || (this.item as any).id_suggestion;
 
-    return {
-      item_id_suggestion: newItem.id_suggestion || this.item.item_id_suggestion,
+    const oldFormatItem: InventoryItem = {
+      item_id_suggestion: originalId, // Keep original ID
       name: newItem.name,
-      type: itemType,
       description: newItem.description,
-      quantity: newItem.quantity || 1,
+      type: newItem.type as any,
+      quantity: newItem.quantity || this.item.quantity || 1,
       properties: properties,
       template: newItem.template
     };
+
+    return oldFormatItem;
   }
 
   close(): void {
