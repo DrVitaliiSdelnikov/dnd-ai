@@ -6,7 +6,6 @@ import {
   SimpleChanges,
   Output,
   EventEmitter,
-  input,
   inject,
   WritableSignal, signal, computed
 } from '@angular/core';
@@ -53,7 +52,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   private dialogService: DialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
-
 
   abilityModifiers = computed(() => {
     return this.playerCardStateService.abilityModifiers$();
@@ -112,7 +110,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['inventoryItems']) {
+    if (changes['inventoryItems'] && this.inventoryItems) {
+      this.inventoryItems.forEach(item => {
+        if (!item.properties) {
+          item.properties = { effects: [] };
+        }
+      });
       this.categorizeItems();
       this.damageRollResults = {};
       this.actionResults = {};
@@ -284,6 +287,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       newItem.properties = {
         ...newItem.properties,
         damage_dice: '1d4',
+        damage_type: 'slashing',
         attack_stat: 'str',
         proficient: false
       };
@@ -312,7 +316,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     ref.onClose.subscribe((updatedItem: InventoryItem | undefined) => {
       if (updatedItem) {
         console.log('Item saved:', updatedItem);
-
       } else {
         console.log('Edit cancelled.');
       }
