@@ -207,9 +207,13 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   private updatePreview(): void {
     const template = this.editableTemplate || this.generateDefaultTemplate();
-    
-    // Replace effect placeholders with chips
-    const newPreviewHtml = template.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
+    const itemName = this.itemForm.get('name')?.value || '';
+
+    // First, replace the item name placeholder
+    let processedTemplate = template.replace(/\{\{name\}\}/g, itemName);
+
+    // Then, replace effect placeholders with chips
+    const newPreviewHtml = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
       const effect = this.effects.find(e => e.id === effectId.trim());
       if (!effect) return `<span class="missing-effect">[${effectId}]</span>`;
       
@@ -221,10 +225,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       
       // Make dice notation blue
       const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1</span>');
-      return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false" (click)="$event.preventDefault()">${styledOutput}</span>`;
+      return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
     });
 
     this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
+    console.log('Generated Preview HTML:', newPreviewHtml);
   }
 
   private generateDefaultTemplate(): string {
