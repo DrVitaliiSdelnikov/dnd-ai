@@ -305,14 +305,13 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     };
 
     if (itemType === 'WEAPON') {
-      newItem.template = '{{name}} attacks for {{damage_1}}';
+      newItem.template = '{{name}} {{attack_stat}} ({{proficiency}}) deals {{damage_1}}.';
       newItem.properties.effects = [
         {
           id: 'attack_stat',
           name: 'Attack Stat',
           type: 'ATTACK_STAT',
           properties: { attackStat: 'str' },
-          isSystemEffect: true,
           order: 1
         },
         {
@@ -320,7 +319,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           name: 'Proficiency',
           type: 'WEAPON_PROFICIENCY',
           properties: { proficient: true },
-          isSystemEffect: true,
           order: 2
         },
         {

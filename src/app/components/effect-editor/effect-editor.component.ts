@@ -235,7 +235,42 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     if (this.isSpell) {
       return `{{name}} ${this.effects.filter(e => !e.isSystemEffect).map(e => `{{${e.id}}}`).join(' and ')}.`;
     } else {
-      return `{{name}} deals {{damage}} damage.`;
+      // For weapons, create a more comprehensive template
+      const nonSystemEffects = this.effects.filter(e => !e.isSystemEffect);
+      const attackStatEffect = this.effects.find(e => e.type === 'ATTACK_STAT');
+      const proficiencyEffect = this.effects.find(e => e.type === 'WEAPON_PROFICIENCY');
+      const damageEffect = this.effects.find(e => e.type === 'DAMAGE');
+      const magicBonusEffect = this.effects.find(e => e.type === 'MAGIC_BONUS');
+      
+      let template = '{{name}}';
+      
+      if (magicBonusEffect) {
+        template += ' {{magic_bonus}}';
+      }
+      
+      if (attackStatEffect) {
+        template += ' {{attack_stat}}';
+      }
+      
+      if (proficiencyEffect) {
+        template += ' ({{proficiency}})';
+      }
+      
+      if (damageEffect) {
+        template += ' deals {{damage}}';
+      }
+      
+      // Add any other non-system effects
+      const otherEffects = nonSystemEffects.filter(e => 
+        e.type !== 'ATTACK_STAT' && e.type !== 'WEAPON_PROFICIENCY' && e.type !== 'DAMAGE' && e.type !== 'MAGIC_BONUS'
+      );
+      
+      if (otherEffects.length > 0) {
+        template += ` and ${otherEffects.map(e => `{{${e.id}}}`).join(' and ')}`;
+      }
+      
+      template += '.';
+      return template;
     }
   }
 

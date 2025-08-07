@@ -56,7 +56,6 @@ export class ItemEditorComponent implements OnInit {
           name: 'Weapon Proficiency',
           type: 'WEAPON_PROFICIENCY',
           properties: { proficient: oldItem.properties.proficient },
-          isSystemEffect: true,
           order: order++
         });
       }
@@ -68,7 +67,6 @@ export class ItemEditorComponent implements OnInit {
           name: 'Attack Stat',
           type: 'ATTACK_STAT',
           properties: { attackStat: oldItem.properties.attack_stat },
-          isSystemEffect: true,
           order: order++
         });
       }
@@ -109,7 +107,6 @@ export class ItemEditorComponent implements OnInit {
           name: 'Magic Bonus',
           type: 'MAGIC_BONUS',
           properties: { bonus: oldItem.properties.magic_bonus },
-          isSystemEffect: true,
           order: order++
         });
       }

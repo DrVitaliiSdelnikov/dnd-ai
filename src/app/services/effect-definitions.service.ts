@@ -65,8 +65,7 @@ export class EffectDefinitionsService {
       fields: [
         { key: 'proficient', label: 'Proficient', type: 'checkbox' }
       ],
-      outputTemplate: () => '',
-      isSystemEffect: true
+      outputTemplate: (props: EffectProperties) => props.proficient ? 'proficient' : 'not proficient'
     },
 
     ARMOR_CLASS: {
@@ -107,8 +106,7 @@ export class EffectDefinitionsService {
         { key: 'attackStat', label: 'Attack Stat', type: 'select', required: true,
           options: ['str', 'dex', 'con', 'int', 'wis', 'cha'] }
       ],
-      outputTemplate: () => '',
-      isSystemEffect: true
+      outputTemplate: (props: EffectProperties) => `using ${props.attackStat?.toUpperCase()}`
     },
 
     CONDITION: {
@@ -127,8 +125,7 @@ export class EffectDefinitionsService {
       fields: [
         { key: 'bonus', label: 'Magic Bonus', type: 'number', required: true }
       ],
-      outputTemplate: () => '',
-      isSystemEffect: true
+      outputTemplate: (props: EffectProperties) => `+${props.bonus}`
     },
 
     CONDITIONAL_EFFECT: {

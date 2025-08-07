@@ -4,7 +4,7 @@ export interface Effect {
   type: EffectType;
   description?: string;
   properties: EffectProperties;
-  isSystemEffect?: boolean; // For effects like proficiency, AC, spell level that don't appear in preview
+  isSystemEffect?: boolean; // For effects like AC, spell level that don't appear in preview (weapon effects now do appear)
   order: number; // For ordering in the list
 }
 
