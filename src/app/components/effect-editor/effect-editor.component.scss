@@ -300,17 +300,6 @@
   }
 }
 
-// Global styles for dice text (can be used anywhere)
-:deep(.dice-text) {
-  color: #2196F3;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-  background: rgba(33, 150, 243, 0.1);
-  padding: 0.15rem 0.3rem;
-  border-radius: 3px;
-  border: 1px solid rgba(33, 150, 243, 0.3);
-}
-
 // Responsive adjustments
 @media (max-width: 768px) {
   .effect-editor-container {
