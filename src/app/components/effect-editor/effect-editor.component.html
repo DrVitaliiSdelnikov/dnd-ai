@@ -171,6 +171,8 @@
   <ng-template pTemplate="footer">
     <button pButton label="Cancel" icon="pi pi-times" class="p-button-text" 
             (click)="closeEffectDialog()"></button>
+    <button pButton label="Add to chat" icon="pi pi-plus" class="p-button-secondary" 
+            (click)="addEditingEffectToChat()" pTooltip="Insert this effect placeholder into the template"></button>
     <button pButton label="Save Effect" icon="pi pi-check" 
             (click)="saveEffect()" [disabled]="effectForm.invalid"></button>
   </ng-template>

@@ -348,3 +348,8 @@
     }
   }
 } 
+
+/* Footer buttons spacing */
+:host ::ng-deep .p-dialog .p-dialog-footer .p-button + .p-button {
+  margin-left: 0.5rem;
+} 

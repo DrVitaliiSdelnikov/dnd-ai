@@ -169,7 +169,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 
 **EFFECT SYSTEM GUIDELINES:**
 - Build items and spells using modular effects that work together.
-- For weapons, use the template format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
+- For weapons, use the template format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg". Ensure the proficiency chip is included in the hit section when the character is proficient.
 - The "To Hit" roll is calculated as: 1d20 + Ability Modifier (from ATTACK_STAT effect) + Proficiency Bonus (if WEAPON_PROFICIENCY effect has proficient: true) + Magic Bonus (from MAGIC_BONUS effect). The front-end handles this calculation.
 - Each effect has an "id" that MUST match the placeholders in the template string.
 - System effects (WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL, etc.) are for mechanics only and don't appear in the visual preview.

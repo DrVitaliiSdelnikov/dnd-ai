@@ -65,8 +65,7 @@ export class EffectDefinitionsService {
       fields: [
         { key: 'proficient', label: 'Proficient', type: 'checkbox' }
       ],
-      outputTemplate: (props: EffectProperties) => props.proficient ? 'proficient' : 'not proficient',
-      isSystemEffect: true
+      outputTemplate: (props: EffectProperties) => props.proficient ? 'proficiency' : ''
     },
 
     ARMOR_CLASS: {

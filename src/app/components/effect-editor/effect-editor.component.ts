@@ -184,6 +184,17 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     this.emitItemChanged();
   }
 
+  addEditingEffectToChat(): void {
+    if (!this.editingEffect) return;
+
+    const placeholder = `{{${this.editingEffect.id}}}`;
+    if (!this.editableTemplate.includes(placeholder)) {
+      this.editableTemplate = (this.editableTemplate || '{{name}}') + ` ${placeholder}`;
+      this.updatePreview();
+      this.emitItemChanged();
+    }
+  }
+
   removeEffect(effect: Effect): void {
     this.effects = this.effects.filter(e => e.id !== effect.id);
     this.updatePreview();
@@ -199,8 +210,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
   onEffectReorder(): void {
     // Update order numbers after reordering
     this.effects.forEach((effect, index) => {
-      effect.order = index;
+      effect.order = index + 1;
     });
+    
+    // Synchronize template placeholder positions with new order
+    this.remapPlaceholdersToNewOrder();
     
     // Update the main effects array
     this.updatePreview();
@@ -395,5 +409,63 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     this.editableTemplate += newPlaceholder;
     this.updatePreview();
     this.emitItemChanged();
+  }
+
+  // Reassign placeholders in the current template to match the new order of effects
+  // Keeps text and the number of placeholder slots intact; only swaps which effect id
+  // occupies each slot based on the current sorted this.effects order.
+  private remapPlaceholdersToNewOrder(): void {
+    const template = this.editableTemplate || this.generateDefaultTemplate();
+    if (!template) return;
+
+    // Parse template into parts of text and placeholders
+    const parts: Array<{ type: 'text'; value: string } | { type: 'placeholder'; id: string }> = [];
+    const regex = /\{\{([^}]+)\}\}/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(template)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', value: template.slice(lastIndex, match.index) });
+      }
+      parts.push({ type: 'placeholder', id: match[1].trim() });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < template.length) {
+      parts.push({ type: 'text', value: template.slice(lastIndex) });
+    }
+
+    // Collect reorderable placeholder ids that exist in the template
+    const placeholderIdsInTemplate = parts
+      .filter((p): p is { type: 'placeholder'; id: string } => p.type === 'placeholder')
+      .map(p => p.id);
+
+    // We only remap placeholders that correspond to existing, non-system effects (not {{name}} etc.)
+    const reorderableIds = placeholderIdsInTemplate.filter(id =>
+      id !== 'name' && this.effects.some(e => e.id === id && !e.isSystemEffect)
+    );
+    if (reorderableIds.length === 0) return;
+
+    // Desired order: effects present in template, sorted by current effect.order
+    const desiredOrderQueue = this.effects
+      .filter(e => !e.isSystemEffect && reorderableIds.includes(e.id))
+      .sort((a, b) => a.order - b.order)
+      .map(e => e.id);
+
+    // If mismatch, still proceed safely
+    if (desiredOrderQueue.length === 0) return;
+
+    // Remap: walk parts and for each reorderable placeholder, swap its id with next from queue
+    const remappedParts: Array<{ type: 'text'; value: string } | { type: 'placeholder'; id: string }> = parts.map(part => {
+      if (part.type === 'placeholder' && reorderableIds.includes(part.id)) {
+        const nextId = desiredOrderQueue.shift();
+        return { type: 'placeholder', id: nextId ?? part.id };
+      }
+      return part;
+    });
+
+    // Rebuild template
+    this.editableTemplate = remappedParts
+      .map(p => (p.type === 'text' ? p.value : `{{${p.id}}}`))
+      .join('');
   }
 } 
