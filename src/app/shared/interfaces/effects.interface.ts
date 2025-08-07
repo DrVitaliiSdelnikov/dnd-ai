@@ -45,7 +45,9 @@ export type EffectType =
   | 'MAGIC_BONUS'
   // Future expandable effects
   | 'STATIC_TEXT'
-  | 'CONDITIONAL_EFFECT';
+  | 'CONDITIONAL_EFFECT'
+  // Dice roll effect for templates
+  | 'D20_ROLL';
 
 export interface ItemWithEffects {
   id_suggestion: string;

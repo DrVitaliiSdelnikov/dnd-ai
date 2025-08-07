@@ -36,11 +36,11 @@ export class TemplateRendererService {
       
       const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
       
-      if (definition.isSystemEffect) {
+      if (definition?.isSystemEffect) {
         return '';
       }
 
-      const output = definition.outputTemplate ? definition.outputTemplate(effect.properties) : '';
+      const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
       
       if (!output) {
         return '';
@@ -94,13 +94,13 @@ export class TemplateRendererService {
       }
 
       const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
-      if (definition.isSystemEffect) {
+      if (definition?.isSystemEffect) {
         console.log('🔒 System effect in chat, returning empty string');
         return '';
       }
 
       // For non-rolled effects, use the output template
-      const output = definition.outputTemplate ? definition.outputTemplate(effect.properties) : '';
+      const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
       console.log('📝 Chat output template result:', output);
       return output || '';
     });

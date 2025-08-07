@@ -65,7 +65,8 @@ export class EffectDefinitionsService {
       fields: [
         { key: 'proficient', label: 'Proficient', type: 'checkbox' }
       ],
-      outputTemplate: (props: EffectProperties) => props.proficient ? 'proficient' : 'not proficient'
+      outputTemplate: (props: EffectProperties) => props.proficient ? 'proficient' : 'not proficient',
+      isSystemEffect: true
     },
 
     ARMOR_CLASS: {
@@ -136,11 +137,26 @@ export class EffectDefinitionsService {
         { key: 'effect', label: 'Effect', type: 'text', required: true, placeholder: 'target catches fire' }
       ],
       outputTemplate: (props: EffectProperties) => `${props.condition}: ${props.effect}`
+    },
+
+    // Dice roll display effect (chip appears in preview)
+    D20_ROLL: {
+      name: 'D20 Roll',
+      description: 'Represents a 1d20 attack roll placeholder in templates',
+      fields: [
+        { key: 'dice', label: 'Dice', type: 'text', required: true, placeholder: '1d20' }
+      ],
+      outputTemplate: (props: EffectProperties) => props.dice || '1d20'
     }
   };
 
   getEffectDefinition(type: EffectType): EffectDefinition {
-    return this.effectDefinitions[type];
+    const def = this.effectDefinitions[type];
+    if (!def) {
+      // Fallback to a safe definition to prevent runtime crashes
+      return { name: 'Unknown', description: 'Unknown effect', fields: [], outputTemplate: () => '', isSystemEffect: true };
+    }
+    return def;
   }
 
   getAllEffectDefinitions(): Record<EffectType, EffectDefinition> {

@@ -113,13 +113,13 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
         "type": "string", // WEAPON, ARMOR, CONSUMABLE, MISC_ITEM, OTHER, SHIELD, ACCESSORY, AMMUNITION
         "description": "string", // flavor description
         "quantity": "number",
-        "template": "string", // CRITICAL: Template for display with effect placeholders. Example: "{{name}} {{magic_bonus}} ({{attack_stat}}) deals {{slashing_damage}}"
+        "template": "string", // CRITICAL: Template for display with effect placeholders. For weapons use format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
         "properties": {
           "effects": [
             {
-              "id": "string", // CRITICAL: Must match template placeholders! Examples: "attack_stat", "slashing_damage", "magic_bonus", "proficiency"
+              "id": "string", // CRITICAL: Must match template placeholders! Examples: "d20_roll", "proficiency", "attack_stat", "weapon_damage"
               "name": "string", // Human-readable name like "Attack Stat" or "Slashing Damage"
-              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | WEAPON_PROFICIENCY | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT",
+              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | WEAPON_PROFICIENCY | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL",
               "properties": {
                 // DAMAGE: { "dice": "1d8+2", "damageType": "Slashing" }
                 // HEALING: { "healAmount": "2d4+2" }
@@ -129,6 +129,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
                 // MAGIC_BONUS: { "bonus": 1 }
                 // STATIC_TEXT: { "text": "glows with magical light" }
                 // CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
+                // D20_ROLL: { "dice": "1d20" }
               },
               "isSystemEffect": "boolean", // true for WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL - these don't appear in preview but affect mechanics
               "order": "number" // for ordering in display (1, 2, 3...)
@@ -168,23 +169,24 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 
 **EFFECT SYSTEM GUIDELINES:**
 - Build items and spells using modular effects that work together.
+- For weapons, use the template format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
 - The "To Hit" roll is calculated as: 1d20 + Ability Modifier (from ATTACK_STAT effect) + Proficiency Bonus (if WEAPON_PROFICIENCY effect has proficient: true) + Magic Bonus (from MAGIC_BONUS effect). The front-end handles this calculation.
 - Each effect has an "id" that MUST match the placeholders in the template string.
 - System effects (WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL, etc.) are for mechanics only and don't appear in the visual preview.
-- Combat effects (DAMAGE, HEALING, MAGIC_BONUS, etc.) appear as visual chips in the preview.
+- Combat effects (DAMAGE, HEALING, MAGIC_BONUS, D20_ROLL, etc.) appear as visual chips in the preview.
 - Use descriptive templates with {{effectId}} placeholders that match your effect IDs exactly.
 
 **WEAPON EXAMPLE (Longsword +1):**
 - item_id_suggestion: "longsword_plus_1"
 - name: "Longsword +1" 
 - type: "WEAPON"
-- template: "{{name}} {{magic_bonus}} ({{attack_stat}}) deals {{slashing_damage}}"
+- template: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
 - properties: {
   "effects": [
+    { id: "d20_roll", type: "D20_ROLL", properties: { dice: "1d20" }, isSystemEffect: false },
+    { id: "proficiency", type: "WEAPON_PROFICIENCY", properties: { proficient: true }, isSystemEffect: false },
     { id: "attack_stat", type: "ATTACK_STAT", properties: { attackStat: "str" }, isSystemEffect: false },
-    { id: "proficiency", type: "WEAPON_PROFICIENCY", properties: { proficient: true }, isSystemEffect: true },
-    { id: "magic_bonus", type: "MAGIC_BONUS", properties: { bonus: 1 }, isSystemEffect: false },
-    { id: "slashing_damage", type: "DAMAGE", properties: { dice: "1d8+1", damageType: "Slashing" }, isSystemEffect: false }
+    { id: "weapon_damage", type: "DAMAGE", properties: { dice: "1d8+1", damageType: "Slashing" }, isSystemEffect: false }
   ]
 }
 
