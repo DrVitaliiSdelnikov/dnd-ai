@@ -82,6 +82,9 @@ export class EffectEditorComponent implements OnInit, OnChanges {
   private loadItem(): void {
     if (!this.item) return;
 
+    console.log('🎯 EffectEditor: loadItem called with:', this.item);
+    console.log('🔍 EffectEditor: item.effects:', this.item.effects);
+
     this.itemForm.patchValue({
       name: this.item.name,
       description: this.item.description,
@@ -91,7 +94,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     });
 
     this.effects = [...this.item.effects].sort((a, b) => a.order - b.order);
+    console.log('✅ EffectEditor: effects loaded and sorted:', this.effects);
+    
     this.editableTemplate = this.item.template || this.generateDefaultTemplate();
+    console.log('📝 EffectEditor: editableTemplate set to:', this.editableTemplate);
+    
     this.updatePreview();
   }
 

@@ -24,6 +24,7 @@ import { DialogService } from 'primeng/dynamicdialog';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { SpeedDialModule } from 'primeng/speeddial';
 import { TemplateRendererService } from '../../services/template-renderer.service';
+import { SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-inventory-display',
@@ -162,10 +163,8 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       .filter(displayName => obj[displayName] && obj[displayName].length > 0);
   }
 
-  getRenderedTemplate(item: InventoryItem) {
-    console.log('🏷️ getRenderedTemplate called for item:', item.name, item);
+  getRenderedTemplate(item: InventoryItem): SafeHtml {
     const result = this.templateRenderer.renderItemTemplate(item);
-    console.log('🏷️ getRenderedTemplate result:', result);
     return result;
   }
 

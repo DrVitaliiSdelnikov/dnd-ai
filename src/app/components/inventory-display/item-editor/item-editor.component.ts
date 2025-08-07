@@ -41,16 +41,36 @@ export class ItemEditorComponent implements OnInit {
   }
 
   private convertOldItemToNewFormat(oldItem: InventoryItem): ItemWithEffects {
+    console.log('🔄 ItemEditor: convertOldItemToNewFormat called with:', oldItem);
+    console.log('🔍 ItemEditor: oldItem.properties:', oldItem.properties);
+    
     const effects: Effect[] = [];
     let order = 0;
 
     // Handle both property names for compatibility
     const itemId = (oldItem as any).item_id_suggestion || (oldItem as any).id_suggestion;
 
+    // Check if we have the new effects format
+    if (oldItem.properties && oldItem.properties.effects && Array.isArray(oldItem.properties.effects)) {
+      console.log('✅ ItemEditor: Found new effects format, using directly:', oldItem.properties.effects);
+      return {
+        id_suggestion: itemId,
+        name: oldItem.name || '',
+        description: oldItem.description || '',
+        template: oldItem.template || '',
+        type: oldItem.type || 'MISC_ITEM',
+        quantity: oldItem.quantity || 1,
+        effects: oldItem.properties.effects
+      };
+    }
+
+    console.log('⚠️ ItemEditor: No new effects format found, trying to convert old format...');
+
     // Convert old properties to effects
     if (oldItem.properties) {
       // Weapon proficiency
       if (oldItem.properties.proficient !== undefined) {
+        console.log('🔧 ItemEditor: Converting proficiency');
         effects.push({
           id: 'proficiency',
           name: 'Weapon Proficiency',
@@ -62,6 +82,7 @@ export class ItemEditorComponent implements OnInit {
 
       // Attack stat
       if (oldItem.properties.attack_stat) {
+        console.log('🔧 ItemEditor: Converting attack_stat');
         effects.push({
           id: 'attack_stat',
           name: 'Attack Stat',
@@ -73,6 +94,7 @@ export class ItemEditorComponent implements OnInit {
 
       // Damage
       if (oldItem.properties.damage_dice && oldItem.properties.damage_type) {
+        console.log('🔧 ItemEditor: Converting damage');
         effects.push({
           id: 'damage',
           name: 'Damage',
@@ -87,6 +109,7 @@ export class ItemEditorComponent implements OnInit {
 
       // Armor Class
       if (oldItem.properties.armor_class_value) {
+        console.log('🔧 ItemEditor: Converting armor class');
         effects.push({
           id: 'armor_class',
           name: 'Armor Class',
@@ -102,6 +125,7 @@ export class ItemEditorComponent implements OnInit {
 
       // Magic bonus
       if (oldItem.properties.magic_bonus) {
+        console.log('🔧 ItemEditor: Converting magic bonus');
         effects.push({
           id: 'magic_bonus',
           name: 'Magic Bonus',
@@ -113,8 +137,10 @@ export class ItemEditorComponent implements OnInit {
 
       // Convert old effect details to healing effects
       if (oldItem.properties.effect_details) {
+        console.log('🔧 ItemEditor: Converting effect_details');
         oldItem.properties.effect_details.forEach((effect, index) => {
           if (effect.type === 'HEAL' && effect.heal_amount) {
+            console.log('🔧 ItemEditor: Converting healing effect');
             effects.push({
               id: `healing_${index}`,
               name: 'Healing Effect',
@@ -126,6 +152,8 @@ export class ItemEditorComponent implements OnInit {
         });
       }
     }
+
+    console.log('🎯 ItemEditor: Final converted effects array:', effects);
 
     // Generate a default template
     let template = `{{name}}`;
