@@ -163,19 +163,37 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   getRenderedTemplate(item: InventoryItem) {
-    return this.templateRenderer.renderItemTemplate(item);
+    console.log('🏷️ getRenderedTemplate called for item:', item.name, item);
+    const result = this.templateRenderer.renderItemTemplate(item);
+    console.log('🏷️ getRenderedTemplate result:', result);
+    return result;
   }
 
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
-    if (item.type !== 'WEAPON' || !item.properties.effects) { return; }
+    console.log('⚔️ rollAttackAndDamage called for item:', item.name, item);
+    
+    if ((item.type !== 'WEAPON' && item.type !== 'AMMUNITION') || !item.properties.effects) { 
+      console.log('❌ Item is not a weapon/ammunition or missing effects');
+      return; 
+    }
 
     const effects = item.properties.effects;
+    console.log('🎯 Weapon effects:', effects);
+    
     const attackStatEffect = effects.find(e => e.type === 'ATTACK_STAT');
     const proficiencyEffect = effects.find(e => e.type === 'WEAPON_PROFICIENCY');
     const magicBonusEffect = effects.find(e => e.type === 'MAGIC_BONUS');
     const damageEffects = effects.filter(e => e.type === 'DAMAGE');
 
+    console.log('🔍 Found effects:', {
+      attackStatEffect,
+      proficiencyEffect,
+      magicBonusEffect,
+      damageEffects
+    });
+
     if (!attackStatEffect || !damageEffects.length) {
+      console.log('❌ Missing required effects (attack stat or damage)');
       this.messageService.add({severity: 'error', summary: 'Error', detail: 'Weapon missing required effects'});
       return;
     }
@@ -235,9 +253,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       rollResults[magicBonusEffect.id] = `+${magicBonusEffect.properties.bonus}`;
     }
 
+    console.log('🎲 Roll results for template:', rollResults);
+
     if (damageEffects.length > 0) {
       // Use template renderer to create the chat message
       const damageResultDescription = this.templateRenderer.renderTemplateForChat(item, rollResults);
+      console.log('💬 Chat message generated:', damageResultDescription);
       
       this.emitRollResults.emit({
         type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,

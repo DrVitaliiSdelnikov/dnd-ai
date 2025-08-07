@@ -58,7 +58,7 @@ export interface InventoryItem {
   item_id_suggestion: string;
   name: string;
   quantity: number;
-  type: 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MISC_ITEM' | 'OTHER' | 'SHIELD' | 'ACCESSORY';
+  type: 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MISC_ITEM' | 'OTHER' | 'SHIELD' | 'ACCESSORY' | 'AMMUNITION';
   description?: string;
   properties?: ItemProperties;
   template?: string;

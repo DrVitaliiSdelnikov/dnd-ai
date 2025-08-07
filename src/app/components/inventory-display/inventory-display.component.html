@@ -29,7 +29,7 @@
             <i class="pi pi-pencil"></i>
           </button>
           <button
-            *ngIf="item.type === 'WEAPON' && item.properties?.effects"
+            *ngIf="(item.type === 'WEAPON' || item.type === 'AMMUNITION') && item.properties?.effects"
             (click)="rollAttackAndDamage(item)"
             pButton
             (contextmenu)="callModeDialog(item, $event)"
