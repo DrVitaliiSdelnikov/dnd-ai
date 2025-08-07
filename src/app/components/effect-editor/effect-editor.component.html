@@ -26,16 +26,18 @@
   </p-card>
 
   <!-- Live Preview Section -->
-  <p-card header="Live Preview" class="preview-card">
+  <p-card header="Live Preview & Template" class="preview-card">
     <div class="preview-section">
-      <div class="preview-content" [innerHTML]="previewHtml"></div>
-      
-      <p-divider></p-divider>
-      
-      <div class="template-editor">
-        <label for="template">Template (edit the text, effects are in double braces)</label>
-        <textarea pInputTextarea [(ngModel)]="editableTemplate" (ngModelChange)="onTemplateChange()"
-                  rows="3" placeholder="Enter template with effect placeholders..."></textarea>
+      <div #previewContent
+           class="preview-content" 
+           contenteditable="true"
+           (input)="onPreviewInput($event)"
+           (blur)="onPreviewBlur($event)"
+           (mouseover)="onPreviewHover($event)"
+           (mouseout)="onPreviewHoverEnd($event)"
+           (click)="onPreviewClick($event)"
+           [innerHTML]="previewHtml"
+           pTooltip="Click to edit the template. Effect chips can be moved or deleted.">
       </div>
     </div>
   </p-card>
@@ -69,7 +71,9 @@
           </ng-template>
 
           <ng-template pTemplate="item" let-effect>
-            <div class="effect-item" [class.system-effect]="effect.isSystemEffect">
+            <div class="effect-item" 
+                 [class.system-effect]="effect.isSystemEffect"
+                 [class.is-highlighted]="effect.id === highlightedCardId">
               <div class="effect-info">
                 <div class="effect-name">
                   {{ effect.name }}

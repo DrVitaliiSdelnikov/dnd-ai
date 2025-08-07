@@ -19,6 +19,7 @@ import { MenuItem } from 'primeng/api';
 
 import { Effect, EffectType, ItemWithEffects, SpellWithEffects } from '../../shared/interfaces/effects.interface';
 import { EffectDefinitionsService } from '../../services/effect-definitions.service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-effect-editor',
@@ -41,6 +42,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   private effectDefinitionsService = inject(EffectDefinitionsService);
   private fb = inject(FormBuilder);
+  private sanitizer = inject(DomSanitizer);
 
   // Component state
   effects: Effect[] = [];
@@ -49,6 +51,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
   showAddEffectDialog = false;
   selectedEffectType: EffectType | null = null;
   effectForm: FormGroup = this.fb.group({});
+  highlightedCardId: string | null = null;
   
   // Form for item/spell basic properties
   itemForm: FormGroup = this.fb.group({
@@ -63,7 +66,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
   addEffectMenuItems: MenuItem[] = [];
   
   // Preview
-  previewHtml: string = '';
+  previewHtml: SafeHtml = '';
   editableTemplate: string = '';
 
   ngOnInit(): void {
@@ -202,7 +205,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     const template = this.editableTemplate || this.generateDefaultTemplate();
     
     // Replace effect placeholders with chips
-    this.previewHtml = template.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
+    const newPreviewHtml = template.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
       const effect = this.effects.find(e => e.id === effectId.trim());
       if (!effect) return `<span class="missing-effect">[${effectId}]</span>`;
       
@@ -214,8 +217,10 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       
       // Make dice notation blue
       const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1</span>');
-      return `<span class="effect-chip" data-effect-id="${effect.id}">${styledOutput}</span>`;
+      return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
     });
+
+    this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
   }
 
   private generateDefaultTemplate(): string {
@@ -247,6 +252,64 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   private generateEffectId(): string {
     return `effect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // --- New methods for interactive preview ---
+
+  onPreviewInput(event: Event): void {
+    const element = event.target as HTMLElement;
+    this.editableTemplate = this.htmlToTemplate(element);
+    // Live update while typing can be expensive, so we only update on blur.
+    // If live updates are needed, this is where you'd call emitItemChanged().
+  }
+
+  onPreviewBlur(event: FocusEvent): void {
+    const element = event.target as HTMLElement;
+    this.editableTemplate = this.htmlToTemplate(element);
+    this.emitItemChanged();
+  }
+
+  onPreviewHover(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const chip = target.closest('.effect-chip');
+    if (chip) {
+      this.highlightedCardId = chip.getAttribute('data-effect-id');
+    }
+  }
+
+  onPreviewHoverEnd(event: MouseEvent): void {
+    this.highlightedCardId = null;
+  }
+
+  onPreviewClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const chip = target.closest('.effect-chip');
+    if (chip) {
+      event.preventDefault();
+      const effectId = chip.getAttribute('data-effect-id');
+      const effect = this.effects.find(e => e.id === effectId);
+      if (effect) {
+        this.editEffect(effect);
+      }
+    }
+  }
+
+  private htmlToTemplate(element: HTMLElement): string {
+    let template = '';
+    element.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        template += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+        if (el.classList.contains('effect-chip')) {
+          const effectId = el.getAttribute('data-effect-id');
+          if (effectId) {
+            template += `{{${effectId}}}`;
+          }
+        }
+      }
+    });
+    return template;
   }
 
   private emitItemChanged(): void {
