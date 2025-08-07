@@ -233,6 +233,20 @@
     }
   }
 
+  .system-effect {
+    background-color: #f9f9f9;
+    border-left: 4px solid #9c27b0; // A purple accent for system effects
+  
+    .effect-name {
+      font-style: italic;
+    }
+  }
+
+  .add-effect-section {
+    margin-top: 1rem;
+    text-align: center;
+  }
+
   .action-buttons {
     display: flex;
     justify-content: flex-end;

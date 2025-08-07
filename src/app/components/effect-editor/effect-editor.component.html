@@ -42,8 +42,8 @@
 
   <!-- Effects Management -->
   <div class="effects-section">
-    <div class="effects-column combat-effects">
-      <p-card header="Combat Effects (Appear in Preview)" class="effects-card">
+    <div class="effects-column">
+      <p-card header="Effects" class="effects-card">
         <!-- Filter -->
         <div class="filter-section">
           <span class="p-input-icon-left">
@@ -52,10 +52,10 @@
           </span>
         </div>
 
-        <!-- OrderList for Combat Effects -->
+        <!-- OrderList for All Effects -->
         <p-orderList 
-          [value]="getFilteredCombatEffects()" 
-          [(selection)]="combatEffects"
+          [value]="getFilteredEffects()" 
+          [(selection)]="effects"
           (onReorder)="onEffectReorder()"
           [dragdrop]="true"
           [responsive]="true"
@@ -69,11 +69,14 @@
           </ng-template>
 
           <ng-template pTemplate="item" let-effect>
-            <div class="effect-item">
+            <div class="effect-item" [class.system-effect]="effect.isSystemEffect">
               <div class="effect-info">
-                <div class="effect-name">{{ effect.name }}</div>
+                <div class="effect-name">
+                  {{ effect.name }}
+                  <i *ngIf="effect.isSystemEffect" class="pi pi-cog" pTooltip="System Effect"></i>
+                </div>
                 <div class="effect-type">{{ getEffectDefinition(effect.type).name }}</div>
-                <div class="effect-output" *ngIf="getEffectDefinition(effect.type).outputTemplate(effect.properties)">
+                <div class="effect-output" *ngIf="!effect.isSystemEffect && getEffectDefinition(effect.type).outputTemplate(effect.properties)">
                   Output: {{ getEffectDefinition(effect.type).outputTemplate(effect.properties) }}
                 </div>
               </div>
@@ -92,35 +95,6 @@
           <p-menu #addMenu [model]="addEffectMenuItems" [popup]="true"></p-menu>
           <button pButton label="Add Effect" icon="pi pi-plus" 
                   (click)="addMenu.toggle($event)" class="p-button-success"></button>
-        </div>
-      </p-card>
-    </div>
-
-    <!-- System Effects Column -->
-    <div class="effects-column system-effects">
-      <p-card header="System Effects (Properties Only)" class="effects-card">
-        <div class="system-effects-list">
-          <div *ngFor="let effect of systemEffects" class="system-effect-item">
-            <div class="effect-info">
-              <div class="effect-name">{{ effect.name }}</div>
-              <div class="effect-type">{{ getEffectDefinition(effect.type).name }}</div>
-              <div class="effect-properties">
-                <span *ngFor="let field of getEffectDefinition(effect.type).fields" class="property">
-                  {{ field.label }}: {{ effect.properties[field.key] || 'Not set' }}
-                </span>
-              </div>
-            </div>
-            <div class="effect-actions">
-              <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text" 
-                      (click)="editEffect(effect)" pTooltip="Edit Effect"></button>
-              <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger" 
-                      (click)="removeEffect(effect)" pTooltip="Remove Effect"></button>
-            </div>
-          </div>
-          
-          <div *ngIf="systemEffects.length === 0" class="no-effects">
-            No system effects added yet
-          </div>
         </div>
       </p-card>
     </div>

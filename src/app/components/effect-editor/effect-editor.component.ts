@@ -44,8 +44,6 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   // Component state
   effects: Effect[] = [];
-  combatEffects: Effect[] = [];
-  systemEffects: Effect[] = [];
   filterText: string = '';
   editingEffect: Effect | null = null;
   showAddEffectDialog = false;
@@ -91,39 +89,16 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
     this.effects = [...this.item.effects].sort((a, b) => a.order - b.order);
     this.editableTemplate = this.item.template || this.generateDefaultTemplate();
-    this.categorizeEffects();
     this.updatePreview();
   }
 
-  private categorizeEffects(): void {
-    this.combatEffects = this.effects.filter(effect => 
-      !this.effectDefinitionsService.getEffectDefinition(effect.type).isSystemEffect
-    );
-    this.systemEffects = this.effects.filter(effect => 
-      this.effectDefinitionsService.getEffectDefinition(effect.type).isSystemEffect
-    );
-  }
-
   private setupAddEffectMenu(): void {
-    const combatEffects = this.effectDefinitionsService.getCombatEffectTypes();
-    const systemEffects = this.effectDefinitionsService.getSystemEffectTypes();
+    const allEffects = this.effectDefinitionsService.getAvailableEffectTypes();
 
-    this.addEffectMenuItems = [
-      {
-        label: 'Combat Effects',
-        items: combatEffects.map(type => ({
-          label: this.effectDefinitionsService.getEffectDefinition(type).name,
-          command: () => this.startAddingEffect(type)
-        }))
-      },
-      {
-        label: 'System Effects',
-        items: systemEffects.map(type => ({
-          label: this.effectDefinitionsService.getEffectDefinition(type).name,
-          command: () => this.startAddingEffect(type)
-        }))
-      }
-    ];
+    this.addEffectMenuItems = allEffects.map(type => ({
+      label: this.effectDefinitionsService.getEffectDefinition(type).name,
+      command: () => this.startAddingEffect(type)
+    }));
   }
 
   startAddingEffect(type: EffectType): void {
@@ -190,7 +165,6 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       this.effects.push(this.editingEffect);
     }
 
-    this.categorizeEffects();
     this.updatePreview();
     this.closeEffectDialog();
     this.emitItemChanged();
@@ -198,7 +172,6 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   removeEffect(effect: Effect): void {
     this.effects = this.effects.filter(e => e.id !== effect.id);
-    this.categorizeEffects();
     this.updatePreview();
     this.emitItemChanged();
   }
@@ -211,12 +184,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   onEffectReorder(): void {
     // Update order numbers after reordering
-    this.combatEffects.forEach((effect, index) => {
+    this.effects.forEach((effect, index) => {
       effect.order = index;
     });
     
     // Update the main effects array
-    this.effects = [...this.combatEffects, ...this.systemEffects];
     this.updatePreview();
     this.emitItemChanged();
   }
@@ -248,7 +220,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   private generateDefaultTemplate(): string {
     if (this.isSpell) {
-      return `{{name}} ${this.combatEffects.map(e => `{{${e.id}}}`).join(' and ')}.`;
+      return `{{name}} ${this.effects.filter(e => !e.isSystemEffect).map(e => `{{${e.id}}}`).join(' and ')}.`;
     } else {
       return `{{name}} deals {{damage}} damage.`;
     }
@@ -258,11 +230,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     return this.effectDefinitionsService.getEffectDefinition(type);
   }
 
-  getFilteredCombatEffects(): Effect[] {
-    if (!this.filterText) return this.combatEffects;
+  getFilteredEffects(): Effect[] {
+    if (!this.filterText) return this.effects;
     
     const filter = this.filterText.toLowerCase();
-    return this.combatEffects.filter(effect => 
+    return this.effects.filter(effect => 
       effect.name.toLowerCase().includes(filter) ||
       effect.type.toLowerCase().includes(filter)
     );
