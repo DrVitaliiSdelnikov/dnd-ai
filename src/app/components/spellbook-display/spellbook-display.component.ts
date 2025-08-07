@@ -7,7 +7,7 @@ import {
   InputSignal,
   computed, inject, WritableSignal, signal
 } from '@angular/core';
-import { NgForOf, NgIf } from '@angular/common';
+import { NgIf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
@@ -22,7 +22,7 @@ import { SpeedDialModule } from 'primeng/speeddial';
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgForOf, NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent, SpeedDialModule],
+  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent, SpeedDialModule],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']

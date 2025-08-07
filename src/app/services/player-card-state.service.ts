@@ -2,7 +2,7 @@ import { Injectable, signal, WritableSignal, computed } from '@angular/core';
 import { PlayerCard } from '../shared/interfaces/player-card.interface';
 import { SessionStorageService } from './session-storage.service';
 import { sessionStorageKeys } from '../shared/const/session-storage-keys';
-import { InventoryItem } from '../shared/interfaces/inventroy.interface';
+import { InventoryItem } from '../shared/interfaces/inventory.interface';
 import { AdventureSummary } from '../shared/interfaces/sammery';
 
 @Injectable({
@@ -87,7 +87,8 @@ export class PlayerCardStateService {
   addItemToInventory(newItem: InventoryItem): void {
     const currentCard = this.playerCardState();
     if (currentCard) {
-      const updatedLoot = [...(currentCard.loot || []), newItem];
+      const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+      const updatedLoot = [...currentLoot, newItem];
       this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
     }
   }

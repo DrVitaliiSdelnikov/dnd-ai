@@ -62,7 +62,7 @@ export const FORMAT_JSON_RESPONSE = `
 ${JSON_GENERATION}
 
 **JSON SCHEMA:**
-You MUST adhere strictly to the schema below. Pay close attention to nested 'properties' objects for both loot and spells. This is not optional.
+You MUST adhere strictly to the schema below. Pay close attention to the new 'effects' system for both loot and spells. 
 
 
 To determine if the inventory (playerCard.loot) or spellbook (playerCard.spells) state needs modification, you will analyze **ONLY TWO MESSAGES**:
@@ -107,87 +107,74 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
     "isUpdated": "boolean",
 
     "loot": [
-      // Each item in this array MUST follow this 'Universal Item Model' structure.
+      // Each item uses the NEW EFFECT SYSTEM. Build items using modular effects.
       {
         "id_suggestion": "string",
         "name": "string",
-        "type": "string", // e.g., WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION
+        "type": "string", // WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION
         "description": "string",
         "quantity": "number",
-        "properties": {
-          "proficient": "boolean", // MANDATORY FOR WEAPONS: does the player have proficiency with this?
-          "attack_stat": "string", // WEAPON-SPECIFIC: "str", "dex", "con", "int", "wis", "cha".
-          "attunement_required": "boolean", // optional
-          "magic_bonus": "number", // optional, e.g., 1 for a +1 item
-          "damage_dice": "string", // optional, e.g., "1d8"
-          "damage_type": "string", // optional, e.g., "Slashing", "Fire"
-          "weapon_category": "string", // optional, e.g., "Sword", "Axe"
-          "range_type": "string", // optional, e.g., "MELEE", "RANGED"
-          "range_increment": "string", // optional, e.g., "30/120 ft"
-          "special_tags": ["string"], // optional, e.g., ["Finesse", "Two-Handed"]
-          "armor_class_value": "number", // optional
-          "armor_type": "string", // optional, e.g., "Light Armor", "Shield"
-          "max_dex_bonus": "number | string", // optional, e.g., 2 or "NO_LIMIT"
-          "effect_description_brief": "string", // optional, for consumables
-          "effect_details": [{ // optional
-              "type": "string", // 'BUFF_STAT', 'HEAL', 'GRANT_ABILITY'
-              "description": "string",
-              "stat_buffed": "string", // 'str', 'dex', 'AC', etc.
-              "buff_value": "number",
-              "heal_amount": "string", // "2d4+2"
-              "ability_granted": "string"
-          }],
-          "currency_type": "string", // optional, e.g., "gold"
-          "utility_description": "string", // optional
-          "is_quest_item": "boolean" // optional
-        }
+        "template": "string", // Template for display like "{{name}} deals {{damage}} damage"
+        "effects": [
+          // Each effect is a modular component. Examples:
+          {
+            "id": "string", // unique identifier like "damage_1", "healing_effect"
+            "name": "string", // display name like "Slashing Damage"
+            "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | WEAPON_PROFICIENCY | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT",
+            "properties": {
+              // For DAMAGE: { "dice": "1d8+2", "damageType": "Slashing" }
+              // For HEALING: { "healAmount": "2d4+2" }
+              // For WEAPON_PROFICIENCY: { "proficient": true }
+              // For ARMOR_CLASS: { "acValue": 15, "maxDexBonus": 2 }
+              // For ATTACK_STAT: { "attackStat": "str" }
+              // For MAGIC_BONUS: { "bonus": 1 }
+              // For STATIC_TEXT: { "text": "glows with magical light" }
+              // For CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
+            },
+            "isSystemEffect": "boolean", // true for proficiency, AC, spell level - these don't appear in preview
+            "order": "number" // for ordering in display
+          }
+        ]
       }
     ],
 
     "spells": [
-      // CRITICAL: Each spell in this array MUST follow this 'Universal Spell/Ability Model' structure.
-      // Every spell MUST have a nested 'properties' object. Do NOT create flat spell objects.
+      // Spells also use the NEW EFFECT SYSTEM
       {
         "id_suggestion": "string",
         "name": "string",
         "type": "SPELL | ABILITY",
-        "description": "string", // take DMG description as basis, if the desc has numbers don't skip them. Compress the desc to 250 symbols max.
-        "properties": {
-
-          "range": "string",
-          "charges": "number", // Number of uses. Use -1 for spells that consume spell slots.
-          "is_passive": "boolean", // MANDATORY FIELD: true for constant bonuses, features, class and racial abilities. false otherwise.
-          "reset_condition": "string", // e.g., "Long Rest", "Short Rest", "N/A"
-          "school_of_magic": "string", // e.g., "Evocation", "Abjuration"
-          "spell_level": "number", // MANDATORY FIELD: 0 for cantrips, 1 for 1st-level, etc.
-          "spell_components": "string", // optional, e.g. "V, S, M (a pinch of salt)"
-          "action_type": "ATTACK_ROLL | SAVING_THROW | UTILITY | CONTESTED_CHECK",
-          "attack_info": { // Use null if not applicable
-            "ability": "string", // e.g., "DEX", "STR", "SPELLCASTING_ABILITY"
-            "damage_effects": [{
-              "dice": "string", // "1d10"
-              "type": "string" // "FIRE"
-            }]
-          },
-          "saving_throw_info": { // Use null if not applicable
-            "ability": "string", // "DEX", "WIS"
-            "dc_calculation": "SPELLCASTING_ABILITY | FIXED"
-          },
-          "damage_info": { // Use null if not applicable
-            "effects": [{
-              "dice": "string", // "3d6+1, etc"
-              "type": "string", // "FIRE, COLD, etc"
-              "on_save": "HALF | NONE | SPECIAL_EFFECT"
-            }]
+        "description": "string",
+        "template": "string", // Template like "{{name}} deals {{damage}} to targets"
+        "effects": [
+          {
+            "id": "string",
+            "name": "string", 
+            "type": "DAMAGE | HEALING | SPELL_LEVEL | SPELL_PASSIVE | STATIC_TEXT | CONDITIONAL_EFFECT",
+            "properties": {
+              // For SPELL_LEVEL: { "level": 2 }
+              // For SPELL_PASSIVE: { "isPassive": true }
+              // Other effects same as items
+            },
+            "isSystemEffect": "boolean", // true for spell level, passive - don't appear in preview
+            "order": "number"
           }
-        }
+        ]
       }
     ]
   },
   "message": "string" // This field contains your narrative response to the player.
 }
 
-**FINAL INSTRUCTION: Generate a complete player card. When creating loot and spells, you MUST use the exact nested 'properties' structure detailed above. Failure to follow the schema, especially the nesting requirement for spells and items, will break the game. Be thorough and accurate.**
+**EFFECT SYSTEM GUIDELINES:**
+- Build items and spells using modular effects
+- Combat effects (DAMAGE, HEALING, etc.) appear in the preview template
+- System effects (WEAPON_PROFICIENCY, SPELL_LEVEL, etc.) are for mechanics only
+- Use descriptive templates with {{effectId}} placeholders
+- Example weapon: "{{name}} strikes for {{slashing_damage}} plus {{fire_damage}}"
+- Example spell: "{{name}} heals {{healing_amount}} hit points"
+
+**FINAL INSTRUCTION: Use the new effect system for all items and spells. Each effect is modular and reusable. Build complex items by combining multiple effects.**
 `;
 
 

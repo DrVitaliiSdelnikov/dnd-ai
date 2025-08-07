@@ -10,9 +10,9 @@ import {
   inject,
   WritableSignal, signal, computed
 } from '@angular/core';
-import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
+import { InventoryItem } from '../../shared/interfaces/inventory.interface';
 import { NgForOf, NgIf } from '@angular/common';
-import { ButtonDirective, ButtonIcon } from 'primeng/button';
+import { ButtonDirective } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import {
@@ -36,7 +36,6 @@ import { SpeedDialModule } from 'primeng/speeddial';
     Tooltip,
     ConfirmPopupModule,
     RollOptionsPanelComponent,
-    ButtonIcon,
     SpeedDialModule
   ],
   providers: [

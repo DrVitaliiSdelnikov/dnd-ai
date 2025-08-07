@@ -28,7 +28,7 @@ import { DiceRollerComponent } from '../dice-roller/dice-roller.component';
 import { DiceRollerService } from '../dice-roller/dice-roller.service';
 import { InventoryDisplayComponent } from '../inventory-display/inventory-display.component';
 import { AttributeNamePipe } from './attribute-name.pipe';
-import { CalculatedBonuses, InventoryItem } from '../../shared/interfaces/inventroy.interface';
+import { CalculatedBonuses, InventoryItem, Spell } from '../../shared/interfaces/inventory.interface';
 import { SpellbookDisplayComponent } from '../spellbook-display/spellbook-display.component';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
 import { ConfirmPopup } from 'primeng/confirmpopup';
@@ -39,7 +39,6 @@ import {
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SkillsDisplayComponent } from '../skills-display/skills-display.component';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
-import { Spell } from '../../shared/interfaces/spells';
 import { ToastModule } from 'primeng/toast';
 import { StatBonusPipe } from '../../shared/stat-bonus.pipe';
 import { AdventureSummaryComponent } from '../campaign-sammary/adventure-summary.component';
@@ -144,6 +143,7 @@ export class PlayerCardComponent implements OnInit {
         cha: new FormControl(null)
       }
     ),
+    skills: new FormControl(null),
     inventory: new FormControl([]),
   });
   private sessionStorageService = inject(SessionStorageService);
@@ -265,6 +265,7 @@ export class PlayerCardComponent implements OnInit {
       class: playerStats?.class ?? null,
       level: playerStats?.level,
       exp: playerStats?.exp,
+      skills: playerStats?.skills ?? null,
       abilities: {
         str: playerStats?.abilities?.str,
         dex: playerStats?.abilities?.dex,
@@ -343,7 +344,7 @@ export class PlayerCardComponent implements OnInit {
     let baseAc = 10;
     let armorType: string | null = null;
     let maxDexBonus: number = null;
-    const armorClassValue = mainArmor.properties.armor_class_value;
+    const armorClassValue = mainArmor?.properties?.armor_class_value ?? 0;
 
     if (mainArmor && mainArmor.properties)
       {

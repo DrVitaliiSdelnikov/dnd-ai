@@ -13,9 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TabViewModule } from 'primeng/tabview';
 import { ButtonModule } from 'primeng/button';
-import { InputTextarea } from 'primeng/inputtextarea';
 import { AdventureSummary } from '../../shared/interfaces/sammery';
-import { SafeHtmlPipe } from 'primeng/menu';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { DialogService } from 'primeng/dynamicdialog';
 import { SummaryEditorComponent } from './summary-editor/summary-editor.component';
@@ -27,9 +25,7 @@ import { SummaryEditorComponent } from './summary-editor/summary-editor.componen
     CommonModule,
     ReactiveFormsModule,
     TabViewModule,
-    ButtonModule,
-    InputTextarea,
-    SafeHtmlPipe
+    ButtonModule
   ],
   providers: [
     DialogService

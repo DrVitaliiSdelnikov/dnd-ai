@@ -62,3 +62,12 @@ export interface InventoryItem {
   quantity: number;
   properties: ItemProperties;
 }
+
+export interface Spell {
+  id_suggestion: string;
+  name: string;
+  type: 'SPELL' | 'ABILITY';
+  description: string;
+  template: string;
+  effects: any[];
+}
