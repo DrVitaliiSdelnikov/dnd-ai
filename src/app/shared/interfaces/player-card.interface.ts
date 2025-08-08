@@ -1,3 +1,5 @@
+import { InventoryItem, Spell } from './inventory.interface';
+
 export interface PlayCardAbilities {
     str: number,
     dex: number,
@@ -5,6 +7,31 @@ export interface PlayCardAbilities {
     int: number,
     wis: number,
     cha: number
+}
+
+export interface PlayerCardSkill {
+  proficient: boolean;
+}
+
+export interface PlayerCardSkills {
+  acrobatics: PlayerCardSkill;
+  animal_handling: PlayerCardSkill;
+  arcana: PlayerCardSkill;
+  athletics: PlayerCardSkill;
+  deception: PlayerCardSkill;
+  history: PlayerCardSkill;
+  insight: PlayerCardSkill;
+  intimidation: PlayerCardSkill;
+  investigation: PlayerCardSkill;
+  medicine: PlayerCardSkill;
+  nature: PlayerCardSkill;
+  perception: PlayerCardSkill;
+  performance: PlayerCardSkill;
+  persuasion: PlayerCardSkill;
+  religion: PlayerCardSkill;
+  sleight_of_hand: PlayerCardSkill;
+  stealth: PlayerCardSkill;
+  survival: PlayerCardSkill;
 }
 
 export interface PlayerCard {
@@ -18,10 +45,11 @@ export interface PlayerCard {
   class: string;
   background: string;
   level: number;
-  loot: any;
-  spells: any;
+  loot: InventoryItem[] | 'SAME';
+  spells: Spell[] | 'SAME';
   exp: number;
   abilities: PlayCardAbilities;
+  skills: PlayerCardSkills | 'SAME';
   notes: string;
   isUpdated: boolean
 }

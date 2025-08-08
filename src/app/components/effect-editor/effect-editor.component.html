@@ -1,0 +1,179 @@
+<div class="effect-editor-container">
+  <!-- Header with Item/Spell Basic Info -->
+  <p-card header="Item Details" class="item-details-card">
+    <form [formGroup]="itemForm" class="item-form">
+      <div class="form-row">
+        <div class="field">
+          <label for="name">Name *</label>
+          <input pInputText id="name" formControlName="name" placeholder="Enter item name" />
+        </div>
+        <div class="field" *ngIf="!isSpell">
+          <label for="type">Type</label>
+          <input pInputText id="type" formControlName="type" placeholder="WEAPON, ARMOR, etc." />
+        </div>
+        <div class="field" *ngIf="!isSpell">
+          <label for="quantity">Quantity</label>
+          <p-inputNumber inputId="quantity" formControlName="quantity" [min]="1" [showButtons]="true"></p-inputNumber>
+        </div>
+      </div>
+      
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea pInputTextarea id="description" formControlName="description" rows="3" 
+                  placeholder="Describe the item or spell..."></textarea>
+      </div>
+    </form>
+  </p-card>
+
+  <!-- Live Preview Section -->
+  <p-card header="Live Preview & Template" class="preview-card">
+    <div class="preview-section">
+      <div #previewContent
+           class="preview-content" 
+           contenteditable="true"
+           (input)="onPreviewInput($event)"
+           (blur)="onPreviewBlur($event)"
+           (mouseover)="onPreviewHover($event)"
+           (mouseout)="onPreviewHoverEnd($event)"
+           (click)="onPreviewClick($event)"
+           [innerHTML]="previewHtml"
+           pTooltip="Click to edit the template. Effect chips can be moved or deleted.">
+      </div>
+    </div>
+  </p-card>
+
+  <!-- Effects Management -->
+  <div class="effects-section">
+    <div class="effects-column">
+      <p-card header="Effects" class="effects-card">
+        <!-- Filter -->
+        <div class="filter-section">
+          <span class="p-input-icon-left">
+            <i class="pi pi-search"></i>
+            <input pInputText [(ngModel)]="filterText" placeholder="Filter effects..." />
+          </span>
+        </div>
+
+        <!-- OrderList for All Effects -->
+        <p-orderList 
+          [value]="getFilteredEffects()" 
+          [(selection)]="effects"
+          (onReorder)="onEffectReorder()"
+          [dragdrop]="true"
+          [responsive]="true"
+          filterBy="name"
+          [listStyle]="{'height': '300px'}">
+          
+          <ng-template pTemplate="header">
+            <div class="effects-header">
+              <span>Drag to reorder</span>
+            </div>
+          </ng-template>
+
+          <ng-template pTemplate="item" let-effect>
+            <div class="effect-item" 
+                 [class.system-effect]="effect.isSystemEffect"
+                 [class.is-highlighted]="effect.id === highlightedCardId">
+              <div class="effect-info">
+                <div class="effect-name">
+                  {{ effect.name }}
+                  <i *ngIf="effect.isSystemEffect" class="pi pi-cog" pTooltip="System Effect"></i>
+                </div>
+                <div class="effect-type">{{ getEffectDefinition(effect.type).name }}</div>
+                <div class="effect-output" *ngIf="!effect.isSystemEffect && getEffectDefinition(effect.type).outputTemplate(effect.properties)">
+                  Output: {{ getEffectDefinition(effect.type).outputTemplate(effect.properties) }}
+                </div>
+              </div>
+              <div class="effect-actions">
+                <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text" 
+                        (click)="editEffect(effect)" pTooltip="Edit Effect"></button>
+                <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger" 
+                        (click)="removeEffect(effect)" pTooltip="Remove Effect"></button>
+              </div>
+            </div>
+          </ng-template>
+        </p-orderList>
+
+        <!-- Add Effect Button -->
+        <div class="add-effect-section">
+          <p-menu #addMenu [model]="addEffectMenuItems" [popup]="true"></p-menu>
+          <button pButton label="Add Effect" icon="pi pi-plus" 
+                  (click)="addMenu.toggle($event)" class="p-button-success"></button>
+        </div>
+      </p-card>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-secondary" 
+            (click)="onCancel()"></button>
+    <button pButton label="Save" icon="pi pi-check" class="p-button-success" 
+            (click)="onSave()" [disabled]="itemForm.invalid"></button>
+  </div>
+</div>
+
+<!-- Effect Edit Dialog -->
+<p-dialog 
+  header="Edit Effect" 
+  [(visible)]="showAddEffectDialog" 
+  [modal]="true" 
+  [style]="{width: '500px'}"
+  (onHide)="closeEffectDialog()">
+  
+  <div *ngIf="editingEffect && selectedEffectType" class="effect-edit-form">
+    <form [formGroup]="effectForm">
+      <!-- Effect Name -->
+      <div class="field">
+        <label for="effectName">Effect Name *</label>
+        <input pInputText id="effectName" formControlName="name" />
+      </div>
+
+      <!-- Dynamic Fields based on Effect Type -->
+      <div *ngFor="let field of getEffectDefinition(selectedEffectType).fields" class="field">
+        <label [for]="field.key">{{ field.label }} <span *ngIf="field.required">*</span></label>
+        
+        <!-- Text Input -->
+        <input *ngIf="field.type === 'text'" 
+               pInputText 
+               [id]="field.key" 
+               [formControlName]="field.key"
+               [placeholder]="field.placeholder || ''" />
+        
+        <!-- Number Input -->
+        <p-inputNumber *ngIf="field.type === 'number'" 
+                       [inputId]="field.key" 
+                       [formControlName]="field.key"
+                       [showButtons]="true" />
+        
+        <!-- Select Dropdown -->
+        <p-dropdown *ngIf="field.type === 'select'" 
+                    [inputId]="field.key"
+                    [formControlName]="field.key"
+                    [options]="getDropdownOptions(field)"
+                    placeholder="Select {{ field.label }}" />
+        
+        <!-- Checkbox -->
+        <p-checkbox *ngIf="field.type === 'checkbox'" 
+                    [inputId]="field.key"
+                    [formControlName]="field.key"
+                    [binary]="true" />
+      </div>
+
+      <!-- Effect Description -->
+      <div class="field">
+        <label>Effect Description</label>
+        <div class="effect-description">{{ getEffectDefinition(selectedEffectType).description }}</div>
+      </div>
+    </form>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancel" icon="pi pi-times" class="p-button-text" 
+            (click)="closeEffectDialog()"></button>
+    <button pButton label="Add to chat" icon="pi pi-plus" class="p-button-secondary" 
+            (click)="addEditingEffectToChat()" pTooltip="Insert this effect placeholder into the template"></button>
+    <button pButton label="Save Effect" icon="pi pi-check" 
+            (click)="saveEffect()" [disabled]="effectForm.invalid"></button>
+  </ng-template>
+</p-dialog> 

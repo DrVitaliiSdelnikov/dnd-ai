@@ -13,16 +13,25 @@
   </div>
 
   <form [formGroup]="summaryForm">
-    <p-tabView>
-      <p-tabPanel header="General">
-        <p class="summary-text">{{ summaryData()?.adventureHistory || 'No summary yet.' }}</p>
-      </p-tabPanel>
-      <p-tabPanel header="Characters">
-        <p class="summary-text">{{ summaryData()?.keyRelationships || 'No character interactions recorded.' }}</p>
-      </p-tabPanel>
-      <p-tabPanel header="Notes">
-        <p class="summary-text">{{ summaryData()?.importantDecisions || 'No additional notes.' }}</p>
-      </p-tabPanel>
-    </p-tabView>
+    <p-tabs>
+      <p-tab>
+        <ng-template pTemplate="header">General</ng-template>
+        <ng-template pTemplate="content">
+          <p class="summary-text">{{ summaryData()?.adventureHistory || 'No summary yet.' }}</p>
+        </ng-template>
+      </p-tab>
+      <p-tab>
+        <ng-template pTemplate="header">Characters</ng-template>
+        <ng-template pTemplate="content">
+          <p class="summary-text">{{ summaryData()?.keyRelationships || 'No character interactions recorded.' }}</p>
+        </ng-template>
+      </p-tab>
+      <p-tab>
+        <ng-template pTemplate="header">Notes</ng-template>
+        <ng-template pTemplate="content">
+          <p class="summary-text">{{ summaryData()?.importantDecisions || 'No additional notes.' }}</p>
+        </ng-template>
+      </p-tab>
+    </p-tabs>
   </form>
 </div>

@@ -3,3 +3,37 @@
 .sticky-sentinel {
   height: 1px;
 }
+
+.effect-chip {
+  background-color: var(--primary-color);
+  color: var(--primary-color-text);
+  border-radius: 4px;
+  padding: 3px 8px;
+  display: inline-block;
+  margin: 0 2px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  user-select: none;
+}
+
+.effect-chip:hover {
+  background-color: #75dd9d;
+}
+
+.effect-chip .dice-text {
+  font-weight: bold;
+  background-color: rgba(12, 22, 160, 0.15);
+  padding: 2px 5px;
+  border-radius: 3px;
+  color: #d85656;
+}
+
+.dice-text {
+  color: #000000;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  background: rgba(33, 150, 243, 0.1);
+  padding: 0.15rem 0.3rem;
+  border-radius: 3px;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}

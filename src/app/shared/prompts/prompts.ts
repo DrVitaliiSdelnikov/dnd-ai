@@ -62,7 +62,7 @@ export const FORMAT_JSON_RESPONSE = `
 ${JSON_GENERATION}
 
 **JSON SCHEMA:**
-You MUST adhere strictly to the schema below. Pay close attention to nested 'properties' objects for both loot and spells. This is not optional.
+You MUST adhere strictly to the schema below. Pay close attention to the new 'effects' system for both loot and spells. 
 
 
 To determine if the inventory (playerCard.loot) or spellbook (playerCard.spells) state needs modification, you will analyze **ONLY TWO MESSAGES**:
@@ -107,87 +107,90 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
     "isUpdated": "boolean",
 
     "loot": [
-      // Each item in this array MUST follow this 'Universal Item Model' structure.
       {
-        "id_suggestion": "string",
-        "name": "string",
-        "type": "string", // e.g., WEAPON, ARMOR, CONSUMABLE, ACCESSORY, CURRENCY, MISC_ITEM, TOOL, MATERIAL, AMMUNITION
-        "description": "string",
+        "item_id_suggestion": "string", // unique identifier like "longsword_1"
+        "name": "string", // display name like "Longsword"
+        "type": "string", // WEAPON, ARMOR, CONSUMABLE, MISC_ITEM, OTHER, SHIELD, ACCESSORY, AMMUNITION
+        "description": "string", // flavor description
         "quantity": "number",
+        "template": "string", // CRITICAL: Template for display with effect placeholders. For weapons use format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
         "properties": {
-          "proficient": "boolean", // MANDATORY FOR WEAPONS: does the player have proficiency with this?
-          "attack_stat": "string", // WEAPON-SPECIFIC: "str", "dex", "con", "int", "wis", "cha".
-          "attunement_required": "boolean", // optional
-          "magic_bonus": "number", // optional, e.g., 1 for a +1 item
-          "damage_dice": "string", // optional, e.g., "1d8"
-          "damage_type": "string", // optional, e.g., "Slashing", "Fire"
-          "weapon_category": "string", // optional, e.g., "Sword", "Axe"
-          "range_type": "string", // optional, e.g., "MELEE", "RANGED"
-          "range_increment": "string", // optional, e.g., "30/120 ft"
-          "special_tags": ["string"], // optional, e.g., ["Finesse", "Two-Handed"]
-          "armor_class_value": "number", // optional
-          "armor_type": "string", // optional, e.g., "Light Armor", "Shield"
-          "max_dex_bonus": "number | string", // optional, e.g., 2 or "NO_LIMIT"
-          "effect_description_brief": "string", // optional, for consumables
-          "effect_details": [{ // optional
-              "type": "string", // 'BUFF_STAT', 'HEAL', 'GRANT_ABILITY'
-              "description": "string",
-              "stat_buffed": "string", // 'str', 'dex', 'AC', etc.
-              "buff_value": "number",
-              "heal_amount": "string", // "2d4+2"
-              "ability_granted": "string"
-          }],
-          "currency_type": "string", // optional, e.g., "gold"
-          "utility_description": "string", // optional
-          "is_quest_item": "boolean" // optional
+          "effects": [
+            {
+              "id": "string", // CRITICAL: Must match template placeholders! Examples: "d20_roll", "proficiency", "attack_stat", "weapon_damage"
+              "name": "string", // Human-readable name like "Attack Stat" or "Slashing Damage"
+              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | WEAPON_PROFICIENCY | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL",
+              "properties": {
+                // DAMAGE: { "dice": "1d8+2", "damageType": "Slashing" }
+                // HEALING: { "healAmount": "2d4+2" }
+                // WEAPON_PROFICIENCY: { "proficient": true }
+                // ARMOR_CLASS: { "acValue": 15, "maxDexBonus": 2 }
+                // ATTACK_STAT: { "attackStat": "str" } // str, dex, con, int, wis, cha
+                // MAGIC_BONUS: { "bonus": 1 }
+                // STATIC_TEXT: { "text": "glows with magical light" }
+                // CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
+                // D20_ROLL: { "dice": "1d20" }
+              },
+              "isSystemEffect": "boolean", // true for WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL - these don't appear in preview but affect mechanics
+              "order": "number" // for ordering in display (1, 2, 3...)
+            }
+          ]
         }
       }
     ],
 
     "spells": [
-      // CRITICAL: Each spell in this array MUST follow this 'Universal Spell/Ability Model' structure.
-      // Every spell MUST have a nested 'properties' object. Do NOT create flat spell objects.
+      // Spells follow the SAME EFFECT SYSTEM as items
       {
         "id_suggestion": "string",
         "name": "string",
         "type": "SPELL | ABILITY",
-        "description": "string", // take DMG description as basis, if the desc has numbers don't skip them. Compress the desc to 250 symbols max.
-        "properties": {
-
-          "range": "string",
-          "charges": "number", // Number of uses. Use -1 for spells that consume spell slots.
-          "is_passive": "boolean", // MANDATORY FIELD: true for constant bonuses, features, class and racial abilities. false otherwise.
-          "reset_condition": "string", // e.g., "Long Rest", "Short Rest", "N/A"
-          "school_of_magic": "string", // e.g., "Evocation", "Abjuration"
-          "spell_level": "number", // MANDATORY FIELD: 0 for cantrips, 1 for 1st-level, etc.
-          "spell_components": "string", // optional, e.g. "V, S, M (a pinch of salt)"
-          "action_type": "ATTACK_ROLL | SAVING_THROW | UTILITY | CONTESTED_CHECK",
-          "attack_info": { // Use null if not applicable
-            "ability": "string", // e.g., "DEX", "STR", "SPELLCASTING_ABILITY"
-            "damage_effects": [{
-              "dice": "string", // "1d10"
-              "type": "string" // "FIRE"
-            }]
-          },
-          "saving_throw_info": { // Use null if not applicable
-            "ability": "string", // "DEX", "WIS"
-            "dc_calculation": "SPELLCASTING_ABILITY | FIXED"
-          },
-          "damage_info": { // Use null if not applicable
-            "effects": [{
-              "dice": "string", // "3d6+1, etc"
-              "type": "string", // "FIRE, COLD, etc"
-              "on_save": "HALF | NONE | SPECIAL_EFFECT"
-            }]
+        "description": "string",
+        "template": "string", // Template like "{{name}} deals {{fire_damage}} to targets within {{range}}"
+        "effects": [
+          {
+            "id": "string", // Must match template placeholders
+            "name": "string", 
+            "type": "DAMAGE | HEALING | SPELL_LEVEL | SPELL_PASSIVE | STATIC_TEXT | CONDITIONAL_EFFECT",
+            "properties": {
+              // SPELL_LEVEL: { "level": 2 }
+              // SPELL_PASSIVE: { "isPassive": true }
+              // Other effects same as items
+            },
+            "isSystemEffect": "boolean", // true for spell level, passive - don't appear in preview
+            "order": "number"
           }
-        }
+        ]
       }
     ]
   },
   "message": "string" // This field contains your narrative response to the player.
 }
 
-**FINAL INSTRUCTION: Generate a complete player card. When creating loot and spells, you MUST use the exact nested 'properties' structure detailed above. Failure to follow the schema, especially the nesting requirement for spells and items, will break the game. Be thorough and accurate.**
+**EFFECT SYSTEM GUIDELINES:**
+- Build items and spells using modular effects that work together.
+- For weapons, use the template format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg". Ensure the proficiency chip is included in the hit section when the character is proficient.
+- The "To Hit" roll is calculated as: 1d20 + Ability Modifier (from ATTACK_STAT effect) + Proficiency Bonus (if WEAPON_PROFICIENCY effect has proficient: true) + Magic Bonus (from MAGIC_BONUS effect). The front-end handles this calculation.
+- Each effect has an "id" that MUST match the placeholders in the template string.
+- System effects (WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL, etc.) are for mechanics only and don't appear in the visual preview.
+- Combat effects (DAMAGE, HEALING, MAGIC_BONUS, D20_ROLL, etc.) appear as visual chips in the preview.
+- Use descriptive templates with {{effectId}} placeholders that match your effect IDs exactly.
+
+**WEAPON EXAMPLE (Longsword +1):**
+- item_id_suggestion: "longsword_plus_1"
+- name: "Longsword +1" 
+- type: "WEAPON"
+- template: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
+- properties: {
+  "effects": [
+    { id: "d20_roll", type: "D20_ROLL", properties: { dice: "1d20" }, isSystemEffect: false },
+    { id: "proficiency", type: "WEAPON_PROFICIENCY", properties: { proficient: true }, isSystemEffect: false },
+    { id: "attack_stat", type: "ATTACK_STAT", properties: { attackStat: "str" }, isSystemEffect: false },
+    { id: "weapon_damage", type: "DAMAGE", properties: { dice: "1d8+1", damageType: "Slashing" }, isSystemEffect: false }
+  ]
+}
+
+**FINAL INSTRUCTION: Use the new effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match template placeholders exactly.**
 `;
 
 

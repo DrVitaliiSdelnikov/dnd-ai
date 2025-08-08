@@ -1,171 +1,272 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule, NgIf } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
-import { InventoryItem, ItemEffect } from '../../../shared/interfaces/inventroy.interface';
+import { InventoryItem } from '../../../shared/interfaces/inventory.interface';
 import { PlayerCardStateService } from '../../../services/player-card-state.service';
-import cloneDeep from 'lodash/cloneDeep';
-import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { DropdownModule } from 'primeng/dropdown';
-import { TooltipModule } from 'primeng/tooltip';
-import { TextareaModule } from 'primeng/textarea';
-import { CheckboxModule } from 'primeng/checkbox';
-import { ConfirmationService } from 'primeng/api';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { EffectEditorComponent } from '../../effect-editor/effect-editor.component';
+import { ItemWithEffects, Effect } from '../../../shared/interfaces/effects.interface';
 
 @Component({
   selector: 'app-item-editor',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    NgIf,
-    ButtonModule,
-    InputTextModule,
-    TextareaModule,
-    InputNumberModule,
-    DropdownModule,
-    TooltipModule,
-    CheckboxModule,
-    ConfirmDialogModule
-  ],
-  templateUrl: 'item-editor.component.html',
-  styleUrl: 'item-editor.component.scss',
-  providers: [ConfirmationService]
+  imports: [CommonModule, EffectEditorComponent],
+  template: `
+    <app-effect-editor 
+      [item]="convertedItem"
+      [isSpell]="false"
+      (itemChanged)="onItemChanged($event)"
+      (save)="save()"
+      (cancel)="close()">
+    </app-effect-editor>
+  `,
+  styles: [`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  `]
 })
 export class ItemEditorComponent implements OnInit {
-  itemForm: FormGroup;
   item: InventoryItem;
+  convertedItem: ItemWithEffects | null = null;
 
-  // Injections
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
-  private fb = inject(FormBuilder);
   public dialogRef = inject(DynamicDialogRef);
   public config = inject(DynamicDialogConfig);
-  private confirmationService = inject(ConfirmationService);
-
-  readonly attackStatTypes = [
-    { label: 'Strength', value: 'str' },
-    { label: 'Dexterity', value: 'dex' },
-    { label: 'Constitution', value: 'con' },
-    { label: 'Intelligence', value: 'int' },
-    { label: 'Wisdom', value: 'wis' },
-    { label: 'Charisma', value: 'cha' }
-  ];
-  readonly damageTypes = [
-    { label: 'Slashing', value: 'Slashing' }, { label: 'Piercing', value: 'Piercing' },
-    { label: 'Bludgeoning', value: 'Bludgeoning' }, { label: 'Fire', value: 'Fire' },
-    { label: 'Cold', value: 'Cold' }, { label: 'Poison', value: 'Poison' },
-    { label: 'Acid', value: 'Acid' }, { label: 'Lightning', value: 'Lightning' },
-    { label: 'Thunder', value: 'Thunder' }, { label: 'Force', value: 'Force' },
-    { label: 'Necrotic', value: 'Necrotic' }, { label: 'Radiant', value: 'Radiant' },
-    { label: 'Psychic', value: 'Psychic' }
-  ];
-  readonly effectTypes = [
-    { label: 'Buff Stat', value: 'BUFF_STAT' }, { label: 'Heal', value: 'HEAL' },
-    { label: 'Grant Ability', value: 'GRANT_ABILITY' }, { label: 'Text Description', value: 'TEXT_DESCRIPTION' }
-  ];
-  readonly statsToBuff = [
-    { label: 'Strength (str)', value: 'str' }, { label: 'Dexterity (dex)', value: 'dex' },
-    { label: 'Constitution (con)', value: 'con' }, { label: 'Intelligence (int)', value: 'int' },
-    { label: 'Wisdom (wis)', value: 'wis' }, { label: 'Charisma (cha)', value: 'cha' },
-    { label: 'Armor Class (AC)', value: 'AC' }
-  ];
 
   ngOnInit(): void {
     this.item = this.config.data.item;
-    this.buildForm();
-    if (this.item) {
-      this.itemForm.patchValue(this.item);
+    this.convertedItem = this.convertOldItemToNewFormat(this.item);
+    console.log('🧰 ItemEditor: ngOnInit original item:', this.item);
+    console.log('🧰 ItemEditor: ngOnInit convertedItem:', this.convertedItem);
+  }
+
+  private convertOldItemToNewFormat(oldItem: InventoryItem): ItemWithEffects {
+    console.log('🔄 ItemEditor: convertOldItemToNewFormat called with:', oldItem);
+    console.log('🔍 ItemEditor: oldItem.properties:', oldItem.properties);
+    
+    const effects: Effect[] = [];
+    let order = 0;
+
+    // Handle both property names for compatibility
+    const itemId = (oldItem as any).item_id_suggestion || (oldItem as any).id_suggestion;
+
+    // Check if we have the new effects format
+    if (oldItem.properties && oldItem.properties.effects && Array.isArray(oldItem.properties.effects)) {
+      console.log('✅ ItemEditor: Found new effects format, using directly:', oldItem.properties.effects);
+      return {
+        id_suggestion: itemId,
+        name: oldItem.name || '',
+        description: oldItem.description || '',
+        template: oldItem.template || '',
+        type: oldItem.type || 'MISC_ITEM',
+        quantity: oldItem.quantity || 1,
+        effects: oldItem.properties.effects
+      };
     }
+
+    console.log('⚠️ ItemEditor: No new effects format found, trying to convert old format...');
+
+    // Convert old properties to effects
+    if (oldItem.properties) {
+      // Weapon proficiency
+      if (oldItem.properties.proficient !== undefined) {
+        console.log('🔧 ItemEditor: Converting proficiency');
+        effects.push({
+          id: 'proficiency',
+          name: 'Weapon Proficiency',
+          type: 'WEAPON_PROFICIENCY',
+          properties: { proficient: oldItem.properties.proficient },
+          order: order++
+        });
+      }
+
+      // Attack stat
+      if (oldItem.properties.attack_stat) {
+        console.log('🔧 ItemEditor: Converting attack_stat');
+        effects.push({
+          id: 'attack_stat',
+          name: 'Attack Stat',
+          type: 'ATTACK_STAT',
+          properties: { attackStat: oldItem.properties.attack_stat },
+          order: order++
+        });
+      }
+
+      // Damage
+      if (oldItem.properties.damage_dice && oldItem.properties.damage_type) {
+        console.log('🔧 ItemEditor: Converting damage');
+        effects.push({
+          id: 'damage',
+          name: 'Damage',
+          type: 'DAMAGE',
+          properties: {
+            dice: oldItem.properties.damage_dice,
+            damageType: oldItem.properties.damage_type
+          },
+          order: order++
+        });
+      }
+
+      // Armor Class
+      if (oldItem.properties.armor_class_value) {
+        console.log('🔧 ItemEditor: Converting armor class');
+        effects.push({
+          id: 'armor_class',
+          name: 'Armor Class',
+          type: 'ARMOR_CLASS',
+          properties: {
+            acValue: oldItem.properties.armor_class_value,
+            maxDexBonus: oldItem.properties.max_dex_bonus
+          },
+          isSystemEffect: true,
+          order: order++
+        });
+      }
+
+      // Magic bonus
+      if (oldItem.properties.magic_bonus) {
+        console.log('🔧 ItemEditor: Converting magic bonus');
+        effects.push({
+          id: 'magic_bonus',
+          name: 'Magic Bonus',
+          type: 'MAGIC_BONUS',
+          properties: { bonus: oldItem.properties.magic_bonus },
+          order: order++
+        });
+      }
+
+      // Convert old effect details to healing effects
+      if (oldItem.properties.effect_details) {
+        console.log('🔧 ItemEditor: Converting effect_details');
+        oldItem.properties.effect_details.forEach((effect, index) => {
+          if (effect.type === 'HEAL' && effect.heal_amount) {
+            console.log('🔧 ItemEditor: Converting healing effect');
+            effects.push({
+              id: `healing_${index}`,
+              name: 'Healing Effect',
+              type: 'HEALING',
+              properties: { healAmount: effect.heal_amount },
+              order: order++
+            });
+          }
+        });
+      }
+    }
+
+    console.log('🎯 ItemEditor: Final converted effects array:', effects);
+
+    // Generate a default template
+    let template = `{{name}}`;
+    const combatEffects = effects.filter(e => !e.isSystemEffect);
+    if (combatEffects.length > 0) {
+      const effectRefs = combatEffects.map(e => `{{${e.id}}}`).join(' and ');
+      if (oldItem.type === 'WEAPON') {
+        template = `{{name}} attacks dealing ${effectRefs}.`;
+      } else if (oldItem.type === 'CONSUMABLE') {
+        template = `{{name}} provides ${effectRefs}.`;
+      } else {
+        template = `{{name}} has ${effectRefs}.`;
+      }
+    } else {
+      template = `{{name}} is a ${oldItem.type.toLowerCase()}.`;
+    }
+
+    const newFormatItem: ItemWithEffects = {
+      id_suggestion: itemId,
+      name: oldItem.name || '',
+      type: oldItem.type,
+      description: oldItem.description || '',
+      quantity: oldItem.quantity,
+      effects: effects,
+      template: oldItem.template || ''
+    };
+
+    console.log('🧪 ItemEditor: convertOldItemToNewFormat result:', newFormatItem);
+    return newFormatItem;
   }
 
-  private buildForm(): void {
-    const props = this.item.properties;
-    this.itemForm = this.fb.group({
-      name: [this.item.name, Validators.required],
-      description: [this.item.description],
-      properties: this.fb.group({
-        damage_dice: [props.damage_dice],
-        damage_type: [props.damage_type],
-        attack_stat: [props.attack_stat],
-        proficient: [props.proficient || false],
-        effect_details: this.fb.array(
-          props.effect_details?.map(effect => this.createEffectDetailGroup(effect)) || []
-        )
-      })
-    });
-  }
-
-  private createEffectDetailGroup(effect?: ItemEffect): FormGroup {
-    return this.fb.group({
-      type: [effect?.type || 'BUFF_STAT', Validators.required],
-      description: [effect?.description || ''],
-      stat_buffed: [effect?.stat_buffed || ''],
-      buff_value: [effect?.buff_value || null]
-    });
-  }
-
-  get effectDetails(): FormArray {
-    return this.itemForm.get('properties.effect_details') as FormArray;
-  }
-
-  addEffectDetail(): void {
-    this.effectDetails.push(this.createEffectDetailGroup());
-  }
-
-  removeEffectDetail(index: number): void {
-    this.effectDetails.removeAt(index);
+  onItemChanged(newItem: ItemWithEffects): void {
+    this.convertedItem = newItem;
+    console.log('📥 ItemEditor:onItemChanged received:', newItem);
   }
 
   save(): void {
-    if (this.itemForm.invalid) return;
-    const currentCard = this.playerCardStateService.playerCard$();
-    if (!currentCard) {
-      console.error("Cannot save item, player card is not available.");
+    if (!this.convertedItem) {
       return;
     }
-    const formValues = this.itemForm.getRawValue();
-    const updatedItem = cloneDeep(this.item);
 
-    updatedItem.name = formValues.name;
-    updatedItem.description = formValues.description;
+    // Convert back to old format for compatibility
+    const updatedOldItem = this.convertNewItemToOldFormat(this.convertedItem);
+    console.log('💾 ItemEditor: save -> convertNewItemToOldFormat result:', updatedOldItem);
 
-    updatedItem.properties = {
-      ...updatedItem.properties,
-      ...formValues.properties
+    const currentLoot = this.playerCardStateService.playerCard$().loot;
+    
+    const isNew = Array.isArray(currentLoot) && !currentLoot.some(i => {
+      const lootItemId = (i as any).item_id_suggestion || (i as any).id_suggestion;
+      return lootItemId === updatedOldItem.item_id_suggestion;
+    });
+
+    console.log('📦 ItemEditor: save closing dialog with isNew:', isNew);
+    this.dialogRef.close({item: updatedOldItem, isNew: isNew});
+  }
+
+  private convertNewItemToOldFormat(newItem: ItemWithEffects): InventoryItem {
+    const properties: any = {};
+
+    // Convert effects back to old properties
+    newItem.effects.forEach(effect => {
+      console.log('🔁 ItemEditor:convertNewItemToOldFormat processing effect:', effect);
+      switch (effect.type) {
+        case 'WEAPON_PROFICIENCY':
+          properties.proficient = effect.properties.proficient;
+          break;
+        case 'ATTACK_STAT':
+          properties.attack_stat = effect.properties.attackStat;
+          break;
+        case 'DAMAGE':
+          properties.damage_dice = effect.properties.dice;
+          properties.damage_type = effect.properties.damageType;
+          break;
+        case 'ARMOR_CLASS':
+          properties.armor_class_value = effect.properties.acValue;
+          properties.max_dex_bonus = effect.properties.maxDexBonus;
+          break;
+        case 'MAGIC_BONUS':
+          properties.magic_bonus = effect.properties.bonus;
+          break;
+        case 'HEALING':
+          if (!properties.effect_details) properties.effect_details = [];
+          properties.effect_details.push({
+            type: 'HEAL',
+            heal_amount: effect.properties.healAmount
+          });
+          break;
+      }
+    });
+
+    // Preserve full effects array in the saved item to support the new renderer
+    properties.effects = newItem.effects;
+
+    // Handle both property names for compatibility - use the original item's ID
+    const originalId = (this.item as any).item_id_suggestion || (this.item as any).id_suggestion;
+
+    const oldFormatItem: InventoryItem = {
+      item_id_suggestion: originalId, // Keep original ID
+      name: newItem.name,
+      description: newItem.description,
+      type: newItem.type as any,
+      quantity: newItem.quantity || this.item.quantity || 1,
+      properties: properties,
+      template: newItem.template
     };
 
-    const updatedLoot = currentCard.loot.map(lootItem =>
-      lootItem.item_id_suggestion === updatedItem.item_id_suggestion ? updatedItem : lootItem
-    );
-
-    const updatedPlayerCard = { ...currentCard, loot: updatedLoot };
-    this.playerCardStateService.updatePlayerCard(updatedPlayerCard);
-    this.dialogRef.close(true);
+    console.log('🧯 ItemEditor:convertNewItemToOldFormat final oldFormatItem:', oldFormatItem);
+    return oldFormatItem;
   }
 
   close(): void {
     this.dialogRef.close();
-  }
-
-  delete(): void {
-    this.confirmationService.confirm({
-      message: `Are you sure you want to delete ${this.item.name}?`,
-      header: 'Delete Item',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        const currentCard = this.playerCardStateService.playerCard$();
-        if (!currentCard) return;
-
-        const updatedLoot = currentCard.loot.filter(item => item.item_id_suggestion !== this.item.item_id_suggestion);
-        const updatedPlayerCard = { ...currentCard, loot: updatedLoot };
-
-        this.playerCardStateService.updatePlayerCard(updatedPlayerCard);
-        this.dialogRef.close(true);
-      }
-    });
   }
 }

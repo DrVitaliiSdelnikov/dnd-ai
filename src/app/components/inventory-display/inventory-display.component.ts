@@ -6,13 +6,12 @@ import {
   SimpleChanges,
   Output,
   EventEmitter,
-  input,
   inject,
   WritableSignal, signal, computed
 } from '@angular/core';
-import { InventoryItem } from '../../shared/interfaces/inventroy.interface';
+import { InventoryItem } from '../../shared/interfaces/inventory.interface';
 import { NgForOf, NgIf } from '@angular/common';
-import { ButtonDirective, ButtonIcon } from 'primeng/button';
+import { ButtonDirective } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import {
@@ -24,6 +23,8 @@ import { ItemEditorComponent } from './item-editor/item-editor.component';
 import { DialogService } from 'primeng/dynamicdialog';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { SpeedDialModule } from 'primeng/speeddial';
+import { TemplateRendererService } from '../../services/template-renderer.service';
+import { SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-inventory-display',
@@ -36,7 +37,6 @@ import { SpeedDialModule } from 'primeng/speeddial';
     Tooltip,
     ConfirmPopupModule,
     RollOptionsPanelComponent,
-    ButtonIcon,
     SpeedDialModule
   ],
   providers: [
@@ -54,7 +54,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   private dialogService: DialogService = inject(DialogService);
   private messageService: MessageService = inject(MessageService);
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
-
+  private templateRenderer = inject(TemplateRendererService);
 
   abilityModifiers = computed(() => {
     return this.playerCardStateService.abilityModifiers$();
@@ -113,7 +113,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['inventoryItems']) {
+    if (changes['inventoryItems'] && this.inventoryItems) {
+      this.inventoryItems.forEach(item => {
+        if (!item.properties) {
+          item.properties = { effects: [] };
+        }
+      });
       this.categorizeItems();
       this.damageRollResults = {};
       this.actionResults = {};
@@ -139,45 +144,78 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
   }
 
+  private rollD20(): number {
+    return Math.floor(Math.random() * 20) + 1;
+  }
+
+  private rollD20WithMode(mode: RollState): number {
+    if (mode === RollStateEnum.ADVANTAGE) {
+      return Math.max(this.rollD20(), this.rollD20());
+    } else if (mode === RollStateEnum.DISADVANTAGE) {
+      return Math.min(this.rollD20(), this.rollD20());
+    } else {
+      return this.rollD20();
+    }
+  }
+
   objectKeys(obj: any): string[] {
-    return this.categoryOrder
-      .map(key => this.categoryDisplayNames[key])
+    return Object.keys(obj || {})
       .filter(displayName => obj[displayName] && obj[displayName].length > 0);
   }
 
+  getRenderedTemplate(item: InventoryItem): SafeHtml {
+    const result = this.templateRenderer.renderItemTemplate(item);
+    return result;
+  }
+
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
-    if (item.type !== 'WEAPON' || !item.properties.damage_dice) return;
-
-    const abilityKey = item.properties.attack_stat ?? 'str';
-    const modifier = this.abilityModifiers()[abilityKey] ?? 0;
-    const magicBonus = item.properties.magic_bonus ?? 0;
-    const proficiencyBonus = item.properties.proficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
-    const totalBonus = modifier + magicBonus + proficiencyBonus;
-
-    let d20Roll: number;
-    let attackRollsString: string;
-
-    if (mode === RollStateEnum.ADVANTAGE) {
-      const roll1 = Math.floor(Math.random() * 20) + 1;
-      const roll2 = Math.floor(Math.random() * 20) + 1;
-      d20Roll = Math.max(roll1, roll2);
-      attackRollsString = ` ADVANTAGE: [${roll1}, ${roll2}] -> ${d20Roll}`;
-    } else if (mode === RollStateEnum.DISADVANTAGE) {
-      const roll1 = Math.floor(Math.random() * 20) + 1;
-      const roll2 = Math.floor(Math.random() * 20) + 1;
-      d20Roll = Math.min(roll1, roll2);
-      attackRollsString = ` DISADVANTAGE: [${roll1}, ${roll2}] -> ${d20Roll}`;
-    } else {
-      d20Roll = Math.floor(Math.random() * 20) + 1;
-      attackRollsString = ``;
+    console.log('⚔️ rollAttackAndDamage called for item:', item.name, item);
+    
+    if ((item.type !== 'WEAPON' && item.type !== 'AMMUNITION') || !item.properties.effects) { 
+      console.log('❌ Item is not a weapon/ammunition or missing effects');
+      return; 
     }
 
-    if (d20Roll === 20) {
+    const effects = item.properties.effects;
+    console.log('🎯 Weapon effects:', effects);
+    
+    const attackStatEffect = effects.find(e => e.type === 'ATTACK_STAT');
+    const proficiencyEffect = effects.find(e => e.type === 'WEAPON_PROFICIENCY');
+    const magicBonusEffect = effects.find(e => e.type === 'MAGIC_BONUS');
+    const damageEffects = effects.filter(e => e.type === 'DAMAGE');
+
+    console.log('🔍 Found effects:', {
+      attackStatEffect,
+      proficiencyEffect,
+      magicBonusEffect,
+      damageEffects
+    });
+
+    if (!attackStatEffect || !damageEffects.length) {
+      console.log('❌ Missing required effects (attack stat or damage)');
+      this.messageService.add({severity: 'error', summary: 'Error', detail: 'Weapon missing required effects'});
+      return;
+    }
+
+    const attackStat = attackStatEffect.properties.attackStat;
+    const modifier = this.abilityModifiers()[attackStat] || 0;
+    const proficiencyBonus = proficiencyEffect?.properties.proficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
+    const magicBonus = magicBonusEffect?.properties.bonus || 0;
+    const totalBonus = modifier + proficiencyBonus + magicBonus;
+
+    // Roll attack
+    const d20Roll = this.rollD20WithMode(mode);
+    const isNatural20 = d20Roll === 20;
+    const isNatural1 = d20Roll === 1;
+
+    let attackRollsString = `(${d20Roll}${totalBonus >= 0 ? '+' : ''}${totalBonus})`;
+    if (isNatural1) {
+      attackRollsString += ' (natural 1!)';
+    } else if (isNatural20) {
       attackRollsString += ' (natural 20!)';
     }
 
     const finalAttackResult = d20Roll + totalBonus;
-    const attackBonusString = totalBonus === 0 ? '' : (totalBonus > 0 ? ` + ${totalBonus}` : ` - ${Math.abs(totalBonus)}`);
     const attackResultDescription = `${item.name}: ${finalAttackResult} to hit${attackRollsString}`;
 
     this.emitRollResults.emit({
@@ -185,26 +223,49 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       description: attackResultDescription
     });
 
-    const diceNotation = item.properties.damage_dice;
-    const damageRollResult = this.parseAndRollDice(diceNotation);
+    // Roll damage and build template results
+    const damageBonus = modifier + magicBonus;
+    let totalDamage = 0;
+    const rollResults: {[effectId: string]: string} = {};
 
-    if (damageRollResult.error) {
-      this.actionResults[item.item_id_suggestion] = 'Damage roll error';
-      return;
-    }
-
-    const damageBonus = totalBonus;
-    const finalDamage = damageRollResult.total + damageBonus;
-
-    const damageBonusString = damageBonus === 0 ? '' : (damageBonus > 0 ? ` + ${damageBonus}` : ` - ${Math.abs(damageBonus)}`);
-    const damageResultDescription = `DMG: ${finalDamage}`;
-
-    this.emitRollResults.emit({
-      type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
-      description: damageResultDescription
+    // Process each damage effect
+    damageEffects.forEach(effect => {
+      const diceNotation = effect.properties.dice;
+      const damageRollResult = this.parseAndRollDice(diceNotation);
+      if (damageRollResult.error) {
+        this.actionResults[item.item_id_suggestion] = 'Damage roll error';
+        return;
+      }
+      const damageType = effect.properties.damageType || '';
+      const finalDamageForEffect = damageRollResult.total + damageBonus;
+      totalDamage += finalDamageForEffect;
+      
+      // Store the rolled result for template rendering
+      rollResults[effect.id] = `${finalDamageForEffect} ${damageType}`;
     });
 
-    this.actionResults[item.item_id_suggestion] = `Damage: ${finalDamage}`;
+    // Add non-damage effects to roll results
+    if (attackStatEffect) {
+      rollResults[attackStatEffect.id] = `using ${attackStatEffect.properties.attackStat?.toUpperCase()}`;
+    }
+    if (magicBonusEffect) {
+      rollResults[magicBonusEffect.id] = `+${magicBonusEffect.properties.bonus}`;
+    }
+
+    console.log('🎲 Roll results for template:', rollResults);
+
+    if (damageEffects.length > 0) {
+      // Use template renderer to create the chat message
+      const damageResultDescription = this.templateRenderer.renderTemplateForChat(item, rollResults);
+      console.log('💬 Chat message generated:', damageResultDescription);
+      
+      this.emitRollResults.emit({
+        type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
+        description: damageResultDescription
+      });
+      this.actionResults[item.item_id_suggestion] = `Damage: ${totalDamage}`;
+    }
+
     this.confirmationService.close();
   }
 
@@ -272,7 +333,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   addNewItem(itemType: 'WEAPON' | 'ARMOR' | 'MISC_ITEM'): void {
     const newItem: InventoryItem = {
       item_id_suggestion: `new-${Math.random().toString(36).substring(2, 9)}`,
-      name: '',
+      name: 'New Item',
       quantity: 1,
       type: itemType,
       description: '',
@@ -282,12 +343,33 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     };
 
     if (itemType === 'WEAPON') {
-      newItem.properties = {
-        ...newItem.properties,
-        damage_dice: '1d4',
-        attack_stat: 'str',
-        proficient: false
-      };
+      newItem.template = '{{name}} {{attack_stat}} ({{proficiency}}) deals {{damage_1}}.';
+      newItem.properties.effects = [
+        {
+          id: 'attack_stat',
+          name: 'Attack Stat',
+          type: 'ATTACK_STAT',
+          properties: { attackStat: 'str' },
+          order: 1
+        },
+        {
+          id: 'proficiency',
+          name: 'Proficiency',
+          type: 'WEAPON_PROFICIENCY',
+          properties: { proficient: true },
+          order: 2
+        },
+        {
+          id: 'damage_1',
+          name: 'Damage',
+          type: 'DAMAGE',
+          properties: {
+            dice: '1d6',
+            damageType: 'slashing'
+          },
+          order: 3
+        }
+      ];
     } else if (itemType === 'ARMOR') {
       newItem.properties = {
         ...newItem.properties,
@@ -298,10 +380,11 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     }
 
     this.itemAdded.emit(newItem);
-    this.openEditModal(newItem);
+    this.openEditModal(newItem, true);
   }
 
-  openEditModal(item: InventoryItem): void {
+  openEditModal(item: InventoryItem, isNew: boolean = false): void {
+    console.log('🪟 InventoryDisplay:openEditModal with item:', item);
     const ref = this.dialogService.open(ItemEditorComponent, {
       header: `Edit Item: ${item.name || 'New Item'}`,
       width: '50vw',
@@ -310,12 +393,22 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       }
     });
 
-    ref.onClose.subscribe((updatedItem: InventoryItem | undefined) => {
-      if (updatedItem) {
-        console.log('Item saved:', updatedItem);
-
+    ref.onClose.subscribe((result: {item: InventoryItem, isNew: boolean} | undefined) => {
+      console.log('🪟 InventoryDisplay:edit dialog closed with result:', result);
+      if (result) {
+        if(result.isNew) {
+          console.log('➕ InventoryDisplay:addItemToInventory', result.item);
+          this.playerCardStateService.addItemToInventory(result.item);
+        } else {
+          console.log('✏️ InventoryDisplay:updateItemInInventory', result.item);
+          this.playerCardStateService.updateItemInInventory(result.item);
+        }
       } else {
-        console.log('Edit cancelled.');
+        if(isNew) {
+          // Handle both property names for compatibility
+          const itemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+          this.playerCardStateService.removeItemFromInventory(itemId);
+        }
       }
     });
   }

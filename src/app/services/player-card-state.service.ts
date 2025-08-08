@@ -2,7 +2,7 @@ import { Injectable, signal, WritableSignal, computed } from '@angular/core';
 import { PlayerCard } from '../shared/interfaces/player-card.interface';
 import { SessionStorageService } from './session-storage.service';
 import { sessionStorageKeys } from '../shared/const/session-storage-keys';
-import { InventoryItem } from '../shared/interfaces/inventroy.interface';
+import { InventoryItem } from '../shared/interfaces/inventory.interface';
 import { AdventureSummary } from '../shared/interfaces/sammery';
 
 @Injectable({
@@ -31,26 +31,22 @@ export class PlayerCardStateService {
 
   private loadFromSession(): void {
     const storedCard = this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.HERO);
+    
     if (storedCard) {
       try {
-        this.playerCardState.set(JSON.parse(storedCard));
-      } catch (e) {
-        console.error("Failed to parse player card from session storage", e);
+        const parsedCard = JSON.parse(storedCard);
+        this.playerCardState.set(parsedCard);
+      } catch (error) {
+        console.error('❌ PlayerCardStateService: Error parsing stored card:', error);
+        this.playerCardState.set(null);
       }
+    } else {
+      this.playerCardState.set(null);
     }
 
     const storedSummary = this.sessionStorageService.getItemFromSessionStorage(sessionStorageKeys.SUMMERY);
     if (storedSummary) {
-      try {
-        const { adventureHistory, keyRelationships, importantDecisions } = JSON.parse(storedSummary);
-        this.campaignSummaryState.set({
-          adventureHistory,
-          keyRelationships,
-          importantDecisions
-        });
-      } catch {
-        console.warn('Summery parsing problem')
-      }
+      this.campaignSummaryState.set(JSON.parse(storedSummary));
     }
   }
 
@@ -79,15 +75,44 @@ export class PlayerCardStateService {
   }
 
   updatePlayerCard(updatedCard: PlayerCard): void {
+    if (Array.isArray(updatedCard.loot) && updatedCard.loot.length > 0) {
+      if (updatedCard.loot[0].properties) {
+      }
+    }
     this.playerCardState.set(updatedCard);
     this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, JSON.stringify(updatedCard));
-    console.log('PlayerCardStateService: State updated and saved.');
   }
 
   addItemToInventory(newItem: InventoryItem): void {
     const currentCard = this.playerCardState();
     if (currentCard) {
-      const updatedLoot = [...(currentCard.loot || []), newItem];
+      const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+      const updatedLoot = [...currentLoot, newItem];
+      this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
+    }
+  }
+
+  updateItemInInventory(updatedItem: InventoryItem): void {
+    const currentCard = this.playerCardState();
+    if (currentCard) {
+      const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+      // Handle both property names for compatibility
+      const updatedItemId = (updatedItem as any).item_id_suggestion || (updatedItem as any).id_suggestion;
+      
+      const updatedLoot = currentLoot.map(item => {
+        const currentItemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+        return currentItemId === updatedItemId ? updatedItem : item;
+      });
+      
+      this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
+    }
+  }
+
+  removeItemFromInventory(itemId: string): void {
+    const currentCard = this.playerCardState();
+    if (currentCard) {
+      const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+      const updatedLoot = currentLoot.filter(item => item.item_id_suggestion !== itemId);
       this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
     }
   }

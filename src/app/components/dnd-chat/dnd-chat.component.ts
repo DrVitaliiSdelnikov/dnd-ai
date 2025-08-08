@@ -127,6 +127,9 @@ export class DndChatComponent implements OnInit, AfterViewInit {
   }
 
   stripMarkdownJson(raw: string): string {
+    if (!raw) {
+      return '';
+    }
     const match = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     return match ? match[1] : raw;
   };
@@ -189,32 +192,38 @@ export class DndChatComponent implements OnInit, AfterViewInit {
       role: 'user'
     });
 
-    const history = this.buildOutgoingHistory();
-    const userMessage = `${JSON.stringify(history)}, Previous summery: ${this.campaignSummary()}`;
-
     this.userInput = '';
     this.isLoading.set(true);
 
-    let gameTurnPrompt = `
-    ${CORE_DM_BEHAVIOR}
-    ---
-    ${RULES_DICE_AND_CHECKS}
-    ---
-    ${TASK_CONTINUE_GAMEPLAY}
-    ---
-    ${FORMAT_JSON_RESPONSE}
-    ---
-    Player curren playerCard state -> ${JSON.stringify(this.playerCard())}
-    ---
-    **Game Context (History):**
-    ${JSON.stringify(userMessage)}
+    const systemPrompt = `
+      ${CORE_DM_BEHAVIOR}
+      ---
+      ${RULES_DICE_AND_CHECKS}
+      ---
+      ${TASK_CONTINUE_GAMEPLAY}
+      ---
+      ${FORMAT_JSON_RESPONSE}
     `;
 
+    const userPrompt = `
+      Player current playerCard state -> ${JSON.stringify(this.playerCard())}
+      ---
+      **Game Context (History):**
+      ${JSON.stringify(this.buildOutgoingHistory())}
+      ---
+      Previous summery: ${this.campaignSummary()}
+    `;
+
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
     if(this.messages?.length < 20) {
-      gameTurnPrompt = `${gameTurnPrompt} ${TASK_NEW_CAMPAIGN}`
+      messages.push({ role: 'system', content: TASK_NEW_CAMPAIGN });
     }
 
-    this.chatService.sendMessage([{ role: 'user', content: gameTurnPrompt }])
+    this.chatService.sendMessage(messages)
       .pipe(
         tap(result => this.parseMessage(result)),
         switchMap(result => {

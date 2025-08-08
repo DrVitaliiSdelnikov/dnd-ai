@@ -17,5 +17,10 @@ export const routes: Routes = [
     loadComponent: () => import('./components/dnd-chat/dnd-chat.component')
       .then(m => m.DndChatComponent)
   },
+  {
+    path: 'effect-editor-demo',
+    loadComponent: () => import('./components/effect-editor-demo/effect-editor-demo.component')
+      .then(m => m.EffectEditorDemoComponent)
+  },
   { path: '**', redirectTo: RouteNames.startJourney }
 ];

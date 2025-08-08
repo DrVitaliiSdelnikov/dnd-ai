@@ -62,6 +62,30 @@
     font-weight: bold;
   }
 
+  .item-template {
+    margin-top: 4px;
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.4;
+    
+    :deep(.effect-chip) {
+      margin: 0 2px;
+      font-size: 0.85em;
+    }
+    
+    :deep(.dice-text) {
+      font-weight: bold;
+    }
+    
+    :deep(.missing-effect) {
+      background: var(--red-500);
+      color: white;
+      padding: 0.2rem 0.5rem;
+      border-radius: 1rem;
+      font-size: 0.8rem;
+    }
+  }
+
   .item-quantity {
     font-size: 0.9em;
     color: #777;
