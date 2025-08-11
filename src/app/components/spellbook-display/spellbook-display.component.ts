@@ -149,11 +149,21 @@ export class SpellbookDisplayComponent implements OnInit {
       // Always roll one d20 (or D20_ROLL if present)
       const d20Notation = (d20Effect?.properties?.dice as string) || '1d20';
       const d20Roll = this.rollDiceNotation(d20Notation);
-      const attackBits: string[] = [`Attack roll: ${d20Roll.total} (${d20Notation}=${d20Roll.breakdown})`];
-      if (hasProficiency) attackBits.push('+ PB');
-      if (attackStatEffect?.properties?.attackStat) attackBits.push(`+ ${String(attackStatEffect.properties.attackStat).toUpperCase()}`);
-      if (typeof magicBonusEffect?.properties?.bonus === 'number') attackBits.push(`+ ${magicBonusEffect.properties.bonus}`);
-      parts.push(attackBits.join(' '));
+
+      // Pull numeric PB and ability modifier
+      const pb = hasProficiency ? this.playerCardStateService.getProficiencyBonus(playerLevel) : 0;
+      const abilityKey = (attackStatEffect?.properties?.attackStat as string) || '';
+      const abilityMod = abilityKey ? (this.abilityModifiers()?.[abilityKey] ?? 0) : 0;
+      const magicBonus = typeof magicBonusEffect?.properties?.bonus === 'number' ? magicBonusEffect.properties.bonus : 0;
+
+      const totalAttack = d20Roll.total + pb + abilityMod + magicBonus;
+      const breakdownParts: string[] = [
+        `${d20Notation}=${d20Roll.breakdown}`,
+        ...(pb ? [`PB=${pb}`] : []),
+        ...(abilityKey ? [`${abilityKey.toUpperCase()}=${abilityMod}`] : []),
+        ...(magicBonus ? [`+${magicBonus}`] : [])
+      ];
+      parts.push(`Attack roll: ${totalAttack} (${breakdownParts.join(' + ')})`);
 
       // Roll all DAMAGE effects (with scaling)
       if (damageEffects.length) {
