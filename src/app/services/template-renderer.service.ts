@@ -100,4 +100,28 @@ export class TemplateRendererService {
     // Strip any residual HTML tags from outputTemplate
     return text.replace(/<[^>]*>/g, '');
   }
+
+  // Back-compat for inventory chat rendering: replace placeholders with provided roll results
+  renderTemplateForChat(item: InventoryItem, rollResults: { [effectId: string]: string }): string {
+    if (!item?.template || !Array.isArray(item?.properties?.effects)) {
+      return item?.name || '';
+    }
+    const template = item.template;
+    const effects = item.properties.effects as Effect[];
+
+    const processedTemplate = template.replace(/\{\{name\}\}/g, item.name);
+    const text = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
+      const trimmed = String(effectId).trim();
+      const effect = effects.find(e => e.id === trimmed);
+      if (!effect) return '';
+      const definition = this.effectDefinitionsService.getEffectDefinition(effect.type as any);
+      if (definition?.isSystemEffect) return '';
+      if (rollResults && typeof rollResults[trimmed] === 'string') {
+        return rollResults[trimmed];
+      }
+      const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
+      return output || '';
+    });
+    return text.replace(/<[^>]*>/g, '');
+  }
 } 

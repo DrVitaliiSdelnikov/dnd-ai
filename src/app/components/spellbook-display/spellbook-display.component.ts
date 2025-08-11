@@ -24,6 +24,7 @@ import { DialogModule } from 'primeng/dialog';
 import { Effect } from '../../shared/interfaces/effects.interface';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { FormsModule } from '@angular/forms';
+import { SpellcastingService } from '../../services/spellcasting.service';
 
 @Component({
   selector: 'app-spellbook-display',
@@ -41,6 +42,7 @@ export class SpellbookDisplayComponent implements OnInit {
   private confirmationService: ConfirmationService = inject(ConfirmationService);
   private templateRenderer = inject(TemplateRendererService);
   private playerCardStateService = inject(PlayerCardStateService);
+  private spellcastingService = inject(SpellcastingService);
   @Output() spellCasted: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
   @Output() spellAdded = new EventEmitter<Spell>();
   spellAddOptions: MenuItem[];
@@ -91,14 +93,17 @@ export class SpellbookDisplayComponent implements OnInit {
 
   openSlotDialog(spell: Spell): void {
     this.selectedItem.set(spell);
-    // Default selected slot = spell.level; options 1..9 for now (Step 7 will constrain)
-    const baseLevel = Math.max(0, spell.level || 0);
-    const options: number[] = [];
-    for (let lvl = Math.max(1, baseLevel); lvl <= 9; lvl++) {
-      options.push(lvl);
-    }
-    this.slotOptions = options.map(l => ({ label: `Level ${l}`, value: l }));
-    this.selectedSlotLevel.set(Math.max(1, baseLevel));
+    const playerLevel = this.playerCardStateService.playerCard$()?.level ?? 1;
+    const availableSlots = this.spellcastingService.getAvailableSlots(playerLevel);
+
+    // Default selected slot = spell.level (minimum 1 for slots), clamp to available
+    const baseLevel = Math.max(1, spell.level || 1);
+    const defaultSlot = availableSlots.includes(baseLevel)
+      ? baseLevel
+      : (availableSlots.length ? availableSlots[0] : baseLevel);
+
+    this.slotOptions = availableSlots.map(l => ({ label: `Level ${l}`, value: l }));
+    this.selectedSlotLevel.set(defaultSlot);
     this.slotDialogVisible.set(true);
   }
 
