@@ -80,8 +80,9 @@ export class EffectDefinitionsService {
     },
 
     // System / mechanics-related
+    // DEPRECATED: use PROFICIENCY (presence-only) instead
     WEAPON_PROFICIENCY: {
-      name: 'Weapon Proficiency (legacy)',
+      name: 'Weapon Proficiency (legacy - do not use)',
       description: 'Legacy: Character has proficiency with this weapon',
       fields: [
         { key: 'proficient', label: 'Proficient', type: 'checkbox' }
@@ -182,7 +183,8 @@ export class EffectDefinitionsService {
   }
 
   getAvailableEffectTypes(): EffectType[] {
-    return Object.keys(this.effectDefinitions) as EffectType[];
+    return (Object.keys(this.effectDefinitions) as EffectType[])
+      .filter(type => type !== 'WEAPON_PROFICIENCY');
   }
 
   getCombatEffectTypes(): EffectType[] {

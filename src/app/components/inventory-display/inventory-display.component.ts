@@ -180,7 +180,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     console.log('🎯 Weapon effects:', effects);
     
     const attackStatEffect = effects.find(e => e.type === 'ATTACK_STAT');
-    const proficiencyEffect = effects.find(e => e.type === 'WEAPON_PROFICIENCY');
+    const proficiencyEffect = effects.find(e => e.type === 'PROFICIENCY');
     const magicBonusEffect = effects.find(e => e.type === 'MAGIC_BONUS');
     const damageEffects = effects.filter(e => e.type === 'DAMAGE');
 
@@ -199,7 +199,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
 
     const attackStat = attackStatEffect.properties.attackStat;
     const modifier = this.abilityModifiers()[attackStat] || 0;
-    const proficiencyBonus = proficiencyEffect?.properties.proficient ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
+    const proficiencyBonus = proficiencyEffect ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
     const magicBonus = magicBonusEffect?.properties.bonus || 0;
     const totalBonus = modifier + proficiencyBonus + magicBonus;
 
@@ -355,8 +355,8 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
         {
           id: 'proficiency',
           name: 'Proficiency',
-          type: 'WEAPON_PROFICIENCY',
-          properties: { proficient: true },
+          type: 'PROFICIENCY',
+          properties: {},
           order: 2
         },
         {

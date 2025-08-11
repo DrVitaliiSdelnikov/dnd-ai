@@ -70,14 +70,15 @@ export class ItemEditorComponent implements OnInit {
 
     // Convert old properties to effects
     if (oldItem.properties) {
-      // Weapon proficiency
-      if (oldItem.properties.proficient !== undefined) {
-        console.log('🔧 ItemEditor: Converting proficiency');
+      // Proficiency (presence means proficient)
+      const legacyProficient = (oldItem.properties as any).proficient;
+      if (legacyProficient !== undefined && legacyProficient) {
+        console.log('🔧 ItemEditor: Converting proficiency -> PROFICIENCY');
         effects.push({
           id: 'proficiency',
-          name: 'Weapon Proficiency',
-          type: 'WEAPON_PROFICIENCY',
-          properties: { proficient: oldItem.properties.proficient },
+          name: 'Proficiency',
+          type: 'PROFICIENCY',
+          properties: {},
           order: order++
         });
       }
@@ -219,8 +220,8 @@ export class ItemEditorComponent implements OnInit {
     newItem.effects.forEach(effect => {
       console.log('🔁 ItemEditor:convertNewItemToOldFormat processing effect:', effect);
       switch (effect.type) {
-        case 'WEAPON_PROFICIENCY':
-          properties.proficient = effect.properties.proficient;
+        case 'PROFICIENCY':
+          // presence only; no boolean plumbing in new system
           break;
         case 'ATTACK_STAT':
           properties.attack_stat = effect.properties.attackStat;

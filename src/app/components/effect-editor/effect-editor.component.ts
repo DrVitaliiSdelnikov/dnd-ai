@@ -279,7 +279,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       // For weapons, create a more comprehensive template
       const nonSystemEffects = this.effects.filter(e => !e.isSystemEffect);
       const attackStatEffect = this.effects.find(e => e.type === 'ATTACK_STAT');
-      const proficiencyEffect = this.effects.find(e => e.type === 'WEAPON_PROFICIENCY');
+      const proficiencyEffect = this.effects.find(e => e.type === 'PROFICIENCY');
       const damageEffect = this.effects.find(e => e.type === 'DAMAGE');
       const magicBonusEffect = this.effects.find(e => e.type === 'MAGIC_BONUS');
       
@@ -303,7 +303,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       
       // Add any other non-system effects
       const otherEffects = nonSystemEffects.filter(e => 
-        e.type !== 'ATTACK_STAT' && e.type !== 'WEAPON_PROFICIENCY' && e.type !== 'DAMAGE' && e.type !== 'MAGIC_BONUS'
+        e.type !== 'ATTACK_STAT' && e.type !== 'PROFICIENCY' && e.type !== 'DAMAGE' && e.type !== 'MAGIC_BONUS'
       );
       
       if (otherEffects.length > 0) {

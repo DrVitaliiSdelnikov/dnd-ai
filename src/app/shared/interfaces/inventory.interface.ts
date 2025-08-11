@@ -14,7 +14,6 @@ export interface ItemProperties {
 
   
   attack_stat?: 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
-  proficient?: boolean;
 
   // ARMOR / SHIELD
   armor_class_value?: number;

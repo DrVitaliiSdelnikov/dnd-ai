@@ -142,11 +142,9 @@ export class EffectEditorDemoComponent {
 
     const proficiencyEffect: Effect = {
       id: 'proficiency',
-      name: 'Weapon Proficiency',
-      type: 'WEAPON_PROFICIENCY',
-      properties: {
-        proficient: true
-      },
+      name: 'Proficiency',
+      type: 'PROFICIENCY',
+      properties: {},
       isSystemEffect: true,
       order: 2
     };
