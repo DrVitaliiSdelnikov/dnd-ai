@@ -15,6 +15,22 @@
           <label for="quantity">Quantity</label>
           <p-inputNumber inputId="quantity" formControlName="quantity" [min]="1" [showButtons]="true"></p-inputNumber>
         </div>
+        <div class="field" *ngIf="isSpell">
+          <label for="level">Level</label>
+          <p-inputNumber inputId="level" formControlName="level" [min]="0" [showButtons]="true"></p-inputNumber>
+        </div>
+        <div class="field" *ngIf="isSpell">
+          <label for="castType">Cast Type</label>
+          <p-dropdown inputId="castType" formControlName="castType" [options]="[
+            {label:'Utility', value:'utility'},
+            {label:'Attack Roll', value:'attack_roll'},
+            {label:'Save Throw', value:'save_throw'}
+          ]"></p-dropdown>
+        </div>
+        <div class="field flex align-items-center" *ngIf="isSpell">
+          <p-checkbox formControlName="isPassive" [binary]="true" inputId="isPassive"></p-checkbox>
+          <label for="isPassive" class="ml-2">Passive</label>
+        </div>
       </div>
       
       <div class="field">
@@ -158,6 +174,26 @@
                     [inputId]="field.key"
                     [formControlName]="field.key"
                     [binary]="true" />
+      </div>
+
+      <!-- Scaling UI for DAMAGE/HEALING -->
+      <div class="field" *ngIf="selectedEffectType === 'DAMAGE' || selectedEffectType === 'HEALING'">
+        <label>Slot Scaling</label>
+        <div class="p-fluid p-formgrid p-grid">
+          <div class="p-field p-col-6">
+            <label for="slot_baseSlot">Base Slot</label>
+            <p-inputNumber inputId="slot_baseSlot" formControlName="slot_baseSlot" [min]="0" [showButtons]="true"></p-inputNumber>
+          </div>
+          <div class="p-field p-col-6">
+            <label for="slot_addDicePerSlot">Add Dice per Upcast Slot</label>
+            <input pInputText id="slot_addDicePerSlot" formControlName="slot_addDicePerSlot" placeholder="e.g. 1d8" />
+          </div>
+        </div>
+      </div>
+
+      <div class="field" *ngIf="selectedEffectType === 'DAMAGE' || selectedEffectType === 'HEALING'">
+        <label for="levelScalingSteps">Level Scaling Steps (JSON)</label>
+        <textarea pInputTextarea id="levelScalingSteps" formControlName="levelScalingSteps" rows="4" placeholder='e.g. [{"level":5,"addDice":"1d8"},{"level":11,"addDice":"1d8"}]'></textarea>
       </div>
 
       <!-- Effect Description -->

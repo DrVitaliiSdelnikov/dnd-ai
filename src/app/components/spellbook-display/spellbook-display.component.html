@@ -19,6 +19,7 @@
                 <i [pTooltip]="spell.description" tooltipPosition="top" class="pi pi-info-circle"></i>
               </span>
             </div>
+            <div class="spell-preview" [innerHTML]="renderSpellPreview(spell)"></div>
             <div class="managing-section">
               <button
                 pButton
@@ -30,11 +31,10 @@
               </button>
               <div class="item-actions">
                 <button
-                  *ngIf="!spell.properties?.is_passive"
+                  *ngIf="!spell.isPassive"
                   pButton
                   class="action-button cast-button p-button-info p-button-outlined"
-                  (click)="castSpell(spell, 'NORMAL')"
-                  (contextmenu)="callModeDialog(spell, $event)">
+                  (click)="openSlotDialog(spell)">
                   Cast
                 </button>
               </div>
@@ -49,10 +49,20 @@
   </div>
 </div>
 
+<p-dialog header="Cast Spell" [(visible)]="slotDialogVisible()" [modal]="true" [closable]="true" [dismissableMask]="true" [style]="{width:'26rem'}">
+  <div class="p-fluid">
+    <div class="p-field">
+      <label for="slotLevel">Slot level</label>
+      <p-dropdown inputId="slotLevel" [options]="slotOptions" [ngModel]="selectedSlotLevel()" [ngModelOptions]="{standalone: true}" (ngModelChange)="selectedSlotLevel.set($event)"></p-dropdown>
+    </div>
+    <div class="p-field">
+      <button pButton label="Cast" class="p-button-primary" (click)="confirmCast()"></button>
+    </div>
+  </div>
+</p-dialog>
+
 <p-confirmpopup>
   <ng-template #content let-message>
-    <app-roll-options-panel
-      (rollEmit)="executeRollFromPanel($event)">
-    </app-roll-options-panel>
+    <!-- Reserved for future roll-mode panel if needed -->
   </ng-template>
 </p-confirmpopup>

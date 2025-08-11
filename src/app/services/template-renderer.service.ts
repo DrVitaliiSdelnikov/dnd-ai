@@ -2,7 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { EffectDefinitionsService } from './effect-definitions.service';
 import { InventoryItem } from '../shared/interfaces/inventory.interface';
+import { Spell } from '../shared/interfaces/spell.interface';
 import { Effect } from '../shared/interfaces/effects.interface';
+
+const allowedChipTypes = new Set<string>(['D20_ROLL','PROFICIENCY','ATTACK_STAT','DAMAGE','SAVE_THROW']);
 
 @Injectable({
   providedIn: 'root'
@@ -11,108 +14,90 @@ export class TemplateRendererService {
   private sanitizer = inject(DomSanitizer);
   private effectDefinitionsService = inject(EffectDefinitionsService);
 
-  /**
-   * Renders an item template with effect chips for display
-   */
   renderItemTemplate(item: InventoryItem): SafeHtml {
-    
-    if (!item.template || !item.properties?.effects) {
-      return this.sanitizer.bypassSecurityTrustHtml(item.name);
+    if (!item?.template || !item?.properties?.effects) {
+      return this.sanitizer.bypassSecurityTrustHtml(item?.name || '');
     }
 
     const template = item.template;
     const effects = item.properties.effects as Effect[];
-    
-    console.log('��️ TemplateRenderer:renderItemTemplate item:', item.name, {
-      template: item.template,
-      effectIds: Array.isArray(effects) ? effects.map(e => e.id) : effects
-    });
 
-    // First, replace the item name placeholder
     let processedTemplate = template.replace(/\{\{name\}\}/g, item.name);
 
-    // Then, replace effect placeholders with chips
     const renderedHtml = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
-      
-      const effect = effects.find(e => e.id === effectId.trim());
+      const effect = effects.find(e => e.id === String(effectId).trim());
       if (!effect) {
-        console.warn('⚠️ TemplateRenderer: missing effect for placeholder:', effectId, 'in item', item.name);
+        console.warn('TemplateRenderer:item missing effect for', effectId, 'in', item.name);
         return `<span class="missing-effect">[${effectId}]</span>`;
       }
-      
-      const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
-      
-      if (definition?.isSystemEffect) {
-        return '';
-      }
+
+      const definition = this.effectDefinitionsService.getEffectDefinition(effect.type as any);
+      if (definition?.isSystemEffect) return '';
 
       const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
-      
-      if (!output) {
-        console.warn('⚠️ TemplateRenderer: no output for effect:', effectId, effect);
-        return '';
+      if (!output) return '';
+
+      const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1<\/span>');
+      if (allowedChipTypes.has(effect.type)) {
+        return `<span class="effect-chip" data-effect-id="${effect.id}">${styledOutput}</span>`;
       }
-      
-      // Make dice notation blue
-      const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1</span>');
-      const chipHtml = `<span class="effect-chip" data-effect-id="${effect.id}">${styledOutput}</span>`;
-      
-      return chipHtml;
+      return `<span data-effect-id="${effect.id}">${styledOutput}</span>`;
     });
 
     return this.sanitizer.bypassSecurityTrustHtml(renderedHtml);
   }
 
-  /**
-   * Renders an item template with computed values for chat (no chips, actual rolled values)
-   */
-  renderTemplateForChat(item: InventoryItem, rollResults: {[effectId: string]: string}): string {
-    console.log('💬 renderTemplateForChat called with item:', item.name, 'rollResults:', rollResults);
-    
-    if (!item.template || !item.properties?.effects) {
-      console.log('❌ Missing template or effects for chat, returning item name:', item.name);
-      return item.name;
+  renderSpellTemplate(spell: Spell): SafeHtml {
+    if (!spell?.template || !Array.isArray(spell?.effects)) {
+      return this.sanitizer.bypassSecurityTrustHtml(spell?.name || '');
     }
 
-    const template = item.template;
-    const effects = item.properties.effects as Effect[];
-    
-    console.log('📋 Chat template:', template);
-    console.log('🎯 Chat effects:', effects);
-    
-    // First, replace the item name placeholder
-    let processedTemplate = template.replace(/\{\{name\}\}/g, item.name);
-    console.log('🔄 Chat after name replacement:', processedTemplate);
+    const template = spell.template;
+    const effects = spell.effects as Effect[];
 
-    // Then, replace effect placeholders with computed values
-    const renderedText = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
-      console.log('🔍 Processing chat placeholder:', match, 'effectId:', effectId);
-      
-      const effect = effects.find(e => e.id === effectId.trim());
+    let processedTemplate = template.replace(/\{\{name\}\}/g, spell.name);
+
+    const renderedHtml = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
+      const effect = effects.find(e => e.id === String(effectId).trim());
       if (!effect) {
-        console.log('❌ Effect not found for chat id:', effectId);
-        return `[${effectId}]`;
-      }
-      
-      // Use provided roll result if available
-      if (rollResults[effectId]) {
-        console.log('🎲 Using roll result for', effectId, ':', rollResults[effectId]);
-        return rollResults[effectId];
+        console.warn('TemplateRenderer:spell missing effect for', effectId, 'in', spell.name);
+        return `<span class="missing-effect">[${effectId}]</span>`;
       }
 
-      const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
-      if (definition?.isSystemEffect) {
-        console.log('🔒 System effect in chat, returning empty string');
-        return '';
-      }
+      const definition = this.effectDefinitionsService.getEffectDefinition(effect.type as any);
+      if (definition?.isSystemEffect) return '';
 
-      // For non-rolled effects, use the output template
       const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
-      console.log('📝 Chat output template result:', output);
-      return output || '';
+      if (!output) return '';
+
+      const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1<\/span>');
+      if (allowedChipTypes.has(effect.type)) {
+        return `<span class="effect-chip" data-effect-id="${effect.id}">${styledOutput}</span>`;
+      }
+      return `<span data-effect-id="${effect.id}">${styledOutput}</span>`;
     });
 
-    console.log('💬 Final chat text:', renderedText);
-    return renderedText;
+    return this.sanitizer.bypassSecurityTrustHtml(renderedHtml);
+  }
+
+  // Plain text rendering (no chips) for chat output
+  renderSpellText(spell: Spell): string {
+    if (!spell?.template || !Array.isArray(spell?.effects)) {
+      return spell?.name || '';
+    }
+    const template = spell.template;
+    const effects = spell.effects as Effect[];
+
+    const processedTemplate = template.replace(/\{\{name\}\}/g, spell.name);
+    const text = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
+      const effect = effects.find(e => e.id === String(effectId).trim());
+      if (!effect) return '';
+      const definition = this.effectDefinitionsService.getEffectDefinition(effect.type as any);
+      if (definition?.isSystemEffect) return '';
+      const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
+      return output || '';
+    });
+    // Strip any residual HTML tags from outputTemplate
+    return text.replace(/<[^>]*>/g, '');
   }
 } 

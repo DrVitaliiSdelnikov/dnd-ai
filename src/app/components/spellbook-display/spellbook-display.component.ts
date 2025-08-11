@@ -7,22 +7,28 @@ import {
   InputSignal,
   computed, inject, WritableSignal, signal
 } from '@angular/core';
-import { NgIf } from '@angular/common';
+import { NgIf, NgFor } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
-import { ConfirmationService, MenuItem } from 'primeng/api';
+import { ConfirmationService, MenuItem, SelectItem } from 'primeng/api';
 import { RollEvent } from '../../shared/interfaces/dice-roll';
-import { RollOptionsPanelComponent, RollState, RollStateEnum } from '../../shared/components/roll-options-panel/roll-options-panel.component';
-import { Spell } from '../../shared/interfaces/spells';
+import { Spell } from '../../shared/interfaces/spell.interface';
 import { DialogService } from 'primeng/dynamicdialog';
 import { SpellEditorComponent } from './spell-editor/spell-editor.component';
 import { SpeedDialModule } from 'primeng/speeddial';
+import { TemplateRendererService } from '../../services/template-renderer.service';
+import { SafeHtml } from '@angular/platform-browser';
+import { DropdownModule } from 'primeng/dropdown';
+import { DialogModule } from 'primeng/dialog';
+import { Effect } from '../../shared/interfaces/effects.interface';
+import { PlayerCardStateService } from '../../services/player-card-state.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, RollOptionsPanelComponent, SpeedDialModule],
+  imports: [NgIf, NgFor, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, FormsModule],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
@@ -30,25 +36,30 @@ import { SpeedDialModule } from 'primeng/speeddial';
 export class SpellbookDisplayComponent implements OnInit {
   spells = input<Spell[]>([]);
   selectedItem: WritableSignal<Spell | null> = signal(null);
-  private selectedMode: WritableSignal<RollState> = signal(RollStateEnum.NORMAL);
   private dialogService = inject(DialogService);
   abilityModifiers: InputSignal<{ [key: string]: number }> = input<{ [key: string]: number }>({});
   private confirmationService: ConfirmationService = inject(ConfirmationService);
+  private templateRenderer = inject(TemplateRendererService);
+  private playerCardStateService = inject(PlayerCardStateService);
   @Output() spellCasted: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
   @Output() spellAdded = new EventEmitter<Spell>();
   spellAddOptions: MenuItem[];
   actionResults: { [spellId: string]: string | null } = {};
 
+  // Slot picker dialog state
+  slotDialogVisible = signal<boolean>(false);
+  slotOptions: SelectItem<number>[] = [];
+  selectedSlotLevel = signal<number | null>(null);
+
   readonly categorizedSpells = computed(() => {
     const currentSpells = this.spells();
-    console.log('Computed categorizedSpells is running...');
 
     if (!currentSpells || !Array.isArray(currentSpells)) {
       return {};
     }
 
     const grouped = currentSpells.reduce((acc, spell) => {
-      const level = spell.properties?.spell_level ?? (spell.properties as any)?.level ?? 0;
+      const level = spell.level ?? 0;
       const key = level === 0 ? 'Cantrips' : (level > 0 ? `Level ${level}` : 'Abilities');
       if (!acc[key]) {
         acc[key] = [];
@@ -74,118 +85,197 @@ export class SpellbookDisplayComponent implements OnInit {
     return Object.keys(obj).sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
   }
 
-
-  castSpell(spell: Spell, rollState: RollState = 'NORMAL'): void {
-    const mainEffect = spell.properties.damage_info?.effects[0];
-
-    let resultDescription = `Casts ${spell.name}`;
-    let diceNotation: string | null = null;
-    let resultType: 'Damage' | 'Heal' | null = null;
-
-    if (mainEffect && mainEffect.dice) {
-      diceNotation = mainEffect.dice;
-      resultType = 'Damage';
-    }
-
-    if (diceNotation) {
-      const roll = this.parseAndRollDice(diceNotation, rollState);
-
-      if (!roll.error) {
-        const resultValue = roll.total;
-        const rollDetails = roll.details;
-        let rollString = '';
-
-        if (rollState === 'ADVANTAGE') {
-          rollString = ` with Advantage (Rolls: [${rollDetails.rolls.join(', ')}] -> Used ${rollDetails.used})`;
-        } else if (rollState === 'DISADVANTAGE') {
-          rollString = ` with Disadvantage (Rolls: [${rollDetails.rolls.join(', ')}] -> Used ${rollDetails.used})`;
-        } else {
-          rollString = ` (Roll: ${rollDetails.used})`;
-        }
-
-        if (roll.details.isNat20) {
-          rollString += ' (natural 20!)';
-        }
-
-        resultDescription += `. ${resultType}: ${resultValue} from ${diceNotation}${rollString}`;
-        this.actionResults[spell.id_suggestion] = `${resultType}: ${resultValue}`;
-      } else {
-        this.actionResults[spell.id_suggestion] = 'Roll error';
-      }
-    }
-
-    this.spellCasted.emit({
-      type: `SPELL_CAST_${spell.id_suggestion}`,
-      description: resultDescription
-    });
-
-    this.confirmationService.close();
+  renderSpellPreview(spell: Spell): SafeHtml {
+    return this.templateRenderer.renderSpellTemplate(spell);
   }
 
-  private parseAndRollDice(
-    diceNotation: string,
-    rollState: RollState = 'NORMAL'
-  ): {
-    total: number;
-    details: { rolls: number[], used: number, isNat20?: boolean };
-    error: null
-  } | { total: null; details: null; error: string } {
+  openSlotDialog(spell: Spell): void {
+    this.selectedItem.set(spell);
+    // Default selected slot = spell.level; options 1..9 for now (Step 7 will constrain)
+    const baseLevel = Math.max(0, spell.level || 0);
+    const options: number[] = [];
+    for (let lvl = Math.max(1, baseLevel); lvl <= 9; lvl++) {
+      options.push(lvl);
+    }
+    this.slotOptions = options.map(l => ({ label: `Level ${l}`, value: l }));
+    this.selectedSlotLevel.set(Math.max(1, baseLevel));
+    this.slotDialogVisible.set(true);
+  }
 
+  confirmCast(): void {
+    const spell = this.selectedItem();
+    const slotLevel = this.selectedSlotLevel();
+    if (!spell || !slotLevel) {
+      this.slotDialogVisible.set(false);
+      return;
+    }
+    this.slotDialogVisible.set(false);
+    this.castSpell(spell, slotLevel);
+  }
+
+  private getEffect(spell: Spell, type: string): Effect | undefined {
+    return (spell.effects || []).find(e => e.type === type);
+  }
+
+  private getEffects(spell: Spell, type: string): Effect[] {
+    return (spell.effects || []).filter(e => e.type === type);
+  }
+
+  private castSpell(spell: Spell, slotLevel: number): void {
+    // Determine character level for levelScaling
+    const playerLevel = this.playerCardStateService.playerCard$()?.level ?? 1;
+
+    const d20Effect = this.getEffect(spell, 'D20_ROLL');
+    const hasProficiency = !!this.getEffect(spell, 'PROFICIENCY');
+    const attackStatEffect = this.getEffect(spell, 'ATTACK_STAT');
+    const magicBonusEffect = this.getEffect(spell, 'MAGIC_BONUS');
+    const saveThrowEffect = this.getEffect(spell, 'SAVE_THROW');
+    const damageEffects = this.getEffects(spell, 'DAMAGE');
+
+    const parts: string[] = [`Casts ${spell.name}`];
+
+    if (spell.isPassive || !spell.castType) {
+      // Passive/always-on: no cast button in UI; but if somehow invoked, just output template text.
+      parts.push(this.templateRenderer.renderSpellText(spell));
+    } else if (spell.castType === 'utility') {
+      // No dice; just render template text
+      parts.push(this.templateRenderer.renderSpellText(spell));
+    } else if (spell.castType === 'attack_roll') {
+      // Always roll one d20 (or D20_ROLL if present)
+      const d20Notation = (d20Effect?.properties?.dice as string) || '1d20';
+      const d20Roll = this.rollDiceNotation(d20Notation);
+      const attackBits: string[] = [`Attack roll: ${d20Roll.total} (${d20Notation}=${d20Roll.breakdown})`];
+      if (hasProficiency) attackBits.push('+ PB');
+      if (attackStatEffect?.properties?.attackStat) attackBits.push(`+ ${String(attackStatEffect.properties.attackStat).toUpperCase()}`);
+      if (typeof magicBonusEffect?.properties?.bonus === 'number') attackBits.push(`+ ${magicBonusEffect.properties.bonus}`);
+      parts.push(attackBits.join(' '));
+
+      // Roll all DAMAGE effects (with scaling)
+      if (damageEffects.length) {
+        const dmgStrings = damageEffects.map((eff) => {
+          const finalDice = this.applyScalingToDice(
+            eff?.properties?.dice as string,
+            slotLevel,
+            spell.level || 0,
+            eff?.properties?.slotScaling,
+            eff?.properties?.levelScaling,
+            playerLevel
+          );
+          const roll = this.rollDiceNotation(finalDice);
+          const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)}` : '';
+          return `${roll.total}${typeText} (${finalDice}=${roll.breakdown})`;
+        });
+        parts.push(`Damage: ${dmgStrings.join(', ')}`);
+      }
+    } else if (spell.castType === 'save_throw') {
+      if (saveThrowEffect?.properties?.dc && saveThrowEffect?.properties?.saveAbility) {
+        parts.push(`Save DC: ${saveThrowEffect.properties.dc} (${String(saveThrowEffect.properties.saveAbility).toUpperCase()})`);
+      }
+      if (damageEffects.length) {
+        const dmgStrings = damageEffects.map((eff) => {
+          const finalDice = this.applyScalingToDice(
+            eff?.properties?.dice as string,
+            slotLevel,
+            spell.level || 0,
+            eff?.properties?.slotScaling,
+            eff?.properties?.levelScaling,
+            playerLevel
+          );
+          const roll = this.rollDiceNotation(finalDice);
+          const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)}` : '';
+          return `${roll.total}${typeText} (${finalDice}=${roll.breakdown})`;
+        });
+        parts.push(`Damage: ${dmgStrings.join(', ')}`);
+      }
+    }
+
+    this.actionResults[spell.id_suggestion] = parts.join('. ');
+    this.spellCasted.emit({
+      type: `SPELL_CAST_${spell.id_suggestion}`,
+      description: this.actionResults[spell.id_suggestion] as string
+    });
+  }
+
+  private addDice(a: string, b: string): string {
+    // Combine dice notations a + b when sides match, otherwise join with '+'
+    const parse = (s: string) => s.trim().match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
+    const pa = parse(a);
+    const pb = parse(b);
+    if (pa && pb && pa[2] === pb[2]) {
+      const count = parseInt(pa[1], 10) + parseInt(pb[1], 10);
+      const modA = pa[3] && pa[4] ? (pa[3] === '-' ? -parseInt(pa[4], 10) : parseInt(pa[4], 10)) : 0;
+      const modB = pb[3] && pb[4] ? (pb[3] === '-' ? -parseInt(pb[4], 10) : parseInt(pb[4], 10)) : 0;
+      const mod = modA + modB;
+      return `${count}d${pa[2]}${mod !== 0 ? (mod > 0 ? '+' + mod : String(mod)) : ''}`;
+    }
+    return `${a} + ${b}`;
+  }
+
+  private applyScalingToDice(
+    baseDice: string,
+    selectedSlot: number,
+    baseSpellLevel: number,
+    slotScaling: any,
+    levelScaling: any,
+    characterLevel: number
+  ): string {
+    let result = baseDice;
+
+    // Slot scaling: adds dice per slot above base level
+    const slotsAbove = (baseSpellLevel >= 1)
+      ? Math.max(0, (selectedSlot || baseSpellLevel) - baseSpellLevel)
+      : 0;
+    if (slotScaling && typeof slotScaling.perSlotDice === 'string' && slotsAbove > 0) {
+      for (let i = 0; i < slotsAbove; i++) {
+        result = this.addDice(result, slotScaling.perSlotDice);
+      }
+    }
+
+    // Level scaling: cumulative steps that add dice at given character levels
+    if (Array.isArray(levelScaling)) {
+      levelScaling
+        .filter((step: any) => typeof step?.level === 'number' && step?.level <= characterLevel && typeof step?.addDice === 'string')
+        .sort((a: any, b: any) => a.level - b.level)
+        .forEach((step: any) => {
+          result = this.addDice(result, step.addDice);
+        });
+    }
+
+    return result;
+  }
+
+  private rollDiceNotation(
+    diceNotation: string
+  ): { total: number; breakdown: string } {
     if (!diceNotation || typeof diceNotation !== 'string' || !diceNotation.trim()) {
-      return { total: null, details: null, error: `Invalid notation` };
+      return { total: 0, breakdown: '' };
     }
-    const trimmedNotation = diceNotation.trim();
 
-    const parts = trimmedNotation.match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
+    const parts = diceNotation.trim().match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
     if (!parts) {
-      const staticValue = parseInt(trimmedNotation, 10);
+      const staticValue = parseInt(diceNotation.trim(), 10);
       if (!isNaN(staticValue)) {
-        return { total: staticValue, details: { rolls: [staticValue], used: staticValue }, error: null };
+        return { total: staticValue, breakdown: String(staticValue) };
       }
-      return { total: null, details: null, error: `Unknown notation format` };
+      return { total: 0, breakdown: diceNotation };
     }
 
-    try {
-      const numDice = parseInt(parts[1], 10);
-      const diceType = parseInt(parts[2], 10);
-      let modifier = 0;
-      if (parts[3] && parts[4]) {
-        modifier = parseInt(parts[4], 10);
-        if (parts[3] === '-') { modifier = -modifier; }
-      }
-
-      const rollOnce = (): number => {
-        let total = 0;
-        for (let i = 0; i < numDice; i++) {
-          total += Math.floor(Math.random() * diceType) + 1;
-        }
-        return total;
-      };
-
-      let baseRollResult: number;
-      const allRolls: number[] = [];
-      const roll1 = rollOnce();
-      allRolls.push(roll1);
-
-      if (rollState === 'ADVANTAGE' || rollState === 'DISADVANTAGE') {
-        const roll2 = rollOnce();
-        allRolls.push(roll2);
-        baseRollResult = (rollState === 'ADVANTAGE') ? Math.max(roll1, roll2) : Math.min(roll1, roll2);
-      } else {
-        baseRollResult = roll1;
-      }
-
-      const isNat20 = numDice === 1 && diceType === 20 && baseRollResult === 20;
-
-      return {
-        total: baseRollResult + modifier,
-        details: { rolls: allRolls.sort((a, b) => b - a), used: baseRollResult, isNat20 },
-        error: null
-      };
-
-    } catch (e) {
-      return { total: null, details: null, error: `Error parsing numbers` };
+    const numDice = parseInt(parts[1], 10);
+    const diceType = parseInt(parts[2], 10);
+    let modifier = 0;
+    if (parts[3] && parts[4]) {
+      modifier = parseInt(parts[4], 10);
+      if (parts[3] === '-') { modifier = -modifier; }
     }
+
+    const rolls: number[] = [];
+    for (let i = 0; i < numDice; i++) {
+      rolls.push(Math.floor(Math.random() * diceType) + 1);
+    }
+    const sum = rolls.reduce((a, b) => a + b, 0);
+    const total = sum + modifier;
+    const breakdown = `${rolls.join('+')}${modifier ? (modifier > 0 ? '+' + modifier : String(modifier)) : ''}`;
+    return { total, breakdown };
   }
 
   openEditModal(spell: Spell): void {
@@ -199,7 +289,7 @@ export class SpellbookDisplayComponent implements OnInit {
 
     ref.onClose.subscribe((wasSaved: boolean) => {
       if (wasSaved) {
-        console.log('Spell was saved. State updated via service.');
+        // State updated via service inside editor
       }
     });
   }
@@ -210,33 +300,12 @@ export class SpellbookDisplayComponent implements OnInit {
       name: 'New Spell',
       description: '',
       type: 'SPELL',
-      properties: {
-        spell_level: 0,
-        is_passive: true,
-        target_type: 'SELF',
-        range: 'Self'
-      }
+      level: 0,
+      isPassive: true,
+      template: '{{name}}',
+      effects: []
     };
     this.spellAdded.emit(newSpell);
     this.openEditModal(newSpell);
-  }
-
-  callModeDialog(item: Spell, $event: MouseEvent): void {
-    $event.preventDefault();
-    this.selectedItem.set(item);
-    this.confirmationService.confirm({
-      target: $event.target as EventTarget,
-      acceptVisible: false,
-      rejectVisible: false,
-      closable: true,
-    });
-  }
-
-
-  executeRollFromPanel(rollState: RollState): void {
-    const spellToCast = this.selectedItem();
-    if (spellToCast) {
-      this.castSpell(spellToCast, rollState);
-    }
   }
 }

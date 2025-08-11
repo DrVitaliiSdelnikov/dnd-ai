@@ -71,7 +71,7 @@ export class ItemEditorComponent implements OnInit {
     // Convert old properties to effects
     if (oldItem.properties) {
       // Proficiency (presence means proficient)
-      const legacyProficient = (oldItem.properties as any).proficient;
+      const legacyProficient = (oldItem.properties as any)?.['proficient'];
       if (legacyProficient !== undefined && legacyProficient) {
         console.log('🔧 ItemEditor: Converting proficiency -> PROFICIENCY');
         effects.push({

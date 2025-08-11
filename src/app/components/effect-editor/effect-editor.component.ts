@@ -59,7 +59,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     description: [''],
     template: [''],
     type: [''],
-    quantity: [1]
+    quantity: [1],
+    // Spell-only fields
+    level: [0],
+    isPassive: [false],
+    castType: ['utility']
   });
 
   // Menu options for adding effects
@@ -90,7 +94,10 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       description: this.item.description,
       template: this.item.template,
       type: this.item.type,
-      quantity: 'quantity' in this.item ? this.item.quantity : 1
+      quantity: 'quantity' in this.item ? (this.item as any).quantity : 1,
+      level: this.isSpell ? (this.item as any).level ?? 0 : 0,
+      isPassive: this.isSpell ? (this.item as any).isPassive ?? false : false,
+      castType: this.isSpell ? (this.item as any).castType ?? 'utility' : 'utility'
     });
 
     this.effects = [...this.item.effects].sort((a, b) => a.order - b.order);
@@ -152,6 +159,18 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       formControls[field.key] = [value, validators];
     });
 
+    // Scaling controls for DAMAGE/HEALING
+    if (effect.type === 'DAMAGE' || effect.type === 'HEALING') {
+      const slotScaling = (effect.properties && (effect.properties as any).slotScaling) || {};
+      formControls['slot_baseSlot'] = [slotScaling.baseSlot ?? null];
+      formControls['slot_addDicePerSlot'] = [slotScaling.addDicePerSlot ?? ''];
+
+      // Level scaling steps managed via a serialized JSON string for simplicity
+      const levelScaling = (effect.properties && (effect.properties as any).levelScaling) || {};
+      const steps = Array.isArray(levelScaling.steps) ? levelScaling.steps : [];
+      formControls['levelScalingSteps'] = [JSON.stringify(steps)];
+    }
+
     this.effectForm = this.fb.group(formControls);
   }
 
@@ -164,8 +183,44 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     // Update effect properties
     this.editingEffect.name = formValue.name;
     definition.fields.forEach(field => {
-      this.editingEffect!.properties[field.key] = formValue[field.key];
+      let val = formValue[field.key];
+      // Enforce lowercase for specific keys
+      if (this.editingEffect!.type === 'ATTACK_STAT' && field.key === 'attackStat' && typeof val === 'string') {
+        val = val.toLowerCase();
+      }
+      if (this.editingEffect!.type === 'DAMAGE' && field.key === 'damageType' && typeof val === 'string') {
+        val = val.toLowerCase();
+      }
+      if (this.editingEffect!.type === 'SAVE_THROW' && field.key === 'saveAbility' && typeof val === 'string') {
+        val = val.toLowerCase();
+      }
+      this.editingEffect!.properties[field.key] = val;
     });
+
+    // Persist scaling for DAMAGE/HEALING
+    if (this.editingEffect.type === 'DAMAGE' || this.editingEffect.type === 'HEALING') {
+      const baseSlot = formValue['slot_baseSlot'];
+      const addDicePerSlot = formValue['slot_addDicePerSlot'];
+      const stepsStr = formValue['levelScalingSteps'];
+      const stepsParsed = (() => {
+        try { return JSON.parse(stepsStr || '[]'); } catch { return []; }
+      })();
+
+      if (baseSlot || addDicePerSlot) {
+        (this.editingEffect.properties as any).slotScaling = {
+          ...(baseSlot != null ? { baseSlot: Number(baseSlot) } : {}),
+          ...(addDicePerSlot ? { addDicePerSlot: String(addDicePerSlot) } : {})
+        };
+      } else {
+        delete (this.editingEffect.properties as any).slotScaling;
+      }
+
+      if (Array.isArray(stepsParsed) && stepsParsed.length) {
+        (this.editingEffect.properties as any).levelScaling = { steps: stepsParsed };
+      } else {
+        delete (this.editingEffect.properties as any).levelScaling;
+      }
+    }
 
     // Add or update effect in list
     const existingIndex = this.effects.findIndex(e => e.id === this.editingEffect!.id);
@@ -243,6 +298,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     console.log('🔎 EffectEditor:updatePreview placeholders found:', placeholders);
 
     // Then, replace effect placeholders with chips
+    const allowedChipTypes = new Set<EffectType>(['D20_ROLL','PROFICIENCY','ATTACK_STAT','DAMAGE','SAVE_THROW']);
     const newPreviewHtml = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
       const trimmedId = (effectId as string).trim();
       const effect = this.effects.find(e => e.id === trimmedId);
@@ -265,7 +321,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       
       // Make dice notation blue
       const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1</span>');
-      return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
+      if (allowedChipTypes.has(effect.type)) {
+        return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
+      }
+      // Non-whitelisted effects render inline text only (no chip)
+      return `<span data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
     });
 
     this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
@@ -408,7 +468,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       template: this.editableTemplate,
       type: formValue.type,
       effects: this.effects,
-      ...(this.isSpell ? {} : { quantity: formValue.quantity })
+      ...(this.isSpell ? {
+        level: formValue.level,
+        isPassive: formValue.isPassive,
+        castType: formValue.castType
+      } : { quantity: formValue.quantity })
     };
 
     console.log('📤 EffectEditor:emitItemChanged emitting item:', {

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DynamicDialogRef, DynamicDialogConfig } from 'primeng/dynamicdialog';
-import { Spell } from '../../../shared/interfaces/inventory.interface';
+import { Spell } from '../../../shared/interfaces/spell.interface';
 import { PlayerCardStateService } from '../../../services/player-card-state.service';
 import { EffectEditorComponent } from '../../effect-editor/effect-editor.component';
 import { ItemWithEffects, Effect } from '../../../shared/interfaces/effects.interface';
