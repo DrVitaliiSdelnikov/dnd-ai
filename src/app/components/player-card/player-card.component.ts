@@ -343,7 +343,7 @@ export class PlayerCardComponent implements OnInit {
     let baseAc = 10;
     let armorType: string | null = null;
     let maxDexBonus: number = null;
-    const armorClassValue = mainArmor.properties.armor_class_value;
+    const armorClassValue = mainArmor?.properties?.armor_class_value ?? 0;
 
     if (mainArmor && mainArmor.properties)
       {
