@@ -180,13 +180,9 @@
       <div class="field" *ngIf="selectedEffectType === 'DAMAGE' || selectedEffectType === 'HEALING'">
         <label>Slot Scaling</label>
         <div class="p-fluid p-formgrid p-grid">
-          <div class="p-field p-col-6">
-            <label for="slot_baseSlot">Base Slot</label>
-            <p-inputNumber inputId="slot_baseSlot" formControlName="slot_baseSlot" [min]="0" [showButtons]="true"></p-inputNumber>
-          </div>
-          <div class="p-field p-col-6">
-            <label for="slot_addDicePerSlot">Add Dice per Upcast Slot</label>
-            <input pInputText id="slot_addDicePerSlot" formControlName="slot_addDicePerSlot" placeholder="e.g. 1d8" />
+          <div class="p-field p-col-12">
+            <label for="perSlotDice">Add Dice per Upcast Slot</label>
+            <input pInputText id="perSlotDice" formControlName="perSlotDice" placeholder="e.g. 1d8" />
           </div>
         </div>
       </div>

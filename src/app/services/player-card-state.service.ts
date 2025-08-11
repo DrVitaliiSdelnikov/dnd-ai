@@ -35,6 +35,24 @@ export class PlayerCardStateService {
     if (storedCard) {
       try {
         const parsedCard = JSON.parse(storedCard);
+        // One-time, idempotent spell normalization to new model
+        if (parsedCard && Array.isArray(parsedCard.spells)) {
+          parsedCard.spells = parsedCard.spells.map((s: any) => {
+            if (!s || typeof s !== 'object') return s;
+            const normalized: any = { ...s };
+            // Ensure required new fields
+            if (typeof normalized.level !== 'number') normalized.level = 0;
+            if (typeof normalized.isPassive !== 'boolean') normalized.isPassive = true;
+            if (normalized.isPassive) delete normalized.castType;
+            // Ensure effects is a flat array
+            if (!Array.isArray(normalized.effects)) {
+              // Some legacy forms nested under properties.effects
+              const propsEffects = normalized?.properties?.effects;
+              normalized.effects = Array.isArray(propsEffects) ? propsEffects : [];
+            }
+            return normalized;
+          });
+        }
         this.playerCardState.set(parsedCard);
       } catch (error) {
         console.error('❌ PlayerCardStateService: Error parsing stored card:', error);

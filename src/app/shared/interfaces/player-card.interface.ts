@@ -1,4 +1,5 @@
-import { InventoryItem, Spell } from './inventory.interface';
+import { InventoryItem } from './inventory.interface';
+import { Spell } from './spell.interface';
 
 export interface PlayCardAbilities {
     str: number,

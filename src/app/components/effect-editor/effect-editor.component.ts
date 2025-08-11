@@ -162,12 +162,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     // Scaling controls for DAMAGE/HEALING
     if (effect.type === 'DAMAGE' || effect.type === 'HEALING') {
       const slotScaling = (effect.properties && (effect.properties as any).slotScaling) || {};
-      formControls['slot_baseSlot'] = [slotScaling.baseSlot ?? null];
-      formControls['slot_addDicePerSlot'] = [slotScaling.addDicePerSlot ?? ''];
+      formControls['perSlotDice'] = [slotScaling.perSlotDice ?? ''];
 
-      // Level scaling steps managed via a serialized JSON string for simplicity
-      const levelScaling = (effect.properties && (effect.properties as any).levelScaling) || {};
-      const steps = Array.isArray(levelScaling.steps) ? levelScaling.steps : [];
+      // Level scaling managed via a serialized JSON string for simplicity
+      const levelScaling = (effect.properties && (effect.properties as any).levelScaling);
+      const steps = Array.isArray(levelScaling) ? levelScaling : [];
       formControls['levelScalingSteps'] = [JSON.stringify(steps)];
     }
 
@@ -199,24 +198,20 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
     // Persist scaling for DAMAGE/HEALING
     if (this.editingEffect.type === 'DAMAGE' || this.editingEffect.type === 'HEALING') {
-      const baseSlot = formValue['slot_baseSlot'];
-      const addDicePerSlot = formValue['slot_addDicePerSlot'];
+      const perSlotDice = formValue['perSlotDice'];
       const stepsStr = formValue['levelScalingSteps'];
       const stepsParsed = (() => {
         try { return JSON.parse(stepsStr || '[]'); } catch { return []; }
       })();
 
-      if (baseSlot || addDicePerSlot) {
-        (this.editingEffect.properties as any).slotScaling = {
-          ...(baseSlot != null ? { baseSlot: Number(baseSlot) } : {}),
-          ...(addDicePerSlot ? { addDicePerSlot: String(addDicePerSlot) } : {})
-        };
+      if (perSlotDice && typeof perSlotDice === 'string') {
+        (this.editingEffect.properties as any).slotScaling = { perSlotDice: String(perSlotDice) };
       } else {
         delete (this.editingEffect.properties as any).slotScaling;
       }
 
       if (Array.isArray(stepsParsed) && stepsParsed.length) {
-        (this.editingEffect.properties as any).levelScaling = { steps: stepsParsed };
+        (this.editingEffect.properties as any).levelScaling = stepsParsed;
       } else {
         delete (this.editingEffect.properties as any).levelScaling;
       }

@@ -62,12 +62,3 @@ export interface InventoryItem {
   properties?: ItemProperties;
   template?: string;
 }
-
-export interface Spell {
-  id_suggestion: string;
-  name: string;
-  type: 'SPELL' | 'ABILITY';
-  description: string;
-  template: string;
-  effects: any[];
-}

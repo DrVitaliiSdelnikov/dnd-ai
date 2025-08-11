@@ -276,7 +276,21 @@ export class DndChatComponent implements OnInit, AfterViewInit {
       }
 
       if (newCardFromAI.spells !== 'SAME') {
-        finalUpdatedCard.spells = newCardFromAI.spells;
+        const normalizedSpells = Array.isArray(newCardFromAI.spells)
+          ? newCardFromAI.spells.map((s: any) => {
+              if (!s || typeof s !== 'object') return s;
+              const n: any = { ...s };
+              if (typeof n.level !== 'number') n.level = 0;
+              if (typeof n.isPassive !== 'boolean') n.isPassive = true;
+              if (n.isPassive) delete n.castType;
+              if (!Array.isArray(n.effects)) {
+                const propsEffects = n?.properties?.effects;
+                n.effects = Array.isArray(propsEffects) ? propsEffects : [];
+              }
+              return n;
+            })
+          : [];
+        finalUpdatedCard.spells = normalizedSpells;
       }
 
       this.playerCardStateService.updatePlayerCard(finalUpdatedCard as PlayerCard);
