@@ -190,6 +190,35 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
   ]
 }
 
+**SPELL EXAMPLE (Fire Bolt):**
+- id_suggestion: "fire_bolt"
+- name: "Fire Bolt"
+- type: "SPELL"
+- description: "A bolt of fire streaks toward a target."
+- template: "{{name}} deals {{fire_damage}} to a target within {{range}}."
+- effects: [
+  { id: "spell_level", type: "SPELL_LEVEL", properties: { level: 0 }, isSystemEffect: true, order: 1 },
+  { id: "range", name: "Range", type: "STATIC_TEXT", properties: { text: "120 ft" }, isSystemEffect: false, order: 2 },
+  { id: "fire_damage", name: "Fire Damage", type: "DAMAGE", properties: { dice: "1d10", damageType: "Fire" }, isSystemEffect: false, order: 3 }
+]
+
+**CONSUMABLE EXAMPLE (Potion of Healing):**
+- item_id_suggestion: "potion_of_healing"
+- name: "Potion of Healing"
+- type: "CONSUMABLE"
+- description: "A red liquid that glimmers when agitated."
+- template: "{{name}} restores {{healing}}."
+- properties: {
+  "effects": [
+    { id: "healing", name: "Healing", type: "HEALING", properties: { healAmount: "2d4+2" }, isSystemEffect: false, order: 1 }
+  ]
+}
+
+**ADDITIONAL SPELL AND INVENTORY GUIDELINES:**
+- For spells, include system effects like SPELL_LEVEL and SPELL_PASSIVE when applicable; these must be marked with isSystemEffect: true and do not render as chips.
+- Spells should use templates with placeholders matching effect IDs (e.g., {{range}}, {{fire_damage}}). Use STATIC_TEXT for fixed details like range or duration.
+- Non-weapon inventory items (ARMOR, SHIELD, ACCESSORY, CONSUMABLE) also use effect chips in templates. Use ARMOR_CLASS for AC rules, HEALING for potions, STATIC_TEXT/CONDITIONAL_EFFECT for descriptive mechanics.
+
 **FINAL INSTRUCTION: Use the new effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match template placeholders exactly.**
 `;
 

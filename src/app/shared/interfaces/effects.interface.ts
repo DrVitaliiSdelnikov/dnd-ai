@@ -37,12 +37,15 @@ export type EffectType =
   | 'BUFF_STAT'
   | 'CONDITION'
   // System Effects (don't appear in preview)
-  | 'WEAPON_PROFICIENCY'
+  | 'WEAPON_PROFICIENCY' // legacy for items; will be replaced by PROFICIENCY
   | 'ARMOR_CLASS'
   | 'SPELL_LEVEL'
   | 'SPELL_PASSIVE'
   | 'ATTACK_STAT'
   | 'MAGIC_BONUS'
+  // New generic proficiency and save throw for spells/items
+  | 'PROFICIENCY'
+  | 'SAVE_THROW'
   // Future expandable effects
   | 'STATIC_TEXT'
   | 'CONDITIONAL_EFFECT'
