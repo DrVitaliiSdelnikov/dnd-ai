@@ -80,43 +80,12 @@ export class EffectDefinitionsService {
     },
 
     // System / mechanics-related
-    // DEPRECATED: use PROFICIENCY (presence-only) instead
-    WEAPON_PROFICIENCY: {
-      name: 'Weapon Proficiency (legacy - do not use)',
-      description: 'Legacy: Character has proficiency with this weapon',
-      fields: [
-        { key: 'proficient', label: 'Proficient', type: 'checkbox' }
-      ],
-      outputTemplate: () => '',
-      isSystemEffect: true
-    },
-
     ARMOR_CLASS: {
       name: 'Armor Class',
       description: 'Provides AC baseline and max Dex',
       fields: [
         { key: 'acValue', label: 'AC Value', type: 'number', required: true },
         { key: 'maxDexBonus', label: 'Max Dex Bonus', type: 'number', placeholder: 'Leave empty for no limit' }
-      ],
-      outputTemplate: () => '',
-      isSystemEffect: true
-    },
-
-    SPELL_LEVEL: {
-      name: 'Spell Level',
-      description: 'Defines the spell level (legacy)',
-      fields: [
-        { key: 'level', label: 'Spell Level', type: 'number', required: true }
-      ],
-      outputTemplate: () => '',
-      isSystemEffect: true
-    },
-
-    SPELL_PASSIVE: {
-      name: 'Passive Spell',
-      description: 'Marks spell as passive ability (legacy)',
-      fields: [
-        { key: 'isPassive', label: 'Is Passive', type: 'checkbox' }
       ],
       outputTemplate: () => '',
       isSystemEffect: true
@@ -183,8 +152,7 @@ export class EffectDefinitionsService {
   }
 
   getAvailableEffectTypes(): EffectType[] {
-    return (Object.keys(this.effectDefinitions) as EffectType[])
-      .filter(type => type !== 'WEAPON_PROFICIENCY');
+    return (Object.keys(this.effectDefinitions) as EffectType[]);
   }
 
   getCombatEffectTypes(): EffectType[] {

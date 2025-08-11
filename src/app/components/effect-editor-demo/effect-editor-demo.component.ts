@@ -124,7 +124,7 @@ export class EffectEditorDemoComponent {
       type: 'DAMAGE',
       properties: {
         dice: '1d8+2',
-        damageType: 'Slashing'
+        damageType: 'slashing'
       },
       order: 0
     };
@@ -135,7 +135,7 @@ export class EffectEditorDemoComponent {
       type: 'DAMAGE',
       properties: {
         dice: '1d6',
-        damageType: 'Fire'
+        damageType: 'fire'
       },
       order: 1
     };
@@ -178,20 +178,9 @@ export class EffectEditorDemoComponent {
       type: 'DAMAGE',
       properties: {
         dice: '3d6',
-        damageType: 'Fire'
+        damageType: 'fire'
       },
       order: 0
-    };
-
-    const spellLevelEffect: Effect = {
-      id: 'spell_level',
-      name: 'Spell Level',
-      type: 'SPELL_LEVEL',
-      properties: {
-        level: 2
-      },
-      isSystemEffect: true,
-      order: 1
     };
 
     return {
@@ -199,7 +188,7 @@ export class EffectEditorDemoComponent {
       name: 'Scorching Ray',
       type: 'SPELL',
       description: 'You create three rays of fire and hurl them at targets within range.',
-      effects: [damageEffect, spellLevelEffect],
+      effects: [damageEffect],
       template: '{{name}} creates rays that deal {{spell_damage}} each.'
     };
   }

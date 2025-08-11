@@ -4,7 +4,7 @@ export interface Effect {
   type: EffectType;
   description?: string;
   properties: EffectProperties;
-  isSystemEffect?: boolean; // For effects like AC, spell level that don't appear in preview (weapon effects now do appear)
+  isSystemEffect?: boolean; // For effects like AC that don't appear in preview (weapon effects now do appear)
   order: number; // For ordering in the list
 }
 
@@ -37,10 +37,7 @@ export type EffectType =
   | 'BUFF_STAT'
   | 'CONDITION'
   // System Effects (don't appear in preview)
-  | 'WEAPON_PROFICIENCY' // legacy for items; will be replaced by PROFICIENCY
   | 'ARMOR_CLASS'
-  | 'SPELL_LEVEL'
-  | 'SPELL_PASSIVE'
   | 'ATTACK_STAT'
   | 'MAGIC_BONUS'
   // New generic proficiency and save throw for spells/items

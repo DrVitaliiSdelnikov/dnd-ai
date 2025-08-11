@@ -55,7 +55,7 @@ Your entire response MUST be a single, stringified JSON object ready to be parse
 - Your output must start with "{" and end with "}".
 - Do not wrap the JSON in markdown blocks or add any text outside the JSON object.
 - All property names and string values inside the JSON MUST be enclosed in double quotes.
-`
+`;
 
 // МОДУЛЬ 2: ФОРМАТ ОТВЕТА
 export const FORMAT_JSON_RESPONSE = `
@@ -113,17 +113,16 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
         "type": "string", // WEAPON, ARMOR, CONSUMABLE, MISC_ITEM, OTHER, SHIELD, ACCESSORY, AMMUNITION
         "description": "string", // flavor description
         "quantity": "number",
-        "template": "string", // CRITICAL: Template for display with effect placeholders. For weapons use format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
+        "template": "string", // Template for display with effect placeholders. For weapons use format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg"
         "properties": {
           "effects": [
             {
-              "id": "string", // CRITICAL: Must match template placeholders! Examples: "d20_roll", "proficiency", "attack_stat", "weapon_damage"
+              "id": "string", // Must match template placeholders! Examples: "d20_roll", "proficiency", "attack_stat", "weapon_damage"
               "name": "string", // Human-readable name like "Attack Stat" or "Slashing Damage"
-              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | WEAPON_PROFICIENCY | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL",
+              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL | PROFICIENCY",
               "properties": {
-                // DAMAGE: { "dice": "1d8+2", "damageType": "Slashing" }
+                // DAMAGE: { "dice": "1d8+2", "damageType": "slashing" }
                 // HEALING: { "healAmount": "2d4+2" }
-                // WEAPON_PROFICIENCY: { "proficient": true }
                 // ARMOR_CLASS: { "acValue": 15, "maxDexBonus": 2 }
                 // ATTACK_STAT: { "attackStat": "str" } // str, dex, con, int, wis, cha
                 // MAGIC_BONUS: { "bonus": 1 }
@@ -131,7 +130,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
                 // CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
                 // D20_ROLL: { "dice": "1d20" }
               },
-              "isSystemEffect": "boolean", // true for WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL - these don't appear in preview but affect mechanics
+              "isSystemEffect": "boolean", // true for ARMOR_CLASS only; these don't appear in preview but affect mechanics
               "order": "number" // for ordering in display (1, 2, 3...)
             }
           ]
@@ -140,24 +139,29 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
     ],
 
     "spells": [
-      // Spells follow the SAME EFFECT SYSTEM as items
       {
         "id_suggestion": "string",
         "name": "string",
         "type": "SPELL | ABILITY",
         "description": "string",
+        "level": "number", // base spell level; 0 for cantrips
+        "isPassive": "boolean", // passive spells have no cast button
+        "castType": "attack_roll | save_throw | utility | null", // absent or null for passive
         "template": "string", // Template like "{{name}} deals {{fire_damage}} to targets within {{range}}"
         "effects": [
           {
             "id": "string", // Must match template placeholders
-            "name": "string", 
-            "type": "DAMAGE | HEALING | SPELL_LEVEL | SPELL_PASSIVE | STATIC_TEXT | CONDITIONAL_EFFECT",
+            "name": "string",
+            "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL",
             "properties": {
-              // SPELL_LEVEL: { "level": 2 }
-              // SPELL_PASSIVE: { "isPassive": true }
-              // Other effects same as items
+              // DAMAGE: { "dice": "1d10", "damageType": "fire", "slotScaling": { "perSlotDice": "1d10" }, "levelScaling": [{ "level": 5, "addDice": "1d10" }] }
+              // HEALING: { "healAmount": "2d4+2", "slotScaling": { "perSlotDice": "1d4" }, "levelScaling": [{ "level": 5, "addDice": "1d4" }] }
+              // SAVE_THROW: { "dc": 13, "saveAbility": "dex" }
+              // ATTACK_STAT: { "attackStat": "int" }
+              // MAGIC_BONUS: { "bonus": 1 }
+              // D20_ROLL: { "dice": "1d20" }
             },
-            "isSystemEffect": "boolean", // true for spell level, passive - don't appear in preview
+            "isSystemEffect": "boolean", // true for none in spells; all effects render unless explicitly system-only
             "order": "number"
           }
         ]
@@ -169,11 +173,10 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 
 **EFFECT SYSTEM GUIDELINES:**
 - Build items and spells using modular effects that work together.
-- For weapons, use the template format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg". Ensure the proficiency chip is included in the hit section when the character is proficient.
-- The "To Hit" roll is calculated as: 1d20 + Ability Modifier (from ATTACK_STAT effect) + Proficiency Bonus (if WEAPON_PROFICIENCY effect has proficient: true) + Magic Bonus (from MAGIC_BONUS effect). The front-end handles this calculation.
+- For weapons, use the template format: "{{name}}: {{d20_roll}}+{{proficiency}}+{{attack_stat}} to hit. {{weapon_damage}}+{{attack_stat}} dmg". Include the proficiency chip when proficient by adding a PROFICIENCY effect (presence only, no properties).
+- The "To Hit" roll is displayed as: 1d20 + Ability Modifier (from ATTACK_STAT effect) + Proficiency Bonus (if PROFICIENCY present) + Magic Bonus (from MAGIC_BONUS effect). The front-end displays this; it does not decide hit/miss.
 - Each effect has an "id" that MUST match the placeholders in the template string.
-- System effects (WEAPON_PROFICIENCY, ARMOR_CLASS, SPELL_LEVEL, etc.) are for mechanics only and don't appear in the visual preview.
-- Combat effects (DAMAGE, HEALING, MAGIC_BONUS, D20_ROLL, etc.) appear as visual chips in the preview.
+- Only these chip types render as chips in previews: D20_ROLL, PROFICIENCY, ATTACK_STAT, DAMAGE, SAVE_THROW. Everything else renders as plain inline text in the template.
 - Use descriptive templates with {{effectId}} placeholders that match your effect IDs exactly.
 
 **WEAPON EXAMPLE (Longsword +1):**
@@ -184,22 +187,39 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - properties: {
   "effects": [
     { id: "d20_roll", type: "D20_ROLL", properties: { dice: "1d20" }, isSystemEffect: false },
-    { id: "proficiency", type: "WEAPON_PROFICIENCY", properties: { proficient: true }, isSystemEffect: false },
+    { id: "proficiency", type: "PROFICIENCY", properties: {}, isSystemEffect: false },
     { id: "attack_stat", type: "ATTACK_STAT", properties: { attackStat: "str" }, isSystemEffect: false },
-    { id: "weapon_damage", type: "DAMAGE", properties: { dice: "1d8+1", damageType: "Slashing" }, isSystemEffect: false }
+    { id: "weapon_damage", type: "DAMAGE", properties: { dice: "1d8+1", damageType: "slashing" }, isSystemEffect: false }
   ]
 }
 
-**SPELL EXAMPLE (Fire Bolt):**
-- id_suggestion: "fire_bolt"
-- name: "Fire Bolt"
+**SPELL EXAMPLE (Attack Roll, multi-damage, scaling):**
+- id_suggestion: "scorching_ray"
+- name: "Scorching Ray"
 - type: "SPELL"
-- description: "A bolt of fire streaks toward a target."
-- template: "{{name}} deals {{fire_damage}} to a target within {{range}}."
+- description: "You create rays of fire and hurl them at targets."
+- level: 2
+- castType: "attack_roll"
+- template: "{{name}}: {{d20}} + {{prof}} + {{attack}}. Damage: {{ray1}}, {{ray2}}."
 - effects: [
-  { id: "spell_level", type: "SPELL_LEVEL", properties: { level: 0 }, isSystemEffect: true, order: 1 },
-  { id: "range", name: "Range", type: "STATIC_TEXT", properties: { text: "120 ft" }, isSystemEffect: false, order: 2 },
-  { id: "fire_damage", name: "Fire Damage", type: "DAMAGE", properties: { dice: "1d10", damageType: "Fire" }, isSystemEffect: false, order: 3 }
+  { id: "d20", name: "D20", type: "D20_ROLL", properties: { dice: "1d20" }, order: 1 },
+  { id: "prof", name: "Proficiency", type: "PROFICIENCY", properties: {}, order: 2 },
+  { id: "attack", name: "Attack Stat", type: "ATTACK_STAT", properties: { attackStat: "int" }, order: 3 },
+  { id: "ray1", name: "Ray Damage", type: "DAMAGE", properties: { dice: "2d6", damageType: "fire", slotScaling: { perSlotDice: "1d6" }, levelScaling: [ { level: 5, addDice: "1d6" } ] }, order: 4 },
+  { id: "ray2", name: "Ray Damage", type: "DAMAGE", properties: { dice: "2d6", damageType: "fire", slotScaling: { perSlotDice: "1d6" } }, order: 5 }
+]
+
+**SPELL EXAMPLE (Save Throw, scaled damage):**
+- id_suggestion: "burning_hands"
+- name: "Burning Hands"
+- type: "SPELL"
+- description: "Thin sheets of flame shoot from your outstretched fingertips."
+- level: 1
+- castType: "save_throw"
+- template: "{{name}}: {{save}}; Damage: {{fire}}."
+- effects: [
+  { id: "save", name: "Save DC", type: "SAVE_THROW", properties: { dc: 13, saveAbility: "dex" }, order: 1 },
+  { id: "fire", name: "Fire Damage", type: "DAMAGE", properties: { dice: "3d6", damageType: "fire", slotScaling: { perSlotDice: "1d6" } }, order: 2 }
 ]
 
 **CONSUMABLE EXAMPLE (Potion of Healing):**
@@ -215,9 +235,14 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 }
 
 **ADDITIONAL SPELL AND INVENTORY GUIDELINES:**
-- For spells, include system effects like SPELL_LEVEL and SPELL_PASSIVE when applicable; these must be marked with isSystemEffect: true and do not render as chips.
-- Spells should use templates with placeholders matching effect IDs (e.g., {{range}}, {{fire_damage}}). Use STATIC_TEXT for fixed details like range or duration.
-- Non-weapon inventory items (ARMOR, SHIELD, ACCESSORY, CONSUMABLE) also use effect chips in templates. Use ARMOR_CLASS for AC rules, HEALING for potions, STATIC_TEXT/CONDITIONAL_EFFECT for descriptive mechanics.
+- Spells only produce text; they do not apply game-state changes.
+- Attack-roll spells always roll the d20 and damage and print both; do not decide hit/miss.
+- Save-throw spells use SAVE_THROW with a fixed numeric DC and a target ability; no DC formula in code.
+- Bonuses aren’t automatic; include explicit effects like MAGIC_BONUS.
+- Spell slots: a picker is shown at cast time and only affects effects that declare slot scaling.
+- Scaling is embedded per DAMAGE/HEALING effect via slotScaling.perSlotDice and levelScaling steps.
+- Passive spells: set isPassive=true and omit castType to hide the cast UI.
+- Ability keys and damage types are lowercase everywhere.
 
 **FINAL INSTRUCTION: Use the new effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match template placeholders exactly.**
 `;
