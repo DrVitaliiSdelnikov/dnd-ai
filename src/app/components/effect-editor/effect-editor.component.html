@@ -69,17 +69,10 @@
         <p-orderList 
           [value]="effects" 
           [(selection)]="selectedEffects"
-          (onReorder)="onEffectReorder()"
-          [dragdrop]="true"
           [responsive]="true"
+          [dragdrop]="false"
           [listStyle]="{'height': '300px'}">
           
-          <ng-template pTemplate="header">
-            <div class="effects-header">
-              <span>Drag to reorder</span>
-            </div>
-          </ng-template>
-
           <ng-template pTemplate="item" let-effect>
             <div class="effect-item" 
                  [class.system-effect]="effect.isSystemEffect"

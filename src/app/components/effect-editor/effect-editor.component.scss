@@ -132,6 +132,11 @@
 
         // Combat Effects OrderList
         :deep(.p-orderlist) {
+          // Hide built-in control buttons (up/down/top/bottom)
+          .p-orderlist-controls {
+            display: none !important;
+          }
+
           .p-orderlist-list {
             .effect-item {
               display: flex;
