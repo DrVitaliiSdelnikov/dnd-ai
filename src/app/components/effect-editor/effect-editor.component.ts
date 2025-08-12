@@ -73,6 +73,9 @@ export class EffectEditorComponent implements OnInit, OnChanges {
   previewHtml: SafeHtml = '';
   editableTemplate: string = '';
 
+  // Drag state
+  private dragEffectId: string | null = null;
+
   ngOnInit(): void {
     this.setupAddEffectMenu();
   }
@@ -294,7 +297,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       const effect = this.effects.find(e => e.id === trimmedId);
       if (!effect) {
         console.warn('⚠️ EffectEditor:updatePreview missing effect for placeholder:', trimmedId);
-        return `<span class="missing-effect">[${trimmedId}]</span>`;
+        return `<span class=\"missing-effect\">[${trimmedId}]</span>`;
       }
       
       const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
@@ -310,12 +313,12 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       }
       
       // Make dice notation blue
-      const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class="dice-text">$1</span>');
+      const styledOutput = output.replace(/(\d+d\d+(?:[+\-]\d+)?)/g, '<span class=\"dice-text\">$1</span>');
       if (allowedChipTypes.has(effect.type)) {
-        return `<span class="effect-chip" data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
+        return `<span class=\"effect-chip\" data-effect-id=\"${effect.id}\" draggable=\"true\" contenteditable=\"false\">${styledOutput}</span>`;
       }
       // Non-whitelisted effects render inline text only (no chip)
-      return `<span data-effect-id="${effect.id}" contenteditable="false">${styledOutput}</span>`;
+      return `<span data-effect-id=\"${effect.id}\" contenteditable=\"false\">${styledOutput}</span>`;
     });
 
     this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
@@ -418,6 +421,39 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     }
   }
 
+  onPreviewDragStart(event: DragEvent): void {
+    const target = event.target as HTMLElement | null;
+    const chip = target?.closest('.effect-chip') as HTMLElement | null;
+    if (!chip) return;
+    const effectId = chip.getAttribute('data-effect-id');
+    if (!effectId) return;
+    this.dragEffectId = effectId;
+    event.dataTransfer?.setData('text/plain', effectId);
+    event.dataTransfer?.setDragImage(chip, chip.offsetWidth / 2, chip.offsetHeight / 2);
+  }
+
+  onPreviewDragOver(event: DragEvent): void {
+    if (!this.dragEffectId) return;
+    event.preventDefault();
+  }
+
+  onPreviewDrop(event: DragEvent): void {
+    if (!this.dragEffectId) return;
+    event.preventDefault();
+
+    const dropPosition = this.computeDropInsertionIndex(event);
+    if (dropPosition == null) {
+      this.dragEffectId = null;
+      return;
+    }
+
+    // Move placeholder in the template
+    this.editableTemplate = this.movePlaceholderInTemplate(this.editableTemplate, this.dragEffectId, dropPosition);
+    this.dragEffectId = null;
+    this.updatePreview();
+    this.emitItemChanged();
+  }
+
   private htmlToTemplate(element: HTMLElement): string {
     let template = '';
     element.childNodes.forEach(node => {
@@ -430,6 +466,9 @@ export class EffectEditorComponent implements OnInit, OnChanges {
           if (effectId) {
             template += `{{${effectId}}}`;
           }
+        } else {
+          // Preserve inline text from other spans
+          template += el.textContent || '';
         }
       }
     });
@@ -492,5 +531,66 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     const template = this.editableTemplate || this.generateDefaultTemplate();
     if (!template) return;
     // (No-op in step 1; placeholder remapping will not be invoked on reorder.)
+  }
+
+  // ---- Drag-and-drop helpers ----
+  private computeDropInsertionIndex(event: DragEvent): number | null {
+    const container = event.currentTarget as HTMLElement | null;
+    if (!container) return null;
+
+    // Build a linear model of nodes (text or chips)
+    const parts: Array<{ kind: 'text'; node: Node } | { kind: 'chip'; el: HTMLElement; effectId: string }> = [];
+    container.childNodes.forEach(n => {
+      if (n.nodeType === Node.TEXT_NODE) {
+        parts.push({ kind: 'text', node: n });
+      } else if (n.nodeType === Node.ELEMENT_NODE) {
+        const el = n as HTMLElement;
+        const id = el.classList.contains('effect-chip') ? el.getAttribute('data-effect-id') : null;
+        if (id) parts.push({ kind: 'chip', el, effectId: id });
+        else parts.push({ kind: 'text', node: n });
+      }
+    });
+
+    // Determine index by comparing mouse x against chip midpoints; fallback to end
+    const mouseX = event.clientX;
+    let insertionIndex = parts.length; // default at end
+
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (p.kind === 'chip') {
+        const rect = p.el.getBoundingClientRect();
+        const mid = rect.left + rect.width / 2;
+        if (mouseX < mid) { insertionIndex = i; break; }
+        insertionIndex = i + 1;
+      }
+    }
+
+    return insertionIndex;
+  }
+
+  private movePlaceholderInTemplate(template: string, effectId: string, insertionIndex: number): string {
+    // Tokenize template into alternating text and placeholders
+    const tokens: Array<{ type: 'text'; value: string } | { type: 'ph'; id: string }> = [];
+    const regex = /\{\{([^}]+)\}\}/g;
+    let last = 0; let m: RegExpExecArray | null;
+    while ((m = regex.exec(template)) !== null) {
+      if (m.index > last) tokens.push({ type: 'text', value: template.slice(last, m.index) });
+      tokens.push({ type: 'ph', id: m[1].trim() });
+      last = regex.lastIndex;
+    }
+    if (last < template.length) tokens.push({ type: 'text', value: template.slice(last) });
+
+    // Remove all instances of the placeholder (keep first occurrence index for relative moves if needed)
+    const remaining = tokens.filter(t => !(t.type === 'ph' && t.id === effectId));
+
+    // Build positions array of slots between tokens (0..n)
+    // insertionIndex corresponds to position among token items, snapping to between tokens
+    const clampedIndex = Math.max(0, Math.min(insertionIndex, remaining.length));
+
+    // Insert placeholder token at the clamped index
+    remaining.splice(clampedIndex, 0, { type: 'ph', id: effectId });
+
+    // Rebuild template
+    return remaining.map(t => (t.type === 'text' ? t.value : `{{${t.id}}}`)).join('');
   }
 } 

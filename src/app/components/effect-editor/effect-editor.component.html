@@ -52,6 +52,9 @@
            (mouseover)="onPreviewHover($event)"
            (mouseout)="onPreviewHoverEnd($event)"
            (click)="onPreviewClick($event)"
+           (dragstart)="onPreviewDragStart($event)"
+           (dragover)="onPreviewDragOver($event)"
+           (drop)="onPreviewDrop($event)"
            [innerHTML]="previewHtml"
            pTooltip="Click to edit the template. Effect chips can be moved or deleted.">
       </div>
