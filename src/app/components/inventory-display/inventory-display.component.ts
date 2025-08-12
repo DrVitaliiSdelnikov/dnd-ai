@@ -293,6 +293,9 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     // Render a single chat line based on the item's template
     let description = this.templateRenderer.renderTemplateForChat(item, rollResults);
 
+    // Normalize sign sequences like "+-1" -> "-1"
+    description = this.normalizeSignSequences(description);
+
     // Append crit annotation if relevant
     if (isNatural1) {
       description += ' (natural 1!)';
@@ -310,6 +313,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     this.actionResults[item.item_id_suggestion] = description;
 
     this.confirmationService.close();
+  }
+
+  private normalizeSignSequences(text: string): string {
+    if (!text) { return text; }
+    // Replace "+-" (with optional spaces) with "-"; keep any surrounding spacing minimal
+    return text.replace(/\+\s*-\s*/g, '-');
   }
 
   useConsumable(item: InventoryItem): void {
