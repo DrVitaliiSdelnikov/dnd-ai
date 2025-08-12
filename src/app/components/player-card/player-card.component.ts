@@ -340,59 +340,87 @@ export class PlayerCardComponent implements OnInit {
     allItems: InventoryItem[],
     statsBonuses: { [key: string]: number }
   ): number {
-    const mainArmor = allItems.find(item => item.type === 'ARMOR');
+    // Helper to fetch effects from items (new model lives under properties.effects; fall back to item.effects if present)
+    const getEffects = (item: InventoryItem): any[] => {
+      const propsEffects = (item as any)?.properties?.effects;
+      const directEffects = (item as any)?.effects;
+      if (Array.isArray(propsEffects)) return propsEffects;
+      if (Array.isArray(directEffects)) return directEffects;
+      return [];
+    };
 
+    // Find best armor base from items of type ARMOR with ARMOR_CLASS effect
     let baseAc = 10;
-    let armorType: string | null = null;
-    let maxDexBonus: number = null;
-    const armorClassValue = mainArmor?.properties?.armor_class_value ?? 0;
+    let maxDexCap = Infinity; // No armor → full Dex applies
 
-    if (mainArmor && mainArmor.properties)
-      {
-      baseAc = (armorClassValue > 0) ? armorClassValue : baseAc;
-      armorType = mainArmor.properties.armor_type || null;
-      maxDexBonus = mainArmor.properties.max_dex_bonus === 'NO_LIMIT'
-        ? Infinity
-        : Number(armorClassValue ?? Infinity);
+    const armorCandidates: { ac: number; maxDex: number | undefined }[] = [];
+    allItems
+      .filter(i => i?.type === 'ARMOR')
+      .forEach(armorItem => {
+        const armorClassEff = getEffects(armorItem).find(e => e?.type === 'ARMOR_CLASS');
+        if (armorClassEff && typeof armorClassEff?.properties?.acValue === 'number') {
+          const acVal = Number(armorClassEff.properties.acValue);
+          const capVal = armorClassEff?.properties?.maxDexBonus;
+          armorCandidates.push({ ac: acVal, maxDex: typeof capVal === 'number' ? Number(capVal) : undefined });
+        }
+      });
+
+    if (armorCandidates.length > 0) {
+      // Choose the highest AC armor if multiple are present
+      const best = armorCandidates.reduce((a, b) => (b.ac > a.ac ? b : a));
+      baseAc = best.ac;
+      maxDexCap = typeof best.maxDex === 'number' ? best.maxDex : Infinity;
     }
 
-    const baseDex = this.playerCardForm.get('abilities.dex').value ?? 0;
-    const bonusDexFromItems = statsBonuses?.dex || 0;
-    const totalDex = baseDex + bonusDexFromItems;
-    const dexModifier = this.getAbilityModifier(totalDex);
+    // Determine Dex modifier. Prefer precomputed modifier from statsBonuses if provided
+    const baseDexScore = this.playerCardForm.get('abilities.dex').value ?? 0;
+    const dexModifier = (typeof statsBonuses?.dex === 'number')
+      ? statsBonuses.dex
+      : this.getAbilityModifier(baseDexScore);
 
-    let finalDexBonusForAc = dexModifier;
+    // Apply Dex only as a bonus; cap if armor specifies maxDexCap. If no armor, cap is Infinity
+    // Note: negative Dex does not reduce AC when wearing armor (treat as bonus only)
+    const dexBonusToAc = armorCandidates.length > 0
+      ? Math.max(0, Math.min(dexModifier, maxDexCap))
+      : dexModifier; // No armor: full Dex (positive or negative)
 
-    if (armorType === 'Heavy Armor') {
-      finalDexBonusForAc = 0;
-    } else if (armorType === 'Medium Armor') {
-      finalDexBonusForAc = Math.min(dexModifier, maxDexBonus);
-    }
-    let totalAc = baseAc;
+    let totalAc = baseAc + dexBonusToAc;
 
-    totalAc += finalDexBonusForAc;
-
+    // Additive AC effects from all items (non-armor ARMOR_CLASS, BUFF_STAT AC, and MAGIC_BONUS on armor/shield/accessory)
     allItems.forEach(item => {
-      if (item.properties)
-        {
-        if (item.type === 'SHIELD' && typeof item.properties.armor_class_value === 'number') {
-          totalAc += item.properties.armor_class_value;
-        }
+      const effects = getEffects(item);
+      if (!Array.isArray(effects) || effects.length === 0) return;
 
-        if (typeof item.properties.magic_bonus === 'number') {
-          if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
-            totalAc += item.properties.magic_bonus;
+      // Non-armor ARMOR_CLASS adds flat AC
+      effects
+        .filter(e => e?.type === 'ARMOR_CLASS')
+        .forEach(eff => {
+          if (item.type !== 'ARMOR') {
+            const add = Number(eff?.properties?.acValue ?? 0);
+            if (!Number.isNaN(add)) totalAc += add;
           }
-        }
+        });
 
-        if (Array.isArray(item.properties.effect_details)) {
-          item.properties.effect_details.forEach(effect => {
-            if (effect.type === 'BUFF_STAT' && effect.stat_buffed?.toUpperCase() === 'AC' && typeof effect.buff_value === 'number') {
-              totalAc += effect.buff_value;
-            }
-          });
-        }
-      }
+      // BUFF_STAT new model: properties.stat and properties.buffValue
+      effects
+        .filter(e => e?.type === 'BUFF_STAT')
+        .forEach(eff => {
+          const stat = String(eff?.properties?.stat || '').toLowerCase();
+          const add = Number(eff?.properties?.buffValue ?? 0);
+          if (stat === 'ac' && !Number.isNaN(add)) {
+            totalAc += add;
+          }
+        });
+
+      // MAGIC_BONUS adds to AC only for armor, shield, or accessory
+      effects
+        .filter(e => e?.type === 'MAGIC_BONUS')
+        .forEach(eff => {
+          if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
+            const add = Number(eff?.properties?.bonus ?? 0);
+            if (!Number.isNaN(add)) totalAc += add;
+          }
+        });
     });
 
     return totalAc;
