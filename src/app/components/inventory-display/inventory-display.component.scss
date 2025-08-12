@@ -62,14 +62,32 @@
     font-weight: bold;
   }
 
-  .equipped-badge {
+  /* Turn badge into a button-like pill while keeping look */
+  .equipped-badge.toggle-equip {
     margin-left: 8px;
     padding: 0.1rem 0.5rem;
     border-radius: 10px;
-    background: var(--green-100, #d1fae5);
-    color: var(--green-700, #047857);
     font-size: 0.75rem;
     font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: filter 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .equipped-badge.toggle-equip.equipped {
+    background: var(--green-100, #d1fae5);
+    color: var(--green-700, #047857);
+  }
+
+  .equipped-badge.toggle-equip.unequipped {
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-700, #374151);
+  }
+
+  .equipped-badge.toggle-equip:hover,
+  .equipped-badge.toggle-equip:focus {
+    filter: brightness(0.95);
+    outline: none;
   }
 
   .item-quantity {

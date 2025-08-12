@@ -11,7 +11,15 @@
           <span class="item-name">
             {{ item.name }}
             <span *ngIf="item.quantity > 1" class="item-quantity"> (x{{ item.quantity }})</span>
-            <span *ngIf="isItemEquipped(item)" class="equipped-badge">Equipped</span>
+            <button
+              type="button"
+              class="equipped-badge toggle-equip"
+              [ngClass]="{ 'equipped': isItemEquipped(item), 'unequipped': !isItemEquipped(item) }"
+              (click)="toggleEquip(item)"
+              [attr.aria-pressed]="isItemEquipped(item)"
+              [pTooltip]="isItemEquipped(item) ? 'Click to unequip' : 'Click to equip'">
+              {{ isItemEquipped(item) ? 'Equipped' : 'Equip' }}
+            </button>
           </span>
           
           <span *ngIf="item.description">
@@ -28,15 +36,7 @@
             <i class="pi pi-pencil"></i>
           </button>
 
-          <button
-            pButton
-            type="button"
-            class="p-button-sm equip-button"
-            [ngClass]="isItemEquipped(item) ? 'p-button-warning' : 'p-button-success'"
-            (click)="toggleEquip(item)"
-            [pTooltip]="isItemEquipped(item) ? 'Unequip item' : 'Equip item'">
-            {{ isItemEquipped(item) ? 'Unequip' : 'Equip' }}
-          </button>
+          <!-- Removed separate Equip/Unequip button; toggle handled by the pill above -->
 
           <button
             *ngIf="item.type === 'WEAPON' && item.properties?.effects"
