@@ -15,8 +15,9 @@ import { ChipModule } from 'primeng/chip';
 import { AccordionModule } from 'primeng/accordion';
 import { MenuModule } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
-import { MenuItem } from 'primeng/api';
+import { ConfirmationService, MenuItem } from 'primeng/api';
 import { ListboxModule } from 'primeng/listbox';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import { ElementRef, HostListener, ViewChild, AfterViewInit } from '@angular/core';
 
 import { Effect, EffectType, ItemWithEffects, SpellWithEffects } from '../../shared/interfaces/effects.interface';
@@ -31,7 +32,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     OrderListModule, ButtonModule, InputTextModule, InputNumberModule,
     DropdownModule, CheckboxModule, TextareaModule, DialogModule,
     CardModule, DividerModule, ChipModule, AccordionModule, MenuModule, TooltipModule,
-    ListboxModule
+    ListboxModule, ConfirmPopupModule
   ],
   templateUrl: './effect-editor.component.html',
   styleUrls: ['./effect-editor.component.scss']
@@ -46,6 +47,7 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
   private effectDefinitionsService = inject(EffectDefinitionsService);
   private fb = inject(FormBuilder);
   private sanitizer = inject(DomSanitizer);
+  private confirmationService = inject(ConfirmationService);
 
   // Component state
   effects: Effect[] = [];
@@ -688,5 +690,19 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
 
     // Rebuild template
     return remaining.map(t => (t.type === 'text' ? t.value : `{{${t.id}}}`)).join('');
+  }
+
+  confirmRemoveEffect(event: MouseEvent, effect: Effect): void {
+    this.confirmationService.confirm({
+      target: event.target as EventTarget,
+      key: 'effect-delete',
+      message: 'Remove this effect?',
+      acceptLabel: 'Yes',
+      rejectLabel: 'No',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => this.removeEffect(effect)
+    });
   }
 } 

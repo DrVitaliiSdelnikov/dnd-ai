@@ -92,7 +92,7 @@
                   <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text" 
                           (click)="editEffect(effect)" pTooltip="Edit Effect"></button>
                   <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger" 
-                          (click)="removeEffect(effect)" pTooltip="Remove Effect"></button>
+                          (click)="confirmRemoveEffect($event, effect)" pTooltip="Remove Effect"></button>
                 </div>
               </div>
             </ng-template>
@@ -141,6 +141,9 @@
             (click)="onSave()" [disabled]="itemForm.invalid"></button>
   </div>
 </div>
+
+<!-- Anchored confirm popup host for effect deletion -->
+<p-confirmPopup key="effect-delete"></p-confirmPopup>
 
 <!-- Effect Edit Dialog -->
 <p-dialog 
