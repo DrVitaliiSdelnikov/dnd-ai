@@ -118,6 +118,34 @@
       .effects-card {
         height: fit-content;
 
+        .picker-container {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        :deep(.p-listbox) {
+          width: 100%;
+        }
+
+        .picker-item {
+          display: flex;
+          flex-direction: column;
+          .picker-item-title {
+            font-weight: 600;
+            color: var(--text-color);
+          }
+          .picker-item-desc {
+            font-size: 0.85rem;
+            color: var(--text-color-secondary);
+          }
+        }
+
+        .picker-actions {
+          display: flex;
+          justify-content: flex-start;
+        }
+
         .filter-section {
           margin-bottom: 1rem;
 

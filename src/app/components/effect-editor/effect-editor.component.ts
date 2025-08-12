@@ -16,6 +16,8 @@ import { AccordionModule } from 'primeng/accordion';
 import { MenuModule } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
 import { MenuItem } from 'primeng/api';
+import { ListboxModule } from 'primeng/listbox';
+import { ElementRef, HostListener, ViewChild, AfterViewInit } from '@angular/core';
 
 import { Effect, EffectType, ItemWithEffects, SpellWithEffects } from '../../shared/interfaces/effects.interface';
 import { EffectDefinitionsService } from '../../services/effect-definitions.service';
@@ -28,12 +30,13 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     CommonModule, FormsModule, ReactiveFormsModule,
     OrderListModule, ButtonModule, InputTextModule, InputNumberModule,
     DropdownModule, CheckboxModule, TextareaModule, DialogModule,
-    CardModule, DividerModule, ChipModule, AccordionModule, MenuModule, TooltipModule
+    CardModule, DividerModule, ChipModule, AccordionModule, MenuModule, TooltipModule,
+    ListboxModule
   ],
   templateUrl: './effect-editor.component.html',
   styleUrls: ['./effect-editor.component.scss']
 })
-export class EffectEditorComponent implements OnInit, OnChanges {
+export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
   @Input() item: ItemWithEffects | SpellWithEffects | null = null;
   @Input() isSpell: boolean = false;
   @Output() itemChanged = new EventEmitter<ItemWithEffects | SpellWithEffects>();
@@ -52,6 +55,14 @@ export class EffectEditorComponent implements OnInit, OnChanges {
   selectedEffectType: EffectType | null = null;
   effectForm: FormGroup = this.fb.group({});
   highlightedCardId: string | null = null;
+  
+  // Picker (searchable list) state
+  showEffectPicker = false;
+  effectPickerOptions: Array<{ type: EffectType; label: string; description: string }> = [];
+  pickerFilterText = '';
+  pickerScrollTop = 0;
+  @ViewChild('pickerContainer') pickerContainer?: ElementRef<HTMLElement>;
+  @ViewChild('effectListbox') effectListbox?: any;
   
   // Form for item/spell basic properties
   itemForm: FormGroup = this.fb.group({
@@ -78,12 +89,22 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.setupAddEffectMenu();
+    // Build flat list of effect options for the picker (no categories)
+    const types = this.effectDefinitionsService.getAvailableEffectTypes();
+    this.effectPickerOptions = types.map(t => {
+      const def = this.effectDefinitionsService.getEffectDefinition(t);
+      return { type: t, label: def.name, description: def.description };
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['item'] && this.item) {
       this.loadItem();
     }
+  }
+
+  ngAfterViewInit(): void {
+    // Nothing for now; restoration of picker UI happens when opening it
   }
 
   private loadItem(): void {
@@ -119,6 +140,75 @@ export class EffectEditorComponent implements OnInit, OnChanges {
       label: this.effectDefinitionsService.getEffectDefinition(type).name,
       command: () => this.startAddingEffect(type)
     }));
+  }
+
+  // --- Picker flow ---
+  openEffectPicker(event?: MouseEvent): void {
+    event?.stopPropagation();
+    this.showEffectPicker = true;
+    // Restore filter text and scroll position after the picker renders
+    setTimeout(() => this.restorePickerUIState(), 0);
+  }
+
+  closeEffectPicker(): void {
+    // Persist current filter and scroll before closing
+    const container = this.pickerContainer?.nativeElement;
+    if (container) {
+      const listWrapper = container.querySelector('.p-listbox-list-wrapper') as HTMLElement | null;
+      if (listWrapper) this.pickerScrollTop = listWrapper.scrollTop;
+      const inputEl = container.querySelector('input.p-inputtext') as HTMLInputElement | null;
+      if (inputEl) this.pickerFilterText = inputEl.value;
+    }
+    this.showEffectPicker = false;
+  }
+
+  private restorePickerUIState(): void {
+    const container = this.pickerContainer?.nativeElement;
+    if (!container) return;
+    const inputEl = container.querySelector('input.p-inputtext') as HTMLInputElement | null;
+    if (inputEl && this.pickerFilterText) {
+      inputEl.value = this.pickerFilterText;
+      const evt = new Event('input', { bubbles: true });
+      inputEl.dispatchEvent(evt);
+    }
+    const listWrapper = container.querySelector('.p-listbox-list-wrapper') as HTMLElement | null;
+    if (listWrapper && this.pickerScrollTop > 0) {
+      listWrapper.scrollTop = this.pickerScrollTop;
+    }
+  }
+
+  onPickerInput(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (target && target.tagName === 'INPUT') {
+      this.pickerFilterText = (target as HTMLInputElement).value;
+    }
+  }
+
+  onPickEffect(option: { type: EffectType }): void {
+    if (!option) return;
+    // Save current UI state before opening dialog
+    const container = this.pickerContainer?.nativeElement;
+    const listWrapper = container?.querySelector('.p-listbox-list-wrapper') as HTMLElement | null;
+    if (listWrapper) this.pickerScrollTop = listWrapper.scrollTop;
+    const inputEl = container?.querySelector('input.p-inputtext') as HTMLInputElement | null;
+    if (inputEl) this.pickerFilterText = inputEl.value;
+    // Start editing selected effect
+    this.startAddingEffect(option.type);
+  }
+
+  // Close picker on outside click / Esc
+  @HostListener('document:click', ['$event'])
+  handleDocumentClick(ev: MouseEvent): void {
+    if (!this.showEffectPicker) return;
+    const container = this.pickerContainer?.nativeElement;
+    if (container && !container.contains(ev.target as Node)) {
+      this.closeEffectPicker();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  handleEscape(): void {
+    if (this.showEffectPicker) this.closeEffectPicker();
   }
 
   startAddingEffect(type: EffectType): void {
@@ -236,6 +326,8 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
     this.updatePreview();
     this.closeEffectDialog();
+    // Return to effects list after saving
+    this.showEffectPicker = false;
     this.emitItemChanged();
   }
 
@@ -260,6 +352,10 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     this.showAddEffectDialog = false;
     this.editingEffect = null;
     this.selectedEffectType = null;
+    // If dialog is cancelled/closed, return to list view
+    if (this.showEffectPicker) {
+      this.showEffectPicker = false;
+    }
   }
 
   onEffectReorder(): void {

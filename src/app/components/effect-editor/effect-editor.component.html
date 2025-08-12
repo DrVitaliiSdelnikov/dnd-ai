@@ -65,44 +65,70 @@
   <div class="effects-section">
     <div class="effects-column">
       <p-card header="Effects" class="effects-card">
-        <!-- OrderList for All Effects -->
-        <p-orderList 
-          [value]="effects" 
-          [(selection)]="selectedEffects"
-          [responsive]="true"
-          [dragdrop]="false"
-          [listStyle]="{'height': '300px'}">
-          
-          <ng-template pTemplate="item" let-effect>
-            <div class="effect-item" 
-                 [class.system-effect]="effect.isSystemEffect"
-                 [class.is-highlighted]="effect.id === highlightedCardId">
-              <div class="effect-info">
-                <div class="effect-name">
-                  {{ effect.name }}
-                  <i *ngIf="effect.isSystemEffect" class="pi pi-cog" pTooltip="System Effect"></i>
+        <!-- Effects list view -->
+        <ng-container *ngIf="!showEffectPicker; else pickerTpl">
+          <p-orderList 
+            [value]="effects" 
+            [(selection)]="selectedEffects"
+            [responsive]="true"
+            [dragdrop]="false"
+            [listStyle]="{'height': '300px'}">
+            
+            <ng-template pTemplate="item" let-effect>
+              <div class="effect-item" 
+                   [class.system-effect]="effect.isSystemEffect"
+                   [class.is-highlighted]="effect.id === highlightedCardId">
+                <div class="effect-info">
+                  <div class="effect-name">
+                    {{ effect.name }}
+                    <i *ngIf="effect.isSystemEffect" class="pi pi-cog" pTooltip="System Effect"></i>
+                  </div>
+                  <div class="effect-type">{{ getEffectDefinition(effect.type).name }}</div>
+                  <div class="effect-output" *ngIf="!effect.isSystemEffect && getEffectDefinition(effect.type).outputTemplate(effect.properties)">
+                    Output: {{ getEffectDefinition(effect.type).outputTemplate(effect.properties) }}
+                  </div>
                 </div>
-                <div class="effect-type">{{ getEffectDefinition(effect.type).name }}</div>
-                <div class="effect-output" *ngIf="!effect.isSystemEffect && getEffectDefinition(effect.type).outputTemplate(effect.properties)">
-                  Output: {{ getEffectDefinition(effect.type).outputTemplate(effect.properties) }}
+                <div class="effect-actions">
+                  <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text" 
+                          (click)="editEffect(effect)" pTooltip="Edit Effect"></button>
+                  <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger" 
+                          (click)="removeEffect(effect)" pTooltip="Remove Effect"></button>
                 </div>
               </div>
-              <div class="effect-actions">
-                <button pButton icon="pi pi-pencil" class="p-button-sm p-button-text" 
-                        (click)="editEffect(effect)" pTooltip="Edit Effect"></button>
-                <button pButton icon="pi pi-trash" class="p-button-sm p-button-text p-button-danger" 
-                        (click)="removeEffect(effect)" pTooltip="Remove Effect"></button>
-              </div>
-            </div>
-          </ng-template>
-        </p-orderList>
+            </ng-template>
+          </p-orderList>
 
-        <!-- Add Effect Button -->
-        <div class="add-effect-section">
-          <p-menu #addMenu [model]="addEffectMenuItems" [popup]="true"></p-menu>
-          <button pButton label="Add Effect" icon="pi pi-plus" 
-                  (click)="addMenu.toggle($event)" class="p-button-success"></button>
-        </div>
+          <!-- Add Effect Button switches to picker -->
+          <div class="add-effect-section">
+            <button pButton label="Add Effect" icon="pi pi-plus" 
+                    (click)="openEffectPicker($event)" class="p-button-success"></button>
+          </div>
+        </ng-container>
+
+        <!-- Picker view -->
+        <ng-template #pickerTpl>
+          <div #pickerContainer class="picker-container" (input)="onPickerInput($event)">
+            <p-listbox
+              #effectListbox
+              [options]="effectPickerOptions"
+              optionLabel="label"
+              [filter]="true"
+              [style]="{'height':'300px', 'width':'100%'}"
+              [listStyle]="{'height':'240px'}"
+              (onChange)="onPickEffect($event.value)"
+            >
+              <ng-template pTemplate="item" let-opt>
+                <div class="picker-item">
+                  <div class="picker-item-title">{{ opt.label }}</div>
+                  <div class="picker-item-desc">{{ opt.description }}</div>
+                </div>
+              </ng-template>
+            </p-listbox>
+            <div class="picker-actions">
+              <button pButton type="button" label="Back" icon="pi pi-arrow-left" class="p-button-text" (click)="closeEffectPicker()"></button>
+            </div>
+          </div>
+        </ng-template>
       </p-card>
     </div>
   </div>
