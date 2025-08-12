@@ -25,6 +25,7 @@ import { PlayerCardStateService } from '../../services/player-card-state.service
 import { SpeedDialModule } from 'primeng/speeddial';
 import { TemplateRendererService } from '../../services/template-renderer.service';
 import { SafeHtml } from '@angular/platform-browser';
+import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-inventory-display',
@@ -37,7 +38,8 @@ import { SafeHtml } from '@angular/platform-browser';
     Tooltip,
     ConfirmPopupModule,
     RollOptionsPanelComponent,
-    SpeedDialModule
+    SpeedDialModule,
+    NgClass
   ],
   providers: [
     MessageService,
@@ -168,11 +170,22 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     return result;
   }
 
+  isItemEquipped(item: InventoryItem): boolean {
+    return (item as any)?.equipped !== false;
+  }
+
+  toggleEquip(item: InventoryItem): void {
+    const itemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+    this.playerCardStateService.toggleEquip(itemId);
+    const nowEquipped = !((item as any)?.equipped === true ? false : (item as any)?.equipped === false ? true : false);
+    this.messageService.add({ severity: nowEquipped ? 'success' : 'warn', summary: nowEquipped ? 'Equipped' : 'Unequipped', detail: item.name });
+  }
+
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
     console.log('⚔️ rollAttackAndDamage called for item:', item.name, item);
     
-    if ((item.type !== 'WEAPON' && item.type !== 'AMMUNITION') || !item.properties.effects) { 
-      console.log('❌ Item is not a weapon/ammunition or missing effects');
+    if ((item.type !== 'WEAPON') || !item.properties.effects) { 
+      console.log('❌ Item is not a weapon or missing effects');
       return; 
     }
 

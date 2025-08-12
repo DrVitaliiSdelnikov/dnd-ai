@@ -101,6 +101,40 @@ export class PlayerCardStateService {
     this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, JSON.stringify(updatedCard));
   }
 
+  // Equip/Unequip helpers
+  private isItemIdMatch(item: any, targetId: string): boolean {
+    const currentItemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+    return currentItemId === targetId;
+  }
+
+  equipItem(itemId: string): void {
+    const currentCard = this.playerCardState();
+    if (!currentCard) return;
+    const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+    const updatedLoot = currentLoot.map(it => this.isItemIdMatch(it, itemId) ? { ...it, equipped: true } : it);
+    this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
+  }
+
+  unequipItem(itemId: string): void {
+    const currentCard = this.playerCardState();
+    if (!currentCard) return;
+    const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+    const updatedLoot = currentLoot.map(it => this.isItemIdMatch(it, itemId) ? { ...it, equipped: false } : it);
+    this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
+  }
+
+  toggleEquip(itemId: string): void {
+    const currentCard = this.playerCardState();
+    if (!currentCard) return;
+    const currentLoot = currentCard.loot === 'SAME' ? [] : (currentCard.loot || []);
+    const updatedLoot = currentLoot.map(it => {
+      if (!this.isItemIdMatch(it, itemId)) return it;
+      const equippedNow = (it as any)?.equipped !== false; // default true
+      return { ...it, equipped: !equippedNow };
+    });
+    this.updatePlayerCard({ ...currentCard, loot: updatedLoot });
+  }
+
   addItemToInventory(newItem: InventoryItem): void {
     const currentCard = this.playerCardState();
     if (currentCard) {

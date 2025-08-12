@@ -61,4 +61,5 @@ export interface InventoryItem {
   description?: string;
   properties?: ItemProperties;
   template?: string;
+  equipped?: boolean; // optional; treat missing as equipped
 }

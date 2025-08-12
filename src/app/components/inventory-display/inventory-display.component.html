@@ -11,6 +11,7 @@
           <span class="item-name">
             {{ item.name }}
             <span *ngIf="item.quantity > 1" class="item-quantity"> (x{{ item.quantity }})</span>
+            <span *ngIf="isItemEquipped(item)" class="equipped-badge">Equipped</span>
           </span>
           <div *ngIf="item.template && item.properties?.effects" class="item-template" 
                [innerHTML]="getRenderedTemplate(item)">
@@ -28,8 +29,19 @@
             pTooltip="Edit Item">
             <i class="pi pi-pencil"></i>
           </button>
+
           <button
-            *ngIf="(item.type === 'WEAPON' || item.type === 'AMMUNITION') && item.properties?.effects"
+            pButton
+            type="button"
+            class="p-button-sm equip-button"
+            [ngClass]="isItemEquipped(item) ? 'p-button-warning' : 'p-button-success'"
+            (click)="toggleEquip(item)"
+            [pTooltip]="isItemEquipped(item) ? 'Unequip item' : 'Equip item'">
+            {{ isItemEquipped(item) ? 'Unequip' : 'Equip' }}
+          </button>
+
+          <button
+            *ngIf="item.type === 'WEAPON' && item.properties?.effects"
             (click)="rollAttackAndDamage(item)"
             pButton
             (contextmenu)="callModeDialog(item, $event)"

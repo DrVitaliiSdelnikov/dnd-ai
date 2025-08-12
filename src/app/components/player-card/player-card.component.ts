@@ -198,6 +198,10 @@ export class PlayerCardComponent implements OnInit {
     });
   }
 
+  private isItemEquipped(item: InventoryItem): boolean {
+    return (item as any)?.equipped !== false; // default to true when missing
+  }
+
   private calculateStatsBonuses(
     allItems: InventoryItem[],
     baseAbilities: { [key: string]: number | null }
@@ -206,16 +210,33 @@ export class PlayerCardComponent implements OnInit {
     if (!baseAbilities) return {};
     const finalModifiers: { [key: string]: number } = {};
     const itemBonuses: { [key: string]: number } = {};
-    allItems.forEach(item => {
+
+    const equippedItems = (allItems || []).filter(i => this.isItemEquipped(i));
+
+    equippedItems.forEach(item => {
       const props = item?.properties;
 
+      // Legacy: effect_details
       if (props?.effect_details && Array.isArray(props.effect_details)) {
         props.effect_details.forEach(effect => {
           if (effect.type === 'BUFF_STAT' && effect.stat_buffed && typeof effect.buff_value === 'number') {
-            const statKey = effect.stat_buffed.toLowerCase();
+            const statKey = String(effect.stat_buffed).toLowerCase();
             const bonusValue = effect.buff_value;
-
             itemBonuses[statKey] = (itemBonuses[statKey] || 0) + bonusValue;
+          }
+        });
+      }
+
+      // New model: properties.effects with BUFF_STAT
+      const newEffects = (props as any)?.effects;
+      if (Array.isArray(newEffects)) {
+        newEffects.forEach((eff: any) => {
+          if (eff?.type === 'BUFF_STAT') {
+            const statKey = String(eff?.properties?.stat || '').toLowerCase();
+            const bonusValue = Number(eff?.properties?.buffValue ?? 0);
+            if (statKey && !Number.isNaN(bonusValue)) {
+              itemBonuses[statKey] = (itemBonuses[statKey] || 0) + bonusValue;
+            }
           }
         });
       }
@@ -349,12 +370,14 @@ export class PlayerCardComponent implements OnInit {
       return [];
     };
 
+    const items = (allItems || []).filter(i => this.isItemEquipped(i));
+
     // Find best armor base from items of type ARMOR with ARMOR_CLASS effect
     let baseAc = 10;
     let maxDexCap = Infinity; // No armor → full Dex applies
 
     const armorCandidates: { ac: number; maxDex: number | undefined }[] = [];
-    allItems
+    items
       .filter(i => i?.type === 'ARMOR')
       .forEach(armorItem => {
         const armorClassEff = getEffects(armorItem).find(e => e?.type === 'ARMOR_CLASS');
@@ -386,8 +409,8 @@ export class PlayerCardComponent implements OnInit {
 
     let totalAc = baseAc + dexBonusToAc;
 
-    // Additive AC effects from all items (non-armor ARMOR_CLASS, BUFF_STAT AC, and MAGIC_BONUS on armor/shield/accessory)
-    allItems.forEach(item => {
+    // Additive AC effects from equipped items (non-armor ARMOR_CLASS, BUFF_STAT AC, and MAGIC_BONUS on armor/shield/accessory)
+    items.forEach(item => {
       const effects = getEffects(item);
       if (!Array.isArray(effects) || effects.length === 0) return;
 
