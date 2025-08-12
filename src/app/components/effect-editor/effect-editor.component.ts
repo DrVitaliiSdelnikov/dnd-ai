@@ -46,7 +46,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   // Component state
   effects: Effect[] = [];
-  filterText: string = '';
+  selectedEffects: Effect[] = [];
   editingEffect: Effect | null = null;
   showAddEffectDialog = false;
   selectedEffectType: EffectType | null = null;
@@ -260,18 +260,11 @@ export class EffectEditorComponent implements OnInit, OnChanges {
   }
 
   onEffectReorder(): void {
-    // Update order numbers after reordering
+    // Update order numbers after reordering; do not rewrite the user template here
     this.effects.forEach((effect, index) => {
       effect.order = index + 1;
     });
 
-    console.log('🔁 EffectEditor:onEffectReorder new order:', this.effects.map(e => ({ id: e.id, order: e.order })));
-    
-    // Synchronize template placeholder positions with new order
-    this.remapPlaceholdersToNewOrder();
-    console.log('🧭 EffectEditor:onEffectReorder remapped template:', this.editableTemplate);
-    
-    // Update the main effects array
     this.updatePreview();
     this.emitItemChanged();
   }
@@ -374,16 +367,6 @@ export class EffectEditorComponent implements OnInit, OnChanges {
 
   getEffectDefinition(type: EffectType) {
     return this.effectDefinitionsService.getEffectDefinition(type);
-  }
-
-  getFilteredEffects(): Effect[] {
-    if (!this.filterText) return this.effects;
-    
-    const filter = this.filterText.toLowerCase();
-    return this.effects.filter(effect => 
-      effect.name.toLowerCase().includes(filter) ||
-      effect.type.toLowerCase().includes(filter)
-    );
   }
 
   getDropdownOptions(field: any): any[] {
@@ -504,63 +487,10 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     this.emitItemChanged();
   }
 
-  // Reassign placeholders in the current template to match the new order of effects
-  // Keeps text and the number of placeholder slots intact; only swaps which effect id
-  // occupies each slot based on the current sorted this.effects order.
+  // Reassign placeholders logic kept for future but not used on reorder anymore
   private remapPlaceholdersToNewOrder(): void {
     const template = this.editableTemplate || this.generateDefaultTemplate();
     if (!template) return;
-
-    // Parse template into parts of text and placeholders
-    const parts: Array<{ type: 'text'; value: string } | { type: 'placeholder'; id: string }> = [];
-    const regex = /\{\{([^}]+)\}\}/g;
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(template)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: 'text', value: template.slice(lastIndex, match.index) });
-      }
-      parts.push({ type: 'placeholder', id: match[1].trim() });
-      lastIndex = regex.lastIndex;
-    }
-    if (lastIndex < template.length) {
-      parts.push({ type: 'text', value: template.slice(lastIndex) });
-    }
-
-    // Collect reorderable placeholder ids that exist in the template
-    const placeholderIdsInTemplate = parts
-      .filter((p): p is { type: 'placeholder'; id: string } => p.type === 'placeholder')
-      .map(p => p.id);
-
-    // We only remap placeholders that correspond to existing, non-system effects (not {{name}} etc.)
-    const reorderableIds = placeholderIdsInTemplate.filter(id =>
-      id !== 'name' && this.effects.some(e => e.id === id && !e.isSystemEffect)
-    );
-    if (reorderableIds.length === 0) return;
-
-    // Desired order: effects present in template, sorted by current effect.order
-    const desiredOrderQueue = this.effects
-      .filter(e => !e.isSystemEffect && reorderableIds.includes(e.id))
-      .sort((a, b) => a.order - b.order)
-      .map(e => e.id);
-
-    // If mismatch, still proceed safely
-    if (desiredOrderQueue.length === 0) return;
-
-    // Remap: walk parts and for each reorderable placeholder, swap its id with next from queue
-    const remappedParts: Array<{ type: 'text'; value: string } | { type: 'placeholder'; id: string }> = parts.map(part => {
-      if (part.type === 'placeholder' && reorderableIds.includes(part.id)) {
-        const nextId = desiredOrderQueue.shift();
-        return { type: 'placeholder', id: nextId ?? part.id };
-      }
-      return part;
-    });
-
-    // Rebuild template
-    this.editableTemplate = remappedParts
-      .map(p => (p.type === 'text' ? p.value : `{{${p.id}}}`))
-      .join('');
-
-    console.log('🧱 EffectEditor:remapPlaceholdersToNewOrder result:', this.editableTemplate);
+    // (No-op in step 1; placeholder remapping will not be invoked on reorder.)
   }
 } 

@@ -62,22 +62,13 @@
   <div class="effects-section">
     <div class="effects-column">
       <p-card header="Effects" class="effects-card">
-        <!-- Filter -->
-        <div class="filter-section">
-          <span class="p-input-icon-left">
-            <i class="pi pi-search"></i>
-            <input pInputText [(ngModel)]="filterText" placeholder="Filter effects..." />
-          </span>
-        </div>
-
         <!-- OrderList for All Effects -->
         <p-orderList 
-          [value]="getFilteredEffects()" 
-          [(selection)]="effects"
+          [value]="effects" 
+          [(selection)]="selectedEffects"
           (onReorder)="onEffectReorder()"
           [dragdrop]="true"
           [responsive]="true"
-          filterBy="name"
           [listStyle]="{'height': '300px'}">
           
           <ng-template pTemplate="header">
