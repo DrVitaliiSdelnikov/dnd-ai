@@ -25,18 +25,19 @@ import { Effect } from '../../shared/interfaces/effects.interface';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
 import { FormsModule } from '@angular/forms';
 import { SpellcastingService } from '../../services/spellcasting.service';
+import { OverlayPanel, OverlayPanelModule } from 'primeng/overlaypanel';
+import { ViewChild } from '@angular/core';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, FormsModule],
+  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, FormsModule, OverlayPanelModule],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
 })
 export class SpellbookDisplayComponent implements OnInit {
   spells = input<Spell[]>([]);
-  selectedItem: WritableSignal<Spell | null> = signal(null);
   private dialogService = inject(DialogService);
   abilityModifiers: InputSignal<{ [key: string]: number }> = input<{ [key: string]: number }>({});
   private confirmationService: ConfirmationService = inject(ConfirmationService);
@@ -48,10 +49,10 @@ export class SpellbookDisplayComponent implements OnInit {
   spellAddOptions: MenuItem[];
   actionResults: { [spellId: string]: string | null } = {};
 
-  // Slot picker dialog state
-  slotDialogVisible = signal<boolean>(false);
+  // Anchored slot picker
+  @ViewChild('slotPanel') slotPanel!: OverlayPanel;
   slotOptions: SelectItem<number>[] = [];
-  selectedSlotLevel = signal<number | null>(null);
+  selectedItem: WritableSignal<Spell | null> = signal(null);
 
   readonly categorizedSpells = computed(() => {
     const currentSpells = this.spells();
@@ -91,31 +92,46 @@ export class SpellbookDisplayComponent implements OnInit {
     return this.templateRenderer.renderSpellTemplate(spell);
   }
 
-  openSlotDialog(spell: Spell): void {
-    this.selectedItem.set(spell);
+  handleCastClick(event: MouseEvent, spell: Spell): void {
+    // Cantrips: cast immediately at slot level 0
+    const spellLevel = spell.level ?? 0;
+    if (spellLevel === 0) {
+      this.castSpell(spell, 0);
+      return;
+    }
+
+    // Determine available and valid slots for this character
     const playerLevel = this.playerCardStateService.playerCard$()?.level ?? 1;
     const availableSlots = this.spellcastingService.getAvailableSlots(playerLevel);
 
-    // Default selected slot = spell.level (minimum 1 for slots), clamp to available
-    const baseLevel = Math.max(1, spell.level || 1);
-    const defaultSlot = availableSlots.includes(baseLevel)
-      ? baseLevel
-      : (availableSlots.length ? availableSlots[0] : baseLevel);
+    const baseLevel = Math.max(1, spellLevel || 1);
+    const validSlots = availableSlots.filter(l => l >= baseLevel);
+    const hasHigher = validSlots.some(l => l > baseLevel);
 
-    this.slotOptions = availableSlots.map(l => ({ label: `Level ${l}`, value: l }));
-    this.selectedSlotLevel.set(defaultSlot);
-    this.slotDialogVisible.set(true);
-  }
+    // If no higher slots available, cast immediately at the lowest valid slot
+    const defaultSlot = validSlots.length ? validSlots[0] : baseLevel;
 
-  confirmCast(): void {
-    const spell = this.selectedItem();
-    const slotLevel = this.selectedSlotLevel();
-    if (!spell || !slotLevel) {
-      this.slotDialogVisible.set(false);
+    if (!hasHigher) {
+      this.castSpell(spell, defaultSlot);
       return;
     }
-    this.slotDialogVisible.set(false);
-    this.castSpell(spell, slotLevel);
+
+    // Otherwise, open the anchored slot chooser with all valid levels from base → highest
+    this.selectedItem.set(spell);
+    this.slotOptions = validSlots.map(l => ({ label: `Level ${l}`, value: l }));
+    if (this.slotPanel) {
+      this.slotPanel.toggle(event);
+    }
+  }
+
+  castAtSlot(slotLevel: number): void {
+    const spell = this.selectedItem();
+    if (spell) {
+      if (this.slotPanel) {
+        this.slotPanel.hide();
+      }
+      this.castSpell(spell, slotLevel);
+    }
   }
 
   private getEffect(spell: Spell, type: string): Effect | undefined {

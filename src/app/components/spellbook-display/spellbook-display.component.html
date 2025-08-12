@@ -34,7 +34,7 @@
                   *ngIf="!spell.isPassive"
                   pButton
                   class="action-button cast-button p-button-info p-button-outlined"
-                  (click)="openSlotDialog(spell)">
+                  (click)="handleCastClick($event, spell)">
                   Cast
                 </button>
               </div>
@@ -49,17 +49,14 @@
   </div>
 </div>
 
-<p-dialog header="Cast Spell" [visible]="slotDialogVisible()" (visibleChange)="slotDialogVisible.set($event)" [modal]="true" [closable]="true" [dismissableMask]="true" [style]="{width:'26rem'}">
-  <div class="p-fluid">
-    <div class="p-field">
-      <label for="slotLevel">Slot level</label>
-      <p-dropdown inputId="slotLevel" [options]="slotOptions" [ngModel]="selectedSlotLevel()" [ngModelOptions]="{standalone: true}" (ngModelChange)="selectedSlotLevel.set($event)"></p-dropdown>
-    </div>
-    <div class="p-field">
-      <button pButton label="Cast" class="p-button-primary" (click)="confirmCast()"></button>
-    </div>
+<p-overlayPanel #slotPanel [dismissable]="true" [showCloseIcon]="false">
+  <div class="slot-select-panel">
+    <div class="slot-select-title">Cast at:</div>
+    @for(opt of slotOptions; track opt.value) {
+      <button pButton class="p-button-text p-button-sm" (click)="castAtSlot(opt.value)">{{ opt.label }}</button>
+    }
   </div>
-</p-dialog>
+</p-overlayPanel>
 
 <p-confirmpopup>
   <ng-template #content let-message>
