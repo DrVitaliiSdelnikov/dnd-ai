@@ -152,11 +152,8 @@ export class SpellbookDisplayComponent implements OnInit {
     if (spell.isPassive || !spell.castType) {
       // For passive/always-on, just render plain text via template (no rolls)
       this.actionResults[spell.id_suggestion] = this.templateRenderer.renderSpellText(spell);
-    } else if (spell.castType === 'utility') {
-      // No dice; render plain text
-      this.actionResults[spell.id_suggestion] = this.templateRenderer.renderSpellText(spell);
     } else {
-      // For attack and save spells, iterate effects and compute outputs
+      // For active spells of any castType (attack, save, utility), iterate effects and compute outputs
       (spell.effects || []).forEach((eff) => {
         switch (eff.type) {
           case 'D20_ROLL': {
@@ -200,6 +197,14 @@ export class SpellbookDisplayComponent implements OnInit {
             const joined = rolls.join(', ');
             const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
             chatValues[eff.id] = `${joined}${typeText}`;
+            break;
+          }
+          case 'HEALING': {
+            const notation = (eff?.properties?.healAmount as string) || '';
+            if (notation) {
+              const roll = this.rollDiceNotation(notation);
+              chatValues[eff.id] = `${roll.breakdown} HP`;
+            }
             break;
           }
           case 'SAVE_THROW': {
