@@ -316,6 +316,13 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       description += ' (natural 20!)';
     }
 
+    // NEW: Prefix for advantage/disadvantage
+    if (mode === RollStateEnum.ADVANTAGE) {
+      description = `(Rolled with advantage!) ${description}`;
+    } else if (mode === RollStateEnum.DISADVANTAGE) {
+      description = `(Rolled with disadvantage!) ${description}`;
+    }
+
     // Emit one unified message
     this.emitRollResults.emit({
       type: `WEAPON_ATTACK_${item.item_id_suggestion}`,

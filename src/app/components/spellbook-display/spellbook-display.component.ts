@@ -27,11 +27,12 @@ import { FormsModule } from '@angular/forms';
 import { SpellcastingService } from '../../services/spellcasting.service';
 import { OverlayPanel, OverlayPanelModule } from 'primeng/overlaypanel';
 import { ViewChild } from '@angular/core';
+import { RollOptionsPanelComponent, RollState, RollStateEnum } from '../../shared/components/roll-options-panel/roll-options-panel.component';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, FormsModule, OverlayPanelModule],
+  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, FormsModule, OverlayPanelModule, RollOptionsPanelComponent],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
@@ -53,6 +54,8 @@ export class SpellbookDisplayComponent implements OnInit {
   @ViewChild('slotPanel') slotPanel!: OverlayPanel;
   slotOptions: SelectItem<number>[] = [];
   selectedItem: WritableSignal<Spell | null> = signal(null);
+  private selectedSpellRollMode: WritableSignal<RollState> = signal(RollStateEnum.NORMAL);
+  private lastSpellContextEvent: MouseEvent | null = null;
 
   readonly categorizedSpells = computed(() => {
     const currentSpells = this.spells();
@@ -93,10 +96,12 @@ export class SpellbookDisplayComponent implements OnInit {
   }
 
   handleCastClick(event: MouseEvent, spell: Spell): void {
+    // Left-click always resets mode to NORMAL
+    this.selectedSpellRollMode.set(RollStateEnum.NORMAL);
     // Cantrips: cast immediately at slot level 0
     const spellLevel = spell.level ?? 0;
     if (spellLevel === 0) {
-      this.castSpell(spell, 0);
+      this.castSpell(spell, 0, this.selectedSpellRollMode());
       return;
     }
 
@@ -112,7 +117,7 @@ export class SpellbookDisplayComponent implements OnInit {
     const defaultSlot = validSlots.length ? validSlots[0] : baseLevel;
 
     if (!hasHigher) {
-      this.castSpell(spell, defaultSlot);
+      this.castSpell(spell, defaultSlot, this.selectedSpellRollMode());
       return;
     }
 
@@ -130,7 +135,7 @@ export class SpellbookDisplayComponent implements OnInit {
       if (this.slotPanel) {
         this.slotPanel.hide();
       }
-      this.castSpell(spell, slotLevel);
+      this.castSpell(spell, slotLevel, this.selectedSpellRollMode());
     }
   }
 
@@ -142,7 +147,7 @@ export class SpellbookDisplayComponent implements OnInit {
     return (spell.effects || []).filter(e => e.type === type);
   }
 
-  private castSpell(spell: Spell, slotLevel: number): void {
+  private castSpell(spell: Spell, slotLevel: number, rollMode: RollState = RollStateEnum.NORMAL): void {
     // Determine character level for levelScaling
     const playerLevel = this.playerCardStateService.playerCard$()?.level ?? 1;
 
@@ -158,8 +163,14 @@ export class SpellbookDisplayComponent implements OnInit {
         switch (eff.type) {
           case 'D20_ROLL': {
             const notation = (eff?.properties?.dice as string) || '1d20';
-            const roll = this.rollDiceNotation(notation);
-            chatValues[eff.id] = String(roll.total);
+            // If this is an attack-roll spell, respect rollMode for d20 rolls
+            if (spell.castType === 'attack_roll' && /^\s*1[dD]20(\s*[+-]\s*\d+)?\s*$/.test(notation)) {
+              const d20 = this.rollD20WithMode(rollMode);
+              chatValues[eff.id] = String(d20);
+            } else {
+              const roll = this.rollDiceNotation(notation);
+              chatValues[eff.id] = String(roll.total);
+            }
             break;
           }
           case 'PROFICIENCY': {
@@ -221,7 +232,16 @@ export class SpellbookDisplayComponent implements OnInit {
       });
 
       // Render final message using the template with computed values
-      this.actionResults[spell.id_suggestion] = this.templateRenderer.renderSpellTemplateForChat(spell, chatValues);
+      let description = this.templateRenderer.renderSpellTemplateForChat(spell, chatValues);
+      // Prefix adv/disadv only for attack-roll spells
+      if (spell.castType === 'attack_roll') {
+        if (rollMode === RollStateEnum.ADVANTAGE) {
+          description = `(Rolled with advantage!) ${description}`;
+        } else if (rollMode === RollStateEnum.DISADVANTAGE) {
+          description = `(Rolled with disadvantage!) ${description}`;
+        }
+      }
+      this.actionResults[spell.id_suggestion] = description;
     }
 
     this.spellCasted.emit({
@@ -426,5 +446,71 @@ export class SpellbookDisplayComponent implements OnInit {
     };
     this.spellAdded.emit(newSpell);
     this.openEditModal(newSpell);
+  }
+
+  // Open roll options on right-click for attack-roll spells
+  callSpellModeDialog(spell: Spell, $event: MouseEvent): void {
+    if (spell.castType !== 'attack_roll') {
+      return; // no mode selection for save_throw or utility
+    }
+    $event.preventDefault();
+    this.selectedItem.set(spell);
+    this.lastSpellContextEvent = $event;
+    this.confirmationService.confirm({
+      target: $event.target as EventTarget,
+      acceptVisible: false,
+      rejectVisible: false,
+      closable: true
+    });
+  }
+
+  // Receive selected roll mode from the options panel
+  onSpellRollModeSelected(mode: RollState): void {
+    this.selectedSpellRollMode.set(mode || RollStateEnum.NORMAL);
+    const spell = this.selectedItem();
+    if (!spell) { return; }
+
+    // Close the popup after selection
+    this.confirmationService.close();
+
+    const spellLevel = spell.level ?? 0;
+    if (spellLevel === 0) {
+      // Cantrips cast immediately at level 0
+      this.castSpell(spell, 0, this.selectedSpellRollMode());
+      return;
+    }
+
+    // Determine available and valid slots
+    const playerLevel = this.playerCardStateService.playerCard$()?.level ?? 1;
+    const availableSlots = this.spellcastingService.getAvailableSlots(playerLevel);
+    const baseLevel = Math.max(1, spellLevel || 1);
+    const validSlots = availableSlots.filter(l => l >= baseLevel);
+    const hasHigher = validSlots.some(l => l > baseLevel);
+    const defaultSlot = validSlots.length ? validSlots[0] : baseLevel;
+
+    if (!hasHigher) {
+      this.castSpell(spell, defaultSlot, this.selectedSpellRollMode());
+      return;
+    }
+
+    // Open slot chooser anchored to last context event
+    this.slotOptions = validSlots.map(l => ({ label: `Level ${l}`, value: l }));
+    if (this.slotPanel && this.lastSpellContextEvent) {
+      this.slotPanel.toggle(this.lastSpellContextEvent);
+    }
+  }
+
+  private rollD20(): number {
+    return Math.floor(Math.random() * 20) + 1;
+  }
+
+  private rollD20WithMode(mode: RollState): number {
+    if (mode === RollStateEnum.ADVANTAGE) {
+      return Math.max(this.rollD20(), this.rollD20());
+    } else if (mode === RollStateEnum.DISADVANTAGE) {
+      return Math.min(this.rollD20(), this.rollD20());
+    } else {
+      return this.rollD20();
+    }
   }
 }

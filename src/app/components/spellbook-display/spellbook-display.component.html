@@ -34,7 +34,8 @@
                   *ngIf="!spell.isPassive"
                   pButton
                   class="action-button cast-button p-button-info p-button-outlined"
-                  (click)="handleCastClick($event, spell)">
+                  (click)="handleCastClick($event, spell)"
+                  (contextmenu)="callSpellModeDialog(spell, $event)">
                   Cast
                 </button>
               </div>
@@ -60,6 +61,8 @@
 
 <p-confirmpopup>
   <ng-template #content let-message>
-    <!-- Reserved for future roll-mode panel if needed -->
+    <app-roll-options-panel
+      (rollEmit)="onSpellRollModeSelected($event)">
+    </app-roll-options-panel>
   </ng-template>
 </p-confirmpopup>
