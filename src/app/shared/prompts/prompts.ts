@@ -261,7 +261,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - Ability keys and damage types are lowercase everywhere.
 - If a DAMAGE effect has a damageType, do not write the word "damage" in the template; the UI appends it once in chat.
 
-**FINAL INSTRUCTION: Use the new effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match placeholders exactly.**
+**FINAL INSTRUCTION: Use the effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match placeholders exactly.**
 `;
 
 

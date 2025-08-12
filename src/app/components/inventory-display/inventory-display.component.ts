@@ -178,93 +178,136 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
 
     const effects = item.properties.effects;
     console.log('🎯 Weapon effects:', effects);
-    
+
+    // Collect placeholders present in the item's template (this defines desired output structure)
+    const template = item.template || '';
+    const placeholderIds: string[] = Array.from(template.matchAll(/\{\{([^}]+)\}\}/g)).map(m => String(m[1]).trim());
+
+    // Helper: detect intended type from placeholder id
+    const inferTypeFromId = (id: string): string | null => {
+      const low = id.toLowerCase();
+      if (low.includes('d20')) return 'D20_ROLL';
+      if (low === 'proficiency' || low === 'pb' || low.includes('prof')) return 'PROFICIENCY';
+      if (low === 'attack_stat' || low === 'attack' || low.includes('atk')) return 'ATTACK_STAT';
+      if (low === 'magic_bonus' || low === 'magic' || low.includes('bonus')) return 'MAGIC_BONUS';
+      if (low.startsWith('damage') || low.includes('damage')) return 'DAMAGE';
+      return null;
+    };
+
+    // Build mapping placeholderId -> effect (try exact id, then by inferred type in order)
+    const usedEffects = new Set<string>();
+    const placeholderToEffect: { [id: string]: any | null } = {};
+
+    // Ensure D20 effect exists if template asks for it (auto-fix minimal)
+    if (placeholderIds.some(id => inferTypeFromId(id) === 'D20_ROLL') && !effects.some(e => e.type === 'D20_ROLL')) {
+      effects.push({ id: 'd20_roll', name: 'D20 Roll', type: 'D20_ROLL', properties: { dice: '1d20' }, order: (effects?.length || 0) + 1 });
+    }
+
+    placeholderIds.forEach(pid => {
+      const exact = effects.find(e => e.id === pid);
+      if (exact) {
+        placeholderToEffect[pid] = exact; usedEffects.add(exact.id); return;
+      }
+      const inferred = inferTypeFromId(pid);
+      if (!inferred) { placeholderToEffect[pid] = null; return; }
+      const candidate = effects.find(e => e.type === inferred && !usedEffects.has(e.id));
+      if (candidate) { placeholderToEffect[pid] = candidate; usedEffects.add(candidate.id); }
+      else { placeholderToEffect[pid] = null; }
+    });
+
+    // Pull core bonuses
     const attackStatEffect = effects.find(e => e.type === 'ATTACK_STAT');
     const proficiencyEffect = effects.find(e => e.type === 'PROFICIENCY');
     const magicBonusEffect = effects.find(e => e.type === 'MAGIC_BONUS');
-    const damageEffects = effects.filter(e => e.type === 'DAMAGE');
 
-    console.log('🔍 Found effects:', {
-      attackStatEffect,
-      proficiencyEffect,
-      magicBonusEffect,
-      damageEffects
-    });
-
-    if (!attackStatEffect || !damageEffects.length) {
-      console.log('❌ Missing required effects (attack stat or damage)');
-      this.messageService.add({severity: 'error', summary: 'Error', detail: 'Weapon missing required effects'});
-      return;
-    }
-
-    const attackStat = attackStatEffect.properties.attackStat;
-    const modifier = this.abilityModifiers()[attackStat] || 0;
+    const attackStatKey = attackStatEffect?.properties?.attackStat;
+    const abilityMod = attackStatKey ? (this.abilityModifiers()?.[attackStatKey] || 0) : 0;
     const proficiencyBonus = proficiencyEffect ? this.playerCardStateService.getProficiencyBonus(this.playerCardStateService.playerCard$().level) : 0;
-    const magicBonus = magicBonusEffect?.properties.bonus || 0;
-    const totalBonus = modifier + proficiencyBonus + magicBonus;
+    const magicBonus = magicBonusEffect?.properties?.bonus || 0;
+    const totalBonus = abilityMod + proficiencyBonus + magicBonus;
 
-    // Roll attack
+    // Roll attack d20 (respect advantage/disadvantage)
     const d20Roll = this.rollD20WithMode(mode);
     const isNatural20 = d20Roll === 20;
     const isNatural1 = d20Roll === 1;
 
-    let attackRollsString = `(${d20Roll}${totalBonus >= 0 ? '+' : ''}${totalBonus})`;
-    if (isNatural1) {
-      attackRollsString += ' (natural 1!)';
-    } else if (isNatural20) {
-      attackRollsString += ' (natural 20!)';
+    // Build rollResults for every placeholder present in template
+    const rollResults: { [effectId: string]: string } = {};
+
+    // Track first DAMAGE for crit doubling
+    let firstDamageResolved = false;
+
+    for (const pid of placeholderIds) {
+      const eff = placeholderToEffect[pid];
+      const inferredType = inferTypeFromId(pid);
+      const type = eff?.type || inferredType;
+
+      switch (type) {
+        case 'D20_ROLL': {
+          rollResults[pid] = String(d20Roll);
+          break;
+        }
+        case 'PROFICIENCY': {
+          rollResults[pid] = String(proficiencyBonus);
+          break;
+        }
+        case 'ATTACK_STAT': {
+          rollResults[pid] = String(abilityMod);
+          break;
+        }
+        case 'MAGIC_BONUS': {
+          rollResults[pid] = String(magicBonus);
+          break;
+        }
+        case 'DAMAGE': {
+          // Roll dice for this damage effect; double dice on crit for the FIRST damage only (bonuses not doubled)
+          const dice = eff?.properties?.dice as string;
+          if (!dice) { rollResults[pid] = ''; break; }
+
+          // Parse basic XdY(+/-Z) using existing helper
+          const base = this.parseAndRollDice(dice);
+          if ((base as any).error) { rollResults[pid] = ''; break; }
+          let damageTotal = (base as any).total as number;
+
+          if (isNatural20 && !firstDamageResolved) {
+            const extra = this.parseAndRollDice(dice);
+            if (!(extra as any).error) {
+              damageTotal += (extra as any).total as number;
+            }
+            firstDamageResolved = true;
+          }
+
+          const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+          // Do NOT add ability/magic bonuses here; template can include + {{attack_stat}} / + {{magic_bonus}}
+          rollResults[pid] = `${damageTotal}${damageType ? ' ' + damageType : ''}`;
+          break;
+        }
+        default: {
+          // Unknown or non-combat effect: leave empty so renderer drops it
+          rollResults[pid] = '';
+          break;
+        }
+      }
     }
 
-    const finalAttackResult = d20Roll + totalBonus;
-    const attackResultDescription = `${item.name}: ${finalAttackResult} to hit${attackRollsString}`;
+    // Render a single chat line based on the item's template
+    let description = this.templateRenderer.renderTemplateForChat(item, rollResults);
 
+    // Append crit annotation if relevant
+    if (isNatural1) {
+      description += ' (natural 1!)';
+    } else if (isNatural20) {
+      description += ' (natural 20!)';
+    }
+
+    // Emit one unified message
     this.emitRollResults.emit({
       type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
-      description: attackResultDescription
+      description
     });
 
-    // Roll damage and build template results
-    const damageBonus = modifier + magicBonus;
-    let totalDamage = 0;
-    const rollResults: {[effectId: string]: string} = {};
-
-    // Process each damage effect
-    damageEffects.forEach(effect => {
-      const diceNotation = effect.properties.dice;
-      const damageRollResult = this.parseAndRollDice(diceNotation);
-      if (damageRollResult.error) {
-        this.actionResults[item.item_id_suggestion] = 'Damage roll error';
-        return;
-      }
-      const damageType = effect.properties.damageType || '';
-      const finalDamageForEffect = damageRollResult.total + damageBonus;
-      totalDamage += finalDamageForEffect;
-      
-      // Store the rolled result for template rendering
-      rollResults[effect.id] = `${finalDamageForEffect} ${damageType}`;
-    });
-
-    // Add non-damage effects to roll results
-    if (attackStatEffect) {
-      rollResults[attackStatEffect.id] = `using ${attackStatEffect.properties.attackStat?.toUpperCase()}`;
-    }
-    if (magicBonusEffect) {
-      rollResults[magicBonusEffect.id] = `+${magicBonusEffect.properties.bonus}`;
-    }
-
-    console.log('🎲 Roll results for template:', rollResults);
-
-    if (damageEffects.length > 0) {
-      // Use template renderer to create the chat message
-      const damageResultDescription = this.templateRenderer.renderTemplateForChat(item, rollResults);
-      console.log('💬 Chat message generated:', damageResultDescription);
-      
-      this.emitRollResults.emit({
-        type: `WEAPON_DAMAGE_${item.item_id_suggestion}`,
-        description: damageResultDescription
-      });
-      this.actionResults[item.item_id_suggestion] = `Damage: ${totalDamage}`;
-    }
+    // Save last action text for UI (optional)
+    this.actionResults[item.item_id_suggestion] = description;
 
     this.confirmationService.close();
   }
