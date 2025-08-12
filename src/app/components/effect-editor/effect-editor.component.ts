@@ -346,6 +346,8 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
 
   removeEffect(effect: Effect): void {
     this.effects = this.effects.filter(e => e.id !== effect.id);
+    // Also remove its placeholder from the editable template to avoid leftover [id] tags
+    this.editableTemplate = this.removeEffectPlaceholder(this.editableTemplate, effect.id);
     this.updatePreview();
     this.emitItemChanged();
   }
@@ -704,5 +706,25 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       icon: 'pi pi-exclamation-triangle',
       accept: () => this.removeEffect(effect)
     });
+  }
+
+  // --- Helpers for placeholder cleanup ---
+  private escapeRegExp(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private removeEffectPlaceholder(template: string, effectId: string): string {
+    if (!template) return template;
+    const idPattern = this.escapeRegExp(effectId);
+    const placeholderRegex = new RegExp(`\\{\\{\\s*${idPattern}\\s*\\}}`, 'g');
+    let result = template.replace(placeholderRegex, '');
+    // Normalize whitespace around punctuation and collapse doubles
+    result = result
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([,.!?;:])/g, '$1')
+      .replace(/\(\s+/g, '(')
+      .replace(/\s+\)/g, ')')
+      .trim();
+    return result;
   }
 } 
