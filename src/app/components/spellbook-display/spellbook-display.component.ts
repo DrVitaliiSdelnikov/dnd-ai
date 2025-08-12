@@ -130,81 +130,73 @@ export class SpellbookDisplayComponent implements OnInit {
     // Determine character level for levelScaling
     const playerLevel = this.playerCardStateService.playerCard$()?.level ?? 1;
 
-    const d20Effect = this.getEffect(spell, 'D20_ROLL');
-    const hasProficiency = !!this.getEffect(spell, 'PROFICIENCY');
-    const attackStatEffect = this.getEffect(spell, 'ATTACK_STAT');
-    const magicBonusEffect = this.getEffect(spell, 'MAGIC_BONUS');
-    const saveThrowEffect = this.getEffect(spell, 'SAVE_THROW');
-    const damageEffects = this.getEffects(spell, 'DAMAGE');
-
-    const parts: string[] = [`Casts ${spell.name}`];
+    // Build mapping from effect id -> chat value (numbers or text).
+    const chatValues: { [effectId: string]: string } = {};
 
     if (spell.isPassive || !spell.castType) {
-      // Passive/always-on: no cast button in UI; but if somehow invoked, just output template text.
-      parts.push(this.templateRenderer.renderSpellText(spell));
+      // For passive/always-on, just render plain text via template (no rolls)
+      this.actionResults[spell.id_suggestion] = this.templateRenderer.renderSpellText(spell);
     } else if (spell.castType === 'utility') {
-      // No dice; just render template text
-      parts.push(this.templateRenderer.renderSpellText(spell));
-    } else if (spell.castType === 'attack_roll') {
-      // Always roll one d20 (or D20_ROLL if present)
-      const d20Notation = (d20Effect?.properties?.dice as string) || '1d20';
-      const d20Roll = this.rollDiceNotation(d20Notation);
+      // No dice; render plain text
+      this.actionResults[spell.id_suggestion] = this.templateRenderer.renderSpellText(spell);
+    } else {
+      // For attack and save spells, iterate effects and compute outputs
+      (spell.effects || []).forEach((eff) => {
+        switch (eff.type) {
+          case 'D20_ROLL': {
+            const notation = (eff?.properties?.dice as string) || '1d20';
+            const roll = this.rollDiceNotation(notation);
+            chatValues[eff.id] = String(roll.total);
+            break;
+          }
+          case 'PROFICIENCY': {
+            const pb = this.playerCardStateService.getProficiencyBonus(playerLevel);
+            chatValues[eff.id] = String(pb);
+            break;
+          }
+          case 'ATTACK_STAT': {
+            const abilityKey = (eff?.properties?.attackStat as string) || '';
+            const abilityMod = abilityKey ? (this.abilityModifiers()?.[abilityKey] ?? 0) : 0;
+            chatValues[eff.id] = String(abilityMod);
+            break;
+          }
+          case 'MAGIC_BONUS': {
+            const bonus = typeof eff?.properties?.bonus === 'number' ? eff.properties.bonus : 0;
+            chatValues[eff.id] = String(bonus);
+            break;
+          }
+          case 'DAMAGE': {
+            const finalDice = this.applyScalingToDice(
+              eff?.properties?.dice as string,
+              slotLevel,
+              spell.level || 0,
+              eff?.properties?.slotScaling,
+              eff?.properties?.levelScaling,
+              playerLevel
+            );
+            const roll = this.rollDiceNotation(finalDice);
+            const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
+            // Default behavior: include damage type text in the chip output for chat
+            chatValues[eff.id] = `${roll.total}${typeText}`;
+            break;
+          }
+          case 'SAVE_THROW': {
+            const dc = eff?.properties?.dc;
+            const abil = eff?.properties?.saveAbility ? String(eff.properties.saveAbility).toUpperCase() : '';
+            if (dc && abil) {
+              chatValues[eff.id] = `DC ${dc} (${abil})`;
+            }
+            break;
+          }
+          default:
+            break;
+        }
+      });
 
-      // Pull numeric PB and ability modifier
-      const pb = hasProficiency ? this.playerCardStateService.getProficiencyBonus(playerLevel) : 0;
-      const abilityKey = (attackStatEffect?.properties?.attackStat as string) || '';
-      const abilityMod = abilityKey ? (this.abilityModifiers()?.[abilityKey] ?? 0) : 0;
-      const magicBonus = typeof magicBonusEffect?.properties?.bonus === 'number' ? magicBonusEffect.properties.bonus : 0;
-
-      const totalAttack = d20Roll.total + pb + abilityMod + magicBonus;
-      const breakdownParts: string[] = [
-        `${d20Notation}=${d20Roll.breakdown}`,
-        ...(pb ? [`PB=${pb}`] : []),
-        ...(abilityKey ? [`${abilityKey.toUpperCase()}=${abilityMod}`] : []),
-        ...(magicBonus ? [`+${magicBonus}`] : [])
-      ];
-      parts.push(`Attack roll: ${totalAttack} (${breakdownParts.join(' + ')})`);
-
-      // Roll all DAMAGE effects (with scaling)
-      if (damageEffects.length) {
-        const dmgStrings = damageEffects.map((eff) => {
-          const finalDice = this.applyScalingToDice(
-            eff?.properties?.dice as string,
-            slotLevel,
-            spell.level || 0,
-            eff?.properties?.slotScaling,
-            eff?.properties?.levelScaling,
-            playerLevel
-          );
-          const roll = this.rollDiceNotation(finalDice);
-          const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)}` : '';
-          return `${roll.total}${typeText} (${finalDice}=${roll.breakdown})`;
-        });
-        parts.push(`Damage: ${dmgStrings.join(', ')}`);
-      }
-    } else if (spell.castType === 'save_throw') {
-      if (saveThrowEffect?.properties?.dc && saveThrowEffect?.properties?.saveAbility) {
-        parts.push(`Save DC: ${saveThrowEffect.properties.dc} (${String(saveThrowEffect.properties.saveAbility).toUpperCase()})`);
-      }
-      if (damageEffects.length) {
-        const dmgStrings = damageEffects.map((eff) => {
-          const finalDice = this.applyScalingToDice(
-            eff?.properties?.dice as string,
-            slotLevel,
-            spell.level || 0,
-            eff?.properties?.slotScaling,
-            eff?.properties?.levelScaling,
-            playerLevel
-          );
-          const roll = this.rollDiceNotation(finalDice);
-          const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)}` : '';
-          return `${roll.total}${typeText} (${finalDice}=${roll.breakdown})`;
-        });
-        parts.push(`Damage: ${dmgStrings.join(', ')}`);
-      }
+      // Render final message using the template with computed values
+      this.actionResults[spell.id_suggestion] = this.templateRenderer.renderSpellTemplateForChat(spell, chatValues);
     }
 
-    this.actionResults[spell.id_suggestion] = parts.join('. ');
     this.spellCasted.emit({
       type: `SPELL_CAST_${spell.id_suggestion}`,
       description: this.actionResults[spell.id_suggestion] as string

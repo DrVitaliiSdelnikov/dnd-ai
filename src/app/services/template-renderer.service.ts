@@ -124,4 +124,28 @@ export class TemplateRendererService {
     });
     return text.replace(/<[^>]*>/g, '');
   }
+
+  // Spell chat rendering: replace placeholders with provided roll results
+  renderSpellTemplateForChat(spell: Spell, rollResults: { [effectId: string]: string }): string {
+    if (!spell?.template || !Array.isArray(spell?.effects)) {
+      return spell?.name || '';
+    }
+    const template = spell.template;
+    const effects = spell.effects as Effect[];
+
+    const processedTemplate = template.replace(/\{\{name\}\}/g, spell.name);
+    const text = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
+      const trimmed = String(effectId).trim();
+      const effect = effects.find(e => e.id === trimmed);
+      if (!effect) return '';
+      const definition = this.effectDefinitionsService.getEffectDefinition(effect.type as any);
+      if (definition?.isSystemEffect) return '';
+      if (rollResults && typeof rollResults[trimmed] === 'string') {
+        return rollResults[trimmed];
+      }
+      const output = definition?.outputTemplate ? definition.outputTemplate(effect.properties) : '';
+      return output || '';
+    });
+    return text.replace(/<[^>]*>/g, '');
+  }
 } 
