@@ -163,6 +163,7 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     if (effect.type === 'DAMAGE' || effect.type === 'HEALING') {
       const slotScaling = (effect.properties && (effect.properties as any).slotScaling) || {};
       formControls['perSlotDice'] = [slotScaling.perSlotDice ?? ''];
+      formControls['separateRoll'] = [!!slotScaling.separateRoll];
 
       // Level scaling managed via a serialized JSON string for simplicity
       const levelScaling = (effect.properties && (effect.properties as any).levelScaling);
@@ -199,13 +200,14 @@ export class EffectEditorComponent implements OnInit, OnChanges {
     // Persist scaling for DAMAGE/HEALING
     if (this.editingEffect.type === 'DAMAGE' || this.editingEffect.type === 'HEALING') {
       const perSlotDice = formValue['perSlotDice'];
+      const separateRoll = !!formValue['separateRoll'];
       const stepsStr = formValue['levelScalingSteps'];
       const stepsParsed = (() => {
         try { return JSON.parse(stepsStr || '[]'); } catch { return []; }
       })();
 
-      if (perSlotDice && typeof perSlotDice === 'string') {
-        (this.editingEffect.properties as any).slotScaling = { perSlotDice: String(perSlotDice) };
+      if ((perSlotDice && typeof perSlotDice === 'string') || separateRoll) {
+        (this.editingEffect.properties as any).slotScaling = { perSlotDice: perSlotDice ? String(perSlotDice) : '', separateRoll };
       } else {
         delete (this.editingEffect.properties as any).slotScaling;
       }

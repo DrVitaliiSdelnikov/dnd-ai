@@ -121,10 +121,12 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
               "name": "string", // Human-readable name like "Attack Stat" or "Slashing Damage"
               "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL | PROFICIENCY",
               "properties": {
-                // DAMAGE: { "dice": "1d8+2", "damageType": "slashing" }
+                // DAMAGE: { "dice": "1d8+2" | "1d4+1, 1d4+1, 1d4+1", "damageType": "slashing|fire|...",
+                //           "slotScaling": { "perSlotDice": "1d8", "separateRoll": false },
+                //           "levelScaling": [{ "level": 5, "addDice": "1d8" } | { "level": 11, "addCount": 1, "separateRoll": true }] }
                 // HEALING: { "healAmount": "2d4+2" }
                 // ARMOR_CLASS: { "acValue": 15, "maxDexBonus": 2 }
-                // ATTACK_STAT: { "attackStat": "str" } // str, dex, con, int, wis, cha
+                // ATTACK_STAT: { "attackStat": "str" }
                 // MAGIC_BONUS: { "bonus": 1 }
                 // STATIC_TEXT: { "text": "glows with magical light" }
                 // CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
@@ -154,7 +156,9 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
             "name": "string",
             "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL",
             "properties": {
-              // DAMAGE: { "dice": "1d10", "damageType": "fire", "slotScaling": { "perSlotDice": "1d10" }, "levelScaling": [{ "level": 5, "addDice": "1d10" }] }
+              // DAMAGE: { "dice": "1d10" | "1d4+1, 1d4+1, 1d4+1", "damageType": "fire",
+              //           "slotScaling": { "perSlotDice": "1d10", "separateRoll": false },
+              //           "levelScaling": [{ "level": 5, "addDice": "1d10" } | { "level": 11, "addCount": 1, "separateRoll": true }] }
               // HEALING: { "healAmount": "2d4+2", "slotScaling": { "perSlotDice": "1d4" }, "levelScaling": [{ "level": 5, "addDice": "1d4" }] }
               // SAVE_THROW: { "dc": 13, "saveAbility": "dex" }
               // ATTACK_STAT: { "attackStat": "int" }
@@ -178,6 +182,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - Each effect has an "id" that MUST match the placeholders in the template string.
 - Only these chip types render as chips in previews: D20_ROLL, PROFICIENCY, ATTACK_STAT, DAMAGE, SAVE_THROW. Everything else renders as plain inline text in the template.
 - Use descriptive templates with {{effectId}} placeholders that match your effect IDs exactly.
+- DAMAGE effects: you may enter multiple dice separated by commas for multiple separate hits (e.g., Magic Missile). Upcasting can either add dice into the same roll or as separate rolls using slotScaling.separateRoll=true. If a damageType is set, do not add the word "damage" in the template; the UI will append the damage type once in chat.
 
 **WEAPON EXAMPLE (Longsword +1):**
 - item_id_suggestion: "longsword_plus_1"
@@ -205,8 +210,19 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
   { id: "d20", name: "D20", type: "D20_ROLL", properties: { dice: "1d20" }, order: 1 },
   { id: "prof", name: "Proficiency", type: "PROFICIENCY", properties: {}, order: 2 },
   { id: "attack", name: "Attack Stat", type: "ATTACK_STAT", properties: { attackStat: "int" }, order: 3 },
-  { id: "ray1", name: "Ray Damage", type: "DAMAGE", properties: { dice: "2d6", damageType: "fire", slotScaling: { perSlotDice: "1d6" }, levelScaling: [ { level: 5, addDice: "1d6" } ] }, order: 4 },
-  { id: "ray2", name: "Ray Damage", type: "DAMAGE", properties: { dice: "2d6", damageType: "fire", slotScaling: { perSlotDice: "1d6" } }, order: 5 }
+  { id: "ray1", name: "Ray Damage", type: "DAMAGE", properties: { dice: "2d6", damageType: "fire", slotScaling: { perSlotDice: "1d6", separateRoll: false }, levelScaling: [ { level: 5, addDice: "1d6" } ] }, order: 4 },
+  { id: "ray2", name: "Ray Damage", type: "DAMAGE", properties: { dice: "2d6", damageType: "fire", slotScaling: { perSlotDice: "1d6", separateRoll: false } }, order: 5 }
+]
+
+**SPELL EXAMPLE (Magic Missile-style separate darts):**
+- id_suggestion: "magic_missile"
+- name: "Magic Missile"
+- type: "SPELL"
+- level: 1
+- castType: "attack_roll"
+- template: "{{name}}: {{missiles}}."
+- effects: [
+  { id: "missiles", name: "Force Damage", type: "DAMAGE", properties: { dice: "1d4+1, 1d4+1, 1d4+1", damageType: "force", slotScaling: { perSlotDice: "1d4+1", separateRoll: true } }, order: 1 }
 ]
 
 **SPELL EXAMPLE (Save Throw, scaled damage):**
@@ -219,7 +235,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - template: "{{name}}: {{save}}; Damage: {{fire}}."
 - effects: [
   { id: "save", name: "Save DC", type: "SAVE_THROW", properties: { dc: 13, saveAbility: "dex" }, order: 1 },
-  { id: "fire", name: "Fire Damage", type: "DAMAGE", properties: { dice: "3d6", damageType: "fire", slotScaling: { perSlotDice: "1d6" } }, order: 2 }
+  { id: "fire", name: "Fire Damage", type: "DAMAGE", properties: { dice: "3d6", damageType: "fire", slotScaling: { perSlotDice: "1d6", separateRoll: false } }, order: 2 }
 ]
 
 **CONSUMABLE EXAMPLE (Potion of Healing):**
@@ -240,11 +256,12 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - Save-throw spells use SAVE_THROW with a fixed numeric DC and a target ability; no DC formula in code.
 - Bonuses aren’t automatic; include explicit effects like MAGIC_BONUS.
 - Spell slots: a picker is shown at cast time and only affects effects that declare slot scaling.
-- Scaling is embedded per DAMAGE/HEALING effect via slotScaling.perSlotDice and levelScaling steps.
+- Scaling is embedded per DAMAGE/HEALING effect via slotScaling.perSlotDice and levelScaling steps. You may use slotScaling.separateRoll to add extra separate rolls when upcasting.
 - Passive spells: set isPassive=true and omit castType to hide the cast UI.
 - Ability keys and damage types are lowercase everywhere.
+- If a DAMAGE effect has a damageType, do not write the word "damage" in the template; the UI appends it once in chat.
 
-**FINAL INSTRUCTION: Use the new effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match template placeholders exactly.**
+**FINAL INSTRUCTION: Use the new effect system for ALL items and spells. Each effect is modular and reusable. The template string determines how the item appears to players, and effect IDs must match placeholders exactly.**
 `;
 
 

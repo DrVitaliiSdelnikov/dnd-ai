@@ -10,9 +10,9 @@ export class EffectDefinitionsService {
     // Combat Effects (appear in preview)
     DAMAGE: {
       name: 'Damage',
-      description: 'Deals damage with dice and type. Supports optional slot/level scaling.',
+      description: 'Deals damage with dice and type. Supports optional slot/level scaling. You can enter multiple dice, comma-separated (e.g., 1d4+1, 1d4+1, 1d4+1). If a damage type is set, avoid adding the word "damage" in the template to prevent duplication.',
       fields: [
-        { key: 'dice', label: 'Damage Dice', type: 'text', required: true, placeholder: '1d6+2' },
+        { key: 'dice', label: 'Damage Dice', type: 'text', required: true, placeholder: '1d6+2 or 1d4+1, 1d4+1, 1d4+1' },
         { key: 'damageType', label: 'Damage Type', type: 'select', required: false, 
           options: ['slashing', 'piercing', 'bludgeoning', 'fire', 'cold', 'lightning', 'thunder', 'acid', 'poison', 'necrotic', 'radiant', 'psychic', 'force'] }
       ],

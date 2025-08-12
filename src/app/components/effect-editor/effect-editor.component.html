@@ -155,6 +155,7 @@
                [id]="field.key" 
                [formControlName]="field.key"
                [placeholder]="field.placeholder || ''" />
+        <small *ngIf="selectedEffectType==='DAMAGE' && field.key==='dice'" class="hint-text">Comma-separated allowed, e.g. 1d4+1, 1d4+1, 1d4+1</small>
         
         <!-- Number Input -->
         <p-inputNumber *ngIf="field.type === 'number'" 
@@ -183,6 +184,10 @@
           <div class="p-field p-col-12">
             <label for="perSlotDice">Add Dice per Upcast Slot</label>
             <input pInputText id="perSlotDice" formControlName="perSlotDice" placeholder="e.g. 1d8" />
+            <div class="mt-2">
+              <p-checkbox inputId="separateRoll" formControlName="separateRoll" [binary]="true"></p-checkbox>
+              <label for="separateRoll" class="ml-2">Separate roll</label>
+            </div>
           </div>
         </div>
       </div>

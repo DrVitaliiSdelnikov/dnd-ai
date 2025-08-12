@@ -182,18 +182,24 @@ export class SpellbookDisplayComponent implements OnInit {
             break;
           }
           case 'DAMAGE': {
-            const finalDice = this.applyScalingToDice(
-              eff?.properties?.dice as string,
+            // NEW: support multi-dice lists and separate-roll upcasting/level-scaling
+            const baseDiceInput = (eff?.properties?.dice as string) || '';
+            const slotScaling = eff?.properties?.slotScaling;
+            const levelScaling = eff?.properties?.levelScaling;
+
+            const finalDiceList = this.applySlotAndLevelScalingToDiceList(
+              this.parseDiceList(baseDiceInput),
               slotLevel,
               spell.level || 0,
-              eff?.properties?.slotScaling,
-              eff?.properties?.levelScaling,
+              slotScaling,
+              levelScaling,
               playerLevel
             );
-            const roll = this.rollDiceNotation(finalDice);
+
+            const rolls = finalDiceList.map(d => this.rollDiceNotation(d).total);
+            const joined = rolls.join(', ');
             const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
-            // Default behavior: include damage type text in the chip output for chat
-            chatValues[eff.id] = `${roll.total}${typeText}`;
+            chatValues[eff.id] = `${joined}${typeText}`;
             break;
           }
           case 'SAVE_THROW': {
@@ -232,6 +238,91 @@ export class SpellbookDisplayComponent implements OnInit {
       return `${count}d${pa[2]}${mod !== 0 ? (mod > 0 ? '+' + mod : String(mod)) : ''}`;
     }
     return `${a} + ${b}`;
+  }
+
+  private parseDiceList(input: string | string[]): string[] {
+    if (Array.isArray(input)) {
+      return input.filter(s => typeof s === 'string').map(s => s.trim()).filter(Boolean);
+    }
+    if (!input || typeof input !== 'string') return [];
+    return input
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  private applySlotAndLevelScalingToDiceList(
+    baseDiceList: string[],
+    selectedSlot: number,
+    baseSpellLevel: number,
+    slotScaling: any,
+    levelScaling: any,
+    characterLevel: number
+  ): string[] {
+    let result: string[] = [...baseDiceList];
+
+    // Slot scaling: adds dice per slot above base level
+    const slotsAbove = (baseSpellLevel >= 1)
+      ? Math.max(0, (selectedSlot || baseSpellLevel) - baseSpellLevel)
+      : 0;
+
+    const perSlotDice: string | undefined = slotScaling && typeof slotScaling.perSlotDice === 'string' ? slotScaling.perSlotDice : undefined;
+    const separateRoll: boolean = !!(slotScaling && (slotScaling.separateRoll === true));
+
+    if (perSlotDice && slotsAbove > 0) {
+      if (separateRoll) {
+        for (let i = 0; i < slotsAbove; i++) {
+          result.push(perSlotDice);
+        }
+      } else {
+        for (let i = 0; i < slotsAbove; i++) {
+          // Merge into the first entry (create one if empty)
+          if (result.length === 0) {
+            result.push(perSlotDice);
+          } else {
+            result[0] = this.addDice(result[0], perSlotDice);
+          }
+        }
+      }
+    }
+
+    // Level scaling: cumulative steps
+    if (Array.isArray(levelScaling)) {
+      const steps = levelScaling
+        .filter((step: any) => typeof step?.level === 'number' && step?.level <= characterLevel)
+        .sort((a: any, b: any) => a.level - b.level);
+
+      steps.forEach((step: any) => {
+        const stepDice: string | undefined = typeof step?.addDice === 'string' ? step.addDice : undefined;
+        const stepCount: number | undefined = typeof step?.addCount === 'number' ? step.addCount : undefined;
+        const stepSeparate: boolean = !!step?.separateRoll;
+
+        if (typeof stepCount === 'number' && stepCount > 0) {
+          const diceToAdd = stepDice || (result[0] || '').trim();
+          if (!diceToAdd) return;
+          if (stepSeparate) {
+            for (let i = 0; i < stepCount; i++) { result.push(diceToAdd); }
+          } else {
+            for (let i = 0; i < stepCount; i++) {
+              if (result.length === 0) { result.push(diceToAdd); }
+              else { result[0] = this.addDice(result[0], diceToAdd); }
+            }
+          }
+        }
+
+        if (stepDice && (typeof stepCount !== 'number')) {
+          // Single dice addition
+          if (stepSeparate) {
+            result.push(stepDice);
+          } else {
+            if (result.length === 0) { result.push(stepDice); }
+            else { result[0] = this.addDice(result[0], stepDice); }
+          }
+        }
+      });
+    }
+
+    return result;
   }
 
   private applyScalingToDice(
