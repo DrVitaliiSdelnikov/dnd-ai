@@ -68,6 +68,7 @@
         <!-- Effects list view -->
         <ng-container *ngIf="!showEffectPicker; else pickerTpl">
           <p-orderList 
+            *ngIf="effects && effects.length > 0"
             [value]="effects" 
             [(selection)]="selectedEffects"
             [responsive]="true"
