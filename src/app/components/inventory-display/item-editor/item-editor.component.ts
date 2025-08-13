@@ -16,7 +16,8 @@ import { ItemWithEffects, Effect } from '../../../shared/interfaces/effects.inte
       [isSpell]="false"
       (itemChanged)="onItemChanged($event)"
       (save)="save()"
-      (cancel)="close()">
+      (cancel)="close()"
+      (delete)="delete()">
     </app-effect-editor>
   `,
   styles: [`
@@ -269,5 +270,15 @@ export class ItemEditorComponent implements OnInit {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  delete(): void {
+    if (!this.item) { this.dialogRef.close({ deleted: true }); return; }
+    // Handle both property names for compatibility
+    const itemId = (this.item as any).item_id_suggestion || (this.item as any).id_suggestion;
+    if (itemId) {
+      this.playerCardStateService.removeItemFromInventory(itemId);
+    }
+    this.dialogRef.close({ deleted: true });
   }
 }

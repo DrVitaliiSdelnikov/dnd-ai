@@ -135,6 +135,9 @@
 
   <!-- Action Buttons -->
   <div class="action-buttons">
+    <button pButton label="Delete" icon="pi pi-trash" class="p-button-danger"
+            #deleteButton
+            (click)="onConfirmDeleteClick($event)"></button>
     <button pButton label="Cancel" icon="pi pi-times" class="p-button-secondary" 
             (click)="onCancel()"></button>
     <button pButton label="Save" icon="pi pi-check" class="p-button-success" 
@@ -144,6 +147,8 @@
 
 <!-- Anchored confirm popup host for effect deletion -->
 <p-confirmPopup key="effect-delete"></p-confirmPopup>
+<!-- Anchored confirm popup host for item/spell deletion -->
+<p-confirmPopup key="editor-delete"></p-confirmPopup>
 
 <!-- Effect Edit Dialog -->
 <p-dialog 

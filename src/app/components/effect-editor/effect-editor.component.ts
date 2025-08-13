@@ -43,6 +43,7 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
   @Output() itemChanged = new EventEmitter<ItemWithEffects | SpellWithEffects>();
   @Output() save = new EventEmitter<void>();
   @Output() cancel = new EventEmitter<void>();
+  @Output() delete = new EventEmitter<void>();
 
   private effectDefinitionsService = inject(EffectDefinitionsService);
   private fb = inject(FormBuilder);
@@ -50,6 +51,7 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
   private confirmationService = inject(ConfirmationService);
 
   // Component state
+  @ViewChild('deleteButton') deleteButton?: ElementRef<HTMLElement>;
   effects: Effect[] = [];
   selectedEffects: Effect[] = [];
   editingEffect: Effect | null = null;
@@ -693,6 +695,36 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       icon: 'pi pi-exclamation-triangle',
       accept: () => this.removeEffect(effect)
     });
+  }
+
+  onConfirmDeleteClick(event: MouseEvent): void {
+    this.openDeleteConfirmation(event.target as EventTarget);
+  }
+
+  private openDeleteConfirmation(target?: EventTarget): void {
+    const anchor: EventTarget | undefined = target || (this.deleteButton ? (this.deleteButton.nativeElement as unknown as EventTarget) : undefined);
+    this.confirmationService.confirm({
+      target: anchor,
+      key: 'editor-delete',
+      message: this.isSpell ? 'Delete this spell?' : 'Delete this item?',
+      acceptLabel: 'Yes',
+      rejectLabel: 'No',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => this.delete.emit()
+    });
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeyDownDeleteShortcut(event: KeyboardEvent): void {
+    if (event.key !== 'Delete') return;
+    const targetEl = event.target as HTMLElement | null;
+    if (!targetEl) return;
+    const tag = targetEl.tagName?.toLowerCase();
+    const isTyping = targetEl.isContentEditable || tag === 'input' || tag === 'textarea';
+    if (isTyping) return;
+    this.openDeleteConfirmation();
   }
 
   // --- Helpers for placeholder cleanup ---

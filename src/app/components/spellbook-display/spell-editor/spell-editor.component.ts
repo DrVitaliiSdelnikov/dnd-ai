@@ -16,7 +16,8 @@ import { ItemWithEffects, Effect } from '../../../shared/interfaces/effects.inte
       [isSpell]="true"
       (itemChanged)="onSpellChanged($event)"
       (save)="save()"
-      (cancel)="close()">
+      (cancel)="close()"
+      (delete)="delete()">
     </app-effect-editor>
   `,
   styles: [`
@@ -61,5 +62,14 @@ export class SpellEditorComponent implements OnInit {
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  delete(): void {
+    if (!this.spell) { this.dialogRef.close({ deleted: true }); return; }
+    const currentCard = this.playerCardStateService.playerCard$();
+    if (!currentCard) { this.dialogRef.close({ deleted: true }); return; }
+    const updated = Array.isArray(currentCard.spells) ? currentCard.spells.filter(s => s.id_suggestion !== this.spell.id_suggestion) : [];
+    this.playerCardStateService.updatePlayerCard({ ...currentCard, spells: updated });
+    this.dialogRef.close({ deleted: true });
   }
 }
