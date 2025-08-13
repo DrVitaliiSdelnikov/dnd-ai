@@ -89,9 +89,7 @@ export class SkillsDisplayComponent {
     });
 
     ref.onClose.subscribe((wasSaved: boolean) => {
-      if (wasSaved) {
-        console.log(`Skill '${skill.name}' was updated.`);
-      }
+      // no-op
     });
   }
 

@@ -195,11 +195,9 @@ export class EffectEditorDemoComponent {
 
   onItemChanged(item: ItemWithEffects | SpellWithEffects): void {
     this.currentItem = item;
-    console.log('Item changed:', item);
   }
 
   onSave(): void {
-    console.log('Saving item:', this.currentItem);
     this.closeEditor();
   }
 

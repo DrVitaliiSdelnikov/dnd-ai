@@ -73,9 +73,7 @@ export class AdventureSummaryComponent implements OnInit {
     });
 
     ref.onClose.subscribe((wasSaved: boolean) => {
-      if (wasSaved) {
-        console.log('Summary was updated.');
-      }
+      // no-op
     });
   }
 }

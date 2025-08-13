@@ -177,7 +177,6 @@ export class SpellbookDisplayComponent implements OnInit {
                 capturedD20 = d20;
                 isNatural20 = d20 === 20;
                 isNatural1 = d20 === 1;
-                console.log('[Spellbook] d20 roll:', d20, 'mode:', rollMode, 'isNat20:', isNatural20, 'isNat1:', isNatural1, 'spell:', spell?.name);
               }
             } else {
               const roll = this.rollDiceNotation(notation);

@@ -25,6 +25,6 @@ export class AppHeaderComponent {
   }
 
   toggleProfile() {
-    console.log('Profile button clicked');
+    // Implement profile actions here if needed
   }
 }

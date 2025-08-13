@@ -182,15 +182,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   rollAttackAndDamage(item: InventoryItem, mode: RollState = RollStateEnum.NORMAL): void {
-    console.log('⚔️ rollAttackAndDamage called for item:', item.name, item);
     
     if ((item.type !== 'WEAPON') || !item.properties.effects) { 
-      console.log('❌ Item is not a weapon or missing effects');
       return; 
     }
 
     const effects = item.properties.effects;
-    console.log('🎯 Weapon effects:', effects);
 
     // Collect placeholders present in the item's template (this defines desired output structure)
     const template = item.template || '';
@@ -243,8 +240,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const d20Roll = this.rollD20WithMode(mode);
     const isNatural20 = d20Roll === 20;
     const isNatural1 = d20Roll === 1;
-
-    console.log('[InventoryDisplay] d20 roll:', d20Roll, 'mode:', mode, 'isNat20:', isNatural20, 'isNat1:', isNatural1, 'item:', item?.name);
 
     // Build rollResults for every placeholder present in template
     const rollResults: { [effectId: string]: string } = {};
@@ -458,7 +453,6 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   }
 
   openEditModal(item: InventoryItem, isNew: boolean = false): void {
-    console.log('🪟 InventoryDisplay:openEditModal with item:', item);
     const ref = this.dialogService.open(ItemEditorComponent, {
       header: `Edit Item: ${item.name || 'New Item'}`,
       width: '50vw',
@@ -468,13 +462,10 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
 
     ref.onClose.subscribe((result: {item: InventoryItem, isNew: boolean} | undefined) => {
-      console.log('🪟 InventoryDisplay:edit dialog closed with result:', result);
       if (result) {
         if(result.isNew) {
-          console.log('➕ InventoryDisplay:addItemToInventory', result.item);
           this.playerCardStateService.addItemToInventory(result.item);
         } else {
-          console.log('✏️ InventoryDisplay:updateItemInInventory', result.item);
           this.playerCardStateService.updateItemInInventory(result.item);
         }
       } else {
