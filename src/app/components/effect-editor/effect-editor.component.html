@@ -20,8 +20,8 @@
           <p-inputNumber inputId="level" formControlName="level" [min]="0" [showButtons]="true"></p-inputNumber>
         </div>
         <div class="field" *ngIf="isSpell">
-          <label for="castType">Cast Type</label>
-          <p-dropdown inputId="castType" formControlName="castType" [options]="[
+          <label id="castTypeLabel">Cast Type</label>
+          <p-dropdown [ariaLabelledBy]="'castTypeLabel'" inputId="castType" formControlName="castType" [options]="[
             {label:'Utility', value:'utility'},
             {label:'Attack Roll', value:'attack_roll'},
             {label:'Save Throw', value:'save_throw'}
