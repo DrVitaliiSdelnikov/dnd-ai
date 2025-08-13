@@ -468,13 +468,11 @@ export class PlayerCardComponent implements OnInit {
   }
 
   handleSpellAdded(newSpell: any): void {
-    console.log('[PlayerCardComponent] handleSpellAdded received:', newSpell);
     const currentCard = this.playerCardStateService.playerCard$();
     if (!currentCard) return;
     const currentSpells = Array.isArray(currentCard.spells) ? currentCard.spells : [];
     const exists = currentSpells.some(s => s.id_suggestion === newSpell.id_suggestion);
     if (exists) {
-      console.log('[PlayerCardComponent] spell already exists in card, not adding duplicate');
       return;
     }
     const updatedSpells = [...currentSpells, newSpell];

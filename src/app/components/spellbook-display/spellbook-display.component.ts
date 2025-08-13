@@ -418,7 +418,6 @@ export class SpellbookDisplayComponent implements OnInit {
   }
 
   openEditModal(spell: Spell): void {
-    console.log('[SpellbookDisplay] openEditModal called with spell:', spell);
     const ref = this.dialogService.open(SpellEditorComponent, {
       header: `Edit Spell: ${spell.name}`,
       width: '60vw',
@@ -428,7 +427,6 @@ export class SpellbookDisplayComponent implements OnInit {
     });
 
     ref.onClose.subscribe((wasSaved: boolean) => {
-      console.log('[SpellbookDisplay] edit dialog closed; wasSaved =', wasSaved);
       if (wasSaved) {
         // State updated via service inside editor
       }
@@ -446,7 +444,6 @@ export class SpellbookDisplayComponent implements OnInit {
       template: '{{name}}',
       effects: []
     };
-    console.log('[SpellbookDisplay] addNewSpell: creating and emitting new spell', newSpell);
     this.spellAdded.emit(newSpell);
     this.openEditModal(newSpell);
   }

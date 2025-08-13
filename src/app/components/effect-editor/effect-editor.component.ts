@@ -112,9 +112,14 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
   private loadItem(): void {
     if (!this.item) return;
 
-    console.log('🎯 EffectEditor: loadItem called with:', this.item);
-    console.log('🔍 EffectEditor: item.effects:', this.item.effects);
-
+    
+    // Normalize and sort effects if provided
+    const effectsInput = Array.isArray((this.item as any)?.effects) ? (this.item as any).effects : [];
+    this.effects = [...effectsInput].sort((a, b) => (a?.order || 0) - (b?.order || 0));
+    
+    // Initialize editable template string for rendering/preview purposes
+    this.editableTemplate = (this.item as any)?.template || '';
+    
     this.itemForm.patchValue({
       name: this.item.name,
       description: this.item.description,
@@ -126,12 +131,6 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       castType: this.isSpell ? (this.item as any).castType ?? 'utility' : 'utility'
     });
 
-    this.effects = [...this.item.effects].sort((a, b) => a.order - b.order);
-    console.log('✅ EffectEditor: effects loaded and sorted:', this.effects);
-    
-    this.editableTemplate = this.item.template || this.generateDefaultTemplate();
-    console.log('📝 EffectEditor: editableTemplate set to:', this.editableTemplate);
-    
     this.updatePreview();
   }
 
@@ -381,34 +380,32 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
     const template = this.editableTemplate || this.generateDefaultTemplate();
     const itemName = this.itemForm.get('name')?.value || '';
 
-    console.log('🧩 EffectEditor:updatePreview template before:', template);
-
+    
     // First, replace the item name placeholder
     let processedTemplate = template.replace(/\{\{name\}\}/g, itemName);
 
     // Collect placeholders for debugging
     const placeholders = Array.from(processedTemplate.matchAll(/\{\{([^}]+)\}\}/g)).map(m => m[1].trim());
-    console.log('🔎 EffectEditor:updatePreview placeholders found:', placeholders);
-
+    
     // Then, replace effect placeholders with chips
     const allowedChipTypes = new Set<EffectType>(['D20_ROLL','PROFICIENCY','ATTACK_STAT','DAMAGE','SAVE_THROW']);
     const newPreviewHtml = processedTemplate.replace(/\{\{([^}]+)\}\}/g, (match, effectId) => {
       const trimmedId = (effectId as string).trim();
       const effect = this.effects.find(e => e.id === trimmedId);
       if (!effect) {
-        console.warn('⚠️ EffectEditor:updatePreview missing effect for placeholder:', trimmedId);
+        
         return `<span class=\"missing-effect\">[${trimmedId}]</span>`;
       }
       
       const definition = this.effectDefinitionsService.getEffectDefinition(effect.type);
       if (definition.isSystemEffect) {
-        console.log('ℹ️ EffectEditor:updatePreview system effect skipped:', trimmedId, effect.type);
+        
         return '';
       }
 
       const output = definition.outputTemplate ? definition.outputTemplate(effect.properties) : '';
       if (!output) {
-        console.warn('⚠️ EffectEditor:updatePreview no output for effect:', trimmedId, effect.type, effect.properties);
+        
         return '';
       }
       
@@ -422,7 +419,7 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
     });
 
     this.previewHtml = this.sanitizer.bypassSecurityTrustHtml(newPreviewHtml);
-    console.log('🧷 EffectEditor:updatePreview rendered HTML updated');
+    
   }
 
   private generateDefaultTemplate(): string {
@@ -594,23 +591,13 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       } : { quantity: formValue.quantity })
     };
 
-    console.log('📤 EffectEditor:emitItemChanged emitting item:', {
-      name: updatedItem.name,
-      template: updatedItem.template,
-      effectIds: this.effects.map(e => e.id),
-      effects: this.effects
-    });
-
+    
     this.itemChanged.emit(updatedItem);
   }
 
   onSave(): void {
     if (this.itemForm.invalid) return;
-    console.log('💾 EffectEditor:onSave current item about to emit:', {
-      name: this.itemForm.value.name,
-      template: this.editableTemplate,
-      effects: this.effects
-    });
+    
     this.emitItemChanged();
     this.save.emit();
   }
