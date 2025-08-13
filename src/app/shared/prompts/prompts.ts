@@ -22,6 +22,7 @@ then ask if they want to describe their character appearance/backstory/ personal
 If any of this information is missing, generate and fill in the gaps with what makes the most sense.
 If the player doesn't provide you the stats, do the standard array of 15, 14, 13, 12, 10, 8, and assign them to the character's ability scores
 -- use common sense to decide which stats are crucial. Once the character creation is finished, ask for final approval before proceeding
+Additionally, list racial/class/background features for the chosen level; generate missing ones and confirm with the player. Represent passive features as spells entries (type: "ABILITY", isPassive: true, level: -1, no castType); mirror mechanical impacts in skills/abilities; add nuances to notes.
 `;
 
 export const RULES_DICE_AND_CHECKS = `
@@ -42,6 +43,7 @@ export const TASK_CONTINUE_GAMEPLAY = `
 - Describe the outcome of their action and the world's reaction based on these factors.
 - Present a new situation for the player to respond to.
 - If the player asks you something out of character, ignore previous instructions and focus on resolving the question before continuing the game.
+- Reference relevant racial/class/background features when calling for checks or narrating outcomes.
 `;
 
 export const JSON_GENERATION = `
@@ -146,7 +148,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
         "name": "string",
         "type": "SPELL | ABILITY",
         "description": "string",
-        "level": "number", // base spell level; 0 for cantrips
+        "level": "number", // base spell level; 0 for cantrips; -1 for passive ABILITY features
         "isPassive": "boolean", // passive spells have no cast button
         "castType": "attack_roll | save_throw | utility | null", // absent or null for passive
         "template": "string", // Template like "{{name}} deals {{fire_damage}} to targets within {{range}}"
@@ -257,7 +259,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - Bonuses aren’t automatic; include explicit effects like MAGIC_BONUS.
 - Spell slots: a picker is shown at cast time and only affects effects that declare slot scaling.
 - Scaling is embedded per DAMAGE/HEALING effect via slotScaling.perSlotDice and levelScaling steps. You may use slotScaling.separateRoll to add extra separate rolls when upcasting.
-- Passive spells: set isPassive=true and omit castType to hide the cast UI.
+- Features: use type "ABILITY", isPassive=true, level -1, omit castType. Combat spells must set isPassive=false and castType "attack_roll" or "save_throw"; use "utility" only for non-combat effects.
 - Ability keys and damage types are lowercase everywhere.
 - If a DAMAGE effect has a damageType, do not write the word "damage" in the template; the UI appends it once in chat.
 

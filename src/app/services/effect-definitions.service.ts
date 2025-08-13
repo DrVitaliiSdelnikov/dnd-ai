@@ -129,8 +129,8 @@ export class EffectDefinitionsService {
 
     // Dice roll display effect (chip appears in preview)
     D20_ROLL: {
-      name: 'D20 Roll',
-      description: 'Represents a 1d20 attack roll placeholder in templates',
+      name: 'Dice',
+      description: 'Generic dice roll placeholder for templates. Accepts any dice notation (e.g., 1d4, 2d6+3). Defaults to 1d20 if empty.',
       fields: [
         { key: 'dice', label: 'Dice', type: 'text', required: true, placeholder: '1d20' }
       ],

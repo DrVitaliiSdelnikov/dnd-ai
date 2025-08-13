@@ -213,7 +213,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
 
     // Ensure D20 effect exists if template asks for it (auto-fix minimal)
     if (placeholderIds.some(id => inferTypeFromId(id) === 'D20_ROLL') && !effects.some(e => e.type === 'D20_ROLL')) {
-      effects.push({ id: 'd20_roll', name: 'D20 Roll', type: 'D20_ROLL', properties: { dice: '1d20' }, order: (effects?.length || 0) + 1 });
+      effects.push({ id: 'd20_roll', name: 'Dice', type: 'D20_ROLL', properties: { dice: '1d20' }, order: (effects?.length || 0) + 1 });
     }
 
     placeholderIds.forEach(pid => {
