@@ -244,6 +244,8 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const isNatural20 = d20Roll === 20;
     const isNatural1 = d20Roll === 1;
 
+    console.log('[InventoryDisplay] d20 roll:', d20Roll, 'mode:', mode, 'isNat20:', isNatural20, 'isNat1:', isNatural1, 'item:', item?.name);
+
     // Build rollResults for every placeholder present in template
     const rollResults: { [effectId: string]: string } = {};
 
@@ -273,21 +275,21 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           break;
         }
         case 'DAMAGE': {
-          // Roll dice for this damage effect; double dice on crit for the FIRST damage only (bonuses not doubled)
+          // Roll dice for this damage effect; on crit, reroll and add again for this effect
           const dice = eff?.properties?.dice as string;
           if (!dice) { rollResults[pid] = ''; break; }
 
           // Parse basic XdY(+/-Z) using existing helper
-          const base = this.parseAndRollDice(dice);
+          const base = this.parseAndRollDice(dice) as any;
           if ((base as any).error) { rollResults[pid] = ''; break; }
           let damageTotal = (base as any).total as number;
 
-          if (isNatural20 && !firstDamageResolved) {
-            const extra = this.parseAndRollDice(dice);
+          if (isNatural20) {
+            const extra = this.parseAndRollDice(dice) as any;
             if (!(extra as any).error) {
-              damageTotal += (extra as any).total as number;
+              const extraTotal = (extra as any).total as number;
+              damageTotal += extraTotal;
             }
-            firstDamageResolved = true;
           }
 
           const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';

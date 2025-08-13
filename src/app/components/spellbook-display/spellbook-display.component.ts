@@ -158,6 +158,12 @@ export class SpellbookDisplayComponent implements OnInit {
       // For passive/always-on, just render plain text via template (no rolls)
       this.actionResults[spell.id_suggestion] = this.templateRenderer.renderSpellText(spell);
     } else {
+      // Crit tracking for attack-roll spells
+      let isNatural20 = false;
+      let isNatural1 = false;
+      let firstDamageResolved = false;
+      let capturedD20: number | null = null;
+
       // For active spells of any castType (attack, save, utility), iterate effects and compute outputs
       (spell.effects || []).forEach((eff) => {
         switch (eff.type) {
@@ -167,6 +173,12 @@ export class SpellbookDisplayComponent implements OnInit {
             if (spell.castType === 'attack_roll' && /^\s*1[dD]20(\s*[+-]\s*\d+)?\s*$/.test(notation)) {
               const d20 = this.rollD20WithMode(rollMode);
               chatValues[eff.id] = String(d20);
+              if (capturedD20 === null) {
+                capturedD20 = d20;
+                isNatural20 = d20 === 20;
+                isNatural1 = d20 === 1;
+                console.log('[Spellbook] d20 roll:', d20, 'mode:', rollMode, 'isNat20:', isNatural20, 'isNat1:', isNatural1, 'spell:', spell?.name);
+              }
             } else {
               const roll = this.rollDiceNotation(notation);
               chatValues[eff.id] = String(roll.total);
@@ -204,7 +216,15 @@ export class SpellbookDisplayComponent implements OnInit {
               playerLevel
             );
 
-            const rolls = finalDiceList.map(d => this.rollDiceNotation(d).total);
+            const rollObjs = finalDiceList.map(d => this.rollDiceNotation(d));
+            const rolls = rollObjs.map(r => r.total);
+            // On natural 20 for attack-roll spells, reroll and add each dice entry in this DAMAGE effect
+            if (spell.castType === 'attack_roll' && isNatural20 && finalDiceList.length > 0) {
+              finalDiceList.forEach((notation, idx) => {
+                const extra = this.rollDiceNotation(notation).total;
+                rolls[idx] = (rolls[idx] || 0) + extra;
+              });
+            }
             const joined = rolls.join(', ');
             const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
             chatValues[eff.id] = `${joined}${typeText}`;
@@ -239,6 +259,11 @@ export class SpellbookDisplayComponent implements OnInit {
           description = `(Rolled with advantage!) ${description}`;
         } else if (rollMode === RollStateEnum.DISADVANTAGE) {
           description = `(Rolled with disadvantage!) ${description}`;
+        }
+        if (isNatural1) {
+          description += ' (natural 1!)';
+        } else if (isNatural20) {
+          description += ' (natural 20!)';
         }
       }
       this.actionResults[spell.id_suggestion] = description;
