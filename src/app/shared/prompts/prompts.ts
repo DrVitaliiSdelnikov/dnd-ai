@@ -127,7 +127,15 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
                 //           "slotScaling": { "perSlotDice": "1d8", "separateRoll": false },
                 //           "levelScaling": [{ "level": 5, "addDice": "1d8" } | { "level": 11, "addCount": 1, "separateRoll": true }] }
                 // HEALING: { "healAmount": "2d4+2" }
-                // ARMOR_CLASS: { "acValue": 15, "maxDexBonus": 2 }
+                // ARMOR_CLASS: {
+                //   "acValue": 13,
+                //   "dexBonusCap": 99,   // 0 = ignore Dex; >0 = apply Dex mod (positives clamped to cap, negatives fully apply)
+                //   "conBonusCap": 0,    // same rule
+                //   "wisBonusCap": 0,    // same rule
+                //   "noArmorOnly": true, // applies only when no ARMOR is equipped
+                //   "shieldAllowed": true,
+                //   "isMainArmor": true  // true = base AC formula candidate; false = flat AC bonus that stacks
+                // }
                 // ATTACK_STAT: { "attackStat": "str" }
                 // MAGIC_BONUS: { "bonus": 1 }
                 // STATIC_TEXT: { "text": "glows with magical light" }
@@ -147,7 +155,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
         "id_suggestion": "string",
         "name": "string",
         "type": "SPELL | ABILITY",
-        "description": "string",
+        "description": "string", // 100 characters max
         "level": "number", // base spell level; 0 for cantrips; -1 for passive ABILITY features
         "isPassive": "boolean", // passive spells have no cast button
         "castType": "attack_roll | save_throw | utility | null", // absent or null for passive
@@ -184,7 +192,10 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - Each effect has an "id" that MUST match the placeholders in the template string.
 - Only these chip types render as chips in previews: D20_ROLL, PROFICIENCY, ATTACK_STAT, DAMAGE, SAVE_THROW. Everything else renders as plain inline text in the template.
 - Use descriptive templates with {{effectId}} placeholders that match your effect IDs exactly.
-- DAMAGE effects: you may enter multiple dice separated by commas for multiple separate hits (e.g., Magic Missile). Upcasting can either add dice into the same roll or as separate rolls using slotScaling.separateRoll=true. If a damageType is set, do not add the word "damage" in the template; the UI will append the damage type once in chat.
+- AC base selection: collect all ARMOR_CLASS with isMainArmor=true from equipped items and passive spells; validate with noArmorOnly/shieldAllowed; compute base via acValue + allowed ability mods per caps; choose the single highest base (do not stack bases).
+- Flat AC bonuses: ARMOR_CLASS with isMainArmor=false stack additively; BUFF_STAT(stat:"ac") also stacks.
+- Ability caps semantics: 0 = ignore that ability; > 0 = apply the modifier with positives clamped to the cap and negatives fully applied.
+- DAMAGE effects: you may enter multiple dice separated by commas for multiple separate hits (e.g., Magic Missile). Upcasting can either add dice into the same roll or as separate rolls using slotScaling.separateRoll=true. If a damageType is set, do not add the word "damage" in the template; the UI will append it once in chat.
 
 **WEAPON EXAMPLE (Longsword +1):**
 - item_id_suggestion: "longsword_plus_1"
@@ -253,7 +264,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 }
 
 **ADDITIONAL SPELL AND INVENTORY GUIDELINES:**
-- Spells only produce text; they do not apply game-state changes.
+- Spells generally produce text; however, system effects (e.g., ARMOR_CLASS) on passive spells can affect mechanics such as AC.
 - Attack-roll spells always roll the d20 and damage and print both; do not decide hit/miss.
 - Save-throw spells use SAVE_THROW with a fixed numeric DC and a target ability; no DC formula in code.
 - Bonuses aren’t automatic; include explicit effects like MAGIC_BONUS.

@@ -82,10 +82,19 @@ export class EffectDefinitionsService {
     // System / mechanics-related
     ARMOR_CLASS: {
       name: 'Armor Class',
-      description: 'Provides AC baseline and max Dex',
+      description: 'Provides AC baseline and ability-based bonuses with optional conditions',
       fields: [
         { key: 'acValue', label: 'AC Value', type: 'number', required: true },
-        { key: 'maxDexBonus', label: 'Max Dex Bonus', type: 'number', placeholder: 'Leave empty for no limit' }
+        // Ability caps: 0 means ability is ignored; >0 means apply modifier with positives clamped to cap and negatives allowed
+        { key: 'dexBonusCap', label: 'Dex Bonus Cap', type: 'number', placeholder: '0 = ignore; >0 = cap; negatives allowed' },
+        { key: 'conBonusCap', label: 'Con Bonus Cap', type: 'number', placeholder: '0 = ignore; >0 = cap; negatives allowed' },
+        { key: 'wisBonusCap', label: 'Wis Bonus Cap', type: 'number', placeholder: '0 = ignore; >0 = cap; negatives allowed' },
+        // Back-compat legacy field (may be present in existing data); editor will not show it but logic will read it
+        // { key: 'maxDexBonus', label: 'Max Dex Bonus (legacy)', type: 'number' },
+        // Conditional flags
+        { key: 'noArmorOnly', label: 'No Armor Only', type: 'checkbox' },
+        { key: 'shieldAllowed', label: 'Shield Allowed', type: 'checkbox' },
+        { key: 'isMainArmor', label: 'Is Main Armor?', type: 'checkbox' }
       ],
       outputTemplate: () => '',
       isSystemEffect: true

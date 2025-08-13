@@ -194,9 +194,10 @@
         
         <!-- Checkbox -->
         <p-checkbox *ngIf="field.type === 'checkbox'" 
-                    [inputId]="field.key"
-                    [formControlName]="field.key"
-                    [binary]="true" />
+                    [inputId]="field.key" 
+                    [binary]="true" 
+                    [formControlName]="field.key"></p-checkbox>
+        <label *ngIf="field.type === 'checkbox'" class="ml-2" [for]="field.key">{{ field.label }}</label>
       </div>
 
       <!-- Scaling UI for DAMAGE/HEALING -->

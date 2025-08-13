@@ -110,13 +110,14 @@ export class PlayerCardComponent implements OnInit {
     if(!this.playerCard()) return;
 
     const allItems = this.playerCard()?.loot ?? [];
+    const allSpells = this.playerCard()?.spells ?? [];
     const bonuses: CalculatedBonuses = {
       armorClass: 0,
       statsBonuses: {}
     };
 
     bonuses.statsBonuses = this.calculateStatsBonuses(allItems, this.playerCard()?.abilities);
-    bonuses.armorClass = this.calculateArmorClass(allItems, bonuses?.statsBonuses);
+    bonuses.armorClass = this.calculateArmorClass(allItems, bonuses?.statsBonuses, Array.isArray(allSpells) ? allSpells : []);
 
     if(!bonuses?.statsBonuses || !bonuses?.armorClass) return;
     return bonuses;
@@ -359,7 +360,8 @@ export class PlayerCardComponent implements OnInit {
 
   private calculateArmorClass(
     allItems: InventoryItem[],
-    statsBonuses: { [key: string]: number }
+    statsBonuses: { [key: string]: number },
+    allSpells: Spell[] = []
   ): number {
     // Helper to fetch effects from items (new model lives under properties.effects; fall back to item.effects if present)
     const getEffects = (item: InventoryItem): any[] => {
@@ -371,55 +373,173 @@ export class PlayerCardComponent implements OnInit {
     };
 
     const items = (allItems || []).filter(i => this.isItemEquipped(i));
+    const hasArmorEquipped = items.some(i => i?.type === 'ARMOR');
+    const hasShieldEquipped = items.some(i => i?.type === 'SHIELD');
 
-    // Find best armor base from items of type ARMOR with ARMOR_CLASS effect
-    let baseAc = 10;
-    let maxDexCap = Infinity; // No armor → full Dex applies
+    // Ability modifiers: prefer precomputed modifiers when provided
+    const getAbilityMod = (abilityKey: string): number => {
+      const baseScore = this.playerCardForm.get(`abilities.${abilityKey}`)?.value ?? 0;
+      const fallback = this.getAbilityModifier(baseScore);
+      const precomputed = (typeof statsBonuses?.[abilityKey] === 'number') ? statsBonuses[abilityKey] : null;
+      return (precomputed ?? fallback) as number;
+    };
 
-    const armorCandidates: { ac: number; maxDex: number | undefined }[] = [];
-    items
-      .filter(i => i?.type === 'ARMOR')
-      .forEach(armorItem => {
-        const armorClassEff = getEffects(armorItem).find(e => e?.type === 'ARMOR_CLASS');
-        if (armorClassEff && typeof armorClassEff?.properties?.acValue === 'number') {
-          const acVal = Number(armorClassEff.properties.acValue);
-          const capVal = armorClassEff?.properties?.maxDexBonus;
-          armorCandidates.push({ ac: acVal, maxDex: typeof capVal === 'number' ? Number(capVal) : undefined });
-        }
-      });
+    // Ability add rule: cap == 0 → ignore; cap > 0 → positives are clamped to cap; negatives are fully applied
+    const addWithCap = (mod: number, cap: number | undefined | null, allowNegative: boolean): number => {
+      if (!cap || cap <= 0) return 0;
+      if (mod < 0) return allowNegative ? mod : 0;
+      return Math.min(mod, cap);
+    };
 
-    if (armorCandidates.length > 0) {
-      // Choose the highest AC armor if multiple are present
-      const best = armorCandidates.reduce((a, b) => (b.ac > a.ac ? b : a));
-      baseAc = best.ac;
-      maxDexCap = typeof best.maxDex === 'number' ? best.maxDex : Infinity;
-    }
+    // Collect all ARMOR_CLASS effects from equipped items and passive spells
+    type ArmorCandidate = {
+      base: number;
+      dexCap: number | undefined;
+      conCap: number | undefined;
+      wisCap: number | undefined;
+      isMainArmor: boolean;
+      noArmorOnly: boolean;
+      shieldAllowed: boolean;
+      sourceKind: 'ITEM' | 'ARMOR_ITEM' | 'SPELL' | 'OTHER_ITEM';
+    };
 
-    // Determine Dex modifier. Prefer precomputed modifier from statsBonuses if provided
-    const baseDexScore = this.playerCardForm.get('abilities.dex').value ?? 0;
-    const dexModifier = (typeof statsBonuses?.dex === 'number')
-      ? statsBonuses.dex
-      : this.getAbilityModifier(baseDexScore);
+    const mainArmorCandidates: ArmorCandidate[] = [];
+    
 
-    // Apply Dex only as a bonus; cap if armor specifies maxDexCap. If no armor, cap is Infinity
-    // Note: negative Dex does not reduce AC when wearing armor (treat as bonus only)
-    const dexBonusToAc = armorCandidates.length > 0
-      ? Math.max(0, Math.min(dexModifier, maxDexCap))
-      : dexModifier; // No armor: full Dex (positive or negative)
-
-    let totalAc = baseAc + dexBonusToAc;
-
-    // Additive AC effects from equipped items (non-armor ARMOR_CLASS, BUFF_STAT AC, and MAGIC_BONUS on armor/shield/accessory)
+    // From items
     items.forEach(item => {
       const effects = getEffects(item);
       if (!Array.isArray(effects) || effects.length === 0) return;
 
-      // Non-armor ARMOR_CLASS adds flat AC
+      effects.filter(e => e?.type === 'ARMOR_CLASS').forEach(eff => {
+        const props = eff?.properties || {};
+        const isMainArmor = props?.isMainArmor === true || (item.type === 'ARMOR' && props?.isMainArmor !== false);
+        const noArmorOnly = !!props?.noArmorOnly;
+        const shieldAllowed = props?.shieldAllowed !== false;
+
+        // Legacy mapping for maxDexBonus
+        const legacyMaxDex = typeof props?.maxDexBonus === 'number' ? Number(props.maxDexBonus) : undefined;
+        const dexCap = (typeof props?.dexBonusCap === 'number') ? Number(props.dexBonusCap) : legacyMaxDex;
+        const conCap = (typeof props?.conBonusCap === 'number') ? Number(props.conBonusCap) : undefined;
+        const wisCap = (typeof props?.wisBonusCap === 'number') ? Number(props.wisBonusCap) : undefined;
+
+        const acValue = Number(props?.acValue ?? 10);
+
+        if (isMainArmor) {
+          mainArmorCandidates.push({
+            base: acValue,
+            dexCap,
+            conCap,
+            wisCap,
+            isMainArmor: true,
+            noArmorOnly,
+            shieldAllowed,
+            sourceKind: item.type === 'ARMOR' ? 'ARMOR_ITEM' : 'ITEM'
+          });
+        } else {
+          // Flat adder handled in additive pass
+        }
+      });
+    });
+
+    // From passive spells
+    const passiveSpells = Array.isArray(allSpells) ? allSpells.filter(s => !!s?.isPassive) : [];
+    passiveSpells.forEach(spell => {
+      const effects = Array.isArray((spell as any)?.effects) ? (spell as any).effects : [];
+      effects.filter((e: any) => e?.type === 'ARMOR_CLASS').forEach((eff: any) => {
+        const props = eff?.properties || {};
+        const isMainArmor = props?.isMainArmor === true; // default for spells is explicit
+        const noArmorOnly = !!props?.noArmorOnly;
+        const shieldAllowed = props?.shieldAllowed !== false;
+        const legacyMaxDex = typeof props?.maxDexBonus === 'number' ? Number(props.maxDexBonus) : undefined;
+        const dexCap = (typeof props?.dexBonusCap === 'number') ? Number(props.dexBonusCap) : legacyMaxDex;
+        const conCap = (typeof props?.conBonusCap === 'number') ? Number(props.conBonusCap) : undefined;
+        const wisCap = (typeof props?.wisBonusCap === 'number') ? Number(props.wisBonusCap) : undefined;
+        const acValue = Number(props?.acValue ?? 10);
+
+        if (isMainArmor) {
+          mainArmorCandidates.push({
+            base: acValue,
+            dexCap,
+            conCap,
+            wisCap,
+            isMainArmor: true,
+            noArmorOnly,
+            shieldAllowed,
+            sourceKind: 'SPELL'
+          });
+        } else {
+          // Flat adder handled in additive pass
+        }
+      });
+    });
+
+    // Validate candidates by conditions and compute their totals
+    const dexMod = getAbilityMod('dex');
+    const conMod = getAbilityMod('con');
+    const wisMod = getAbilityMod('wis');
+
+    const evaluatedBases: number[] = [];
+    mainArmorCandidates.forEach(c => {
+      // Condition checks
+      if (c.noArmorOnly && hasArmorEquipped) return;
+      if (!c.shieldAllowed && hasShieldEquipped) return;
+
+      let total = c.base;
+
+      // Ability adds: negatives allowed when cap > 0
+      total += addWithCap(dexMod, c.dexCap, true);
+      total += addWithCap(conMod, c.conCap, true);
+      total += addWithCap(wisMod, c.wisCap, true);
+
+      evaluatedBases.push(total);
+    });
+
+    // Default base if no candidates
+    let baseAc: number;
+    if (evaluatedBases.length > 0) {
+      baseAc = evaluatedBases.reduce((a, b) => (b > a ? b : a));
+    } else {
+      // Fallback behavior: if any equipped ARMOR has legacy ARMOR_CLASS, compute using that with legacy/derived caps
+      // Otherwise default to 10 + Dex (negatives allowed)
+      const armorEffects: any[] = [];
+      items.filter(i => i?.type === 'ARMOR').forEach(armorItem => {
+        const eff = getEffects(armorItem).find(e => e?.type === 'ARMOR_CLASS');
+        if (eff) armorEffects.push(eff);
+      });
+
+      if (armorEffects.length > 0) {
+        // Choose highest acValue armor, apply dex using cap rule if provided; negatives allowed when cap > 0
+        let best = 10;
+        let bestDexCap: number | undefined = undefined;
+        armorEffects.forEach(eff => {
+          const props = eff?.properties || {};
+          const acVal = Number(props?.acValue ?? 10);
+          const legacyMaxDex = typeof props?.maxDexBonus === 'number' ? Number(props.maxDexBonus) : undefined;
+          const dexCap = (typeof props?.dexBonusCap === 'number') ? Number(props.dexBonusCap) : legacyMaxDex;
+          if (acVal > best) { best = acVal; bestDexCap = dexCap; }
+        });
+        baseAc = best + addWithCap(dexMod, bestDexCap, true);
+      } else {
+        baseAc = 10 + dexMod; // unarmored default, negatives allowed
+      }
+    }
+
+    let totalAc = baseAc;
+
+    // Additive AC effects from equipped items and passive spells
+    const addBuffStatAndFlatFromContainer = (effects: any[], containerType: string | null) => {
+      if (!Array.isArray(effects) || effects.length === 0) return;
+
+      // ARMOR_CLASS as flat adder
       effects
         .filter(e => e?.type === 'ARMOR_CLASS')
         .forEach(eff => {
-          if (item.type !== 'ARMOR') {
-            const add = Number(eff?.properties?.acValue ?? 0);
+          const props = eff?.properties || {};
+          const isMainArmor = !!props?.isMainArmor;
+          // Flat adders stack regardless of container type
+          if (!isMainArmor) {
+            const add = Number(props?.acValue ?? 0);
             if (!Number.isNaN(add)) totalAc += add;
           }
         });
@@ -435,15 +555,24 @@ export class PlayerCardComponent implements OnInit {
           }
         });
 
-      // MAGIC_BONUS adds to AC only for armor, shield, or accessory
-      effects
-        .filter(e => e?.type === 'MAGIC_BONUS')
-        .forEach(eff => {
-          if (item.type === 'ARMOR' || item.type === 'SHIELD' || item.type === 'ACCESSORY') {
+      // MAGIC_BONUS adds to AC only for armor, shield, or accessory (items only)
+      if (containerType === 'ARMOR' || containerType === 'SHIELD' || containerType === 'ACCESSORY') {
+        effects
+          .filter(e => e?.type === 'MAGIC_BONUS')
+          .forEach(eff => {
             const add = Number(eff?.properties?.bonus ?? 0);
             if (!Number.isNaN(add)) totalAc += add;
-          }
-        });
+          });
+      }
+    };
+
+    // Items
+    items.forEach(item => addBuffStatAndFlatFromContainer(getEffects(item), item.type));
+
+    // Spells (treat containerType as null; MAGIC_BONUS not applicable)
+    passiveSpells.forEach(spell => {
+      const effects = Array.isArray((spell as any)?.effects) ? (spell as any).effects : [];
+      addBuffStatAndFlatFromContainer(effects, null);
     });
 
     return totalAc;
