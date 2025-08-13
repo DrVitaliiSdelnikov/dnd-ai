@@ -97,6 +97,10 @@ export class PlayerCardStateService {
       if (updatedCard.loot[0].properties) {
       }
     }
+    const prev = this.playerCardState();
+    const prevSpellsLen = Array.isArray(prev?.spells) ? prev!.spells.length : prev?.spells === 'SAME' ? 'SAME' : undefined;
+    const nextSpellsLen = Array.isArray(updatedCard?.spells) ? updatedCard.spells.length : updatedCard?.spells === 'SAME' ? 'SAME' : undefined;
+    console.log('[PlayerCardStateService] updatePlayerCard called', { prevSpellsLen, nextSpellsLen });
     this.playerCardState.set(updatedCard);
     this.sessionStorageService.saveItemToSessionStorage(sessionStorageKeys.HERO, JSON.stringify(updatedCard));
   }

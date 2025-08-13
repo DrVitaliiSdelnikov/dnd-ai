@@ -130,6 +130,7 @@
                 [spells]="playerCard()?.spells"
                 [abilityModifiers]="(equipmentBonuses()?.statsBonuses) || {}"
                 (spellCasted)="handleSpellCast($event)"
+                (spellAdded)="handleSpellAdded($event)"
               ></app-spellbook-display>
             </ng-template>
           </p-accordion-tab>
