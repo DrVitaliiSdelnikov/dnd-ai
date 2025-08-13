@@ -99,6 +99,16 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       const def = this.effectDefinitionsService.getEffectDefinition(t);
       return { type: t, label: def.name, description: def.description };
     });
+
+    // Normalize level: any negative input maps to -1
+    const levelControl = this.itemForm.get('level');
+    if (levelControl) {
+      levelControl.valueChanges.subscribe((v: any) => {
+        if (typeof v === 'number' && v < 0) {
+          levelControl.setValue(-1, { emitEvent: false });
+        }
+      });
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -128,7 +138,7 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       template: this.item.template,
       type: this.item.type,
       quantity: 'quantity' in this.item ? (this.item as any).quantity : 1,
-      level: this.isSpell ? (this.item as any).level ?? 0 : 0,
+      level: this.isSpell ? (((this.item as any).level ?? 0) < 0 ? -1 : (this.item as any).level ?? 0) : 0,
       isPassive: this.isSpell ? (this.item as any).isPassive ?? false : false,
       castType: this.isSpell ? (this.item as any).castType ?? 'utility' : 'utility'
     });
@@ -578,6 +588,8 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
     if (!this.item) return;
 
     const formValue = this.itemForm.value;
+    // Clamp any negative level to -1
+    const normalizedLevel = typeof formValue.level === 'number' && formValue.level < 0 ? -1 : formValue.level;
     const updatedItem = {
       ...this.item,
       id_suggestion: this.item.id_suggestion,
@@ -587,7 +599,7 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       type: formValue.type,
       effects: this.effects,
       ...(this.isSpell ? {
-        level: formValue.level,
+        level: normalizedLevel,
         isPassive: formValue.isPassive,
         castType: formValue.castType
       } : { quantity: formValue.quantity })

@@ -17,7 +17,7 @@
         </div>
         <div class="field" *ngIf="isSpell">
           <label for="level">Level</label>
-          <p-inputNumber inputId="level" formControlName="level" [min]="0" [showButtons]="true"></p-inputNumber>
+          <p-inputNumber inputId="level" formControlName="level" [min]="-1" [showButtons]="true"></p-inputNumber>
         </div>
         <div class="field" *ngIf="isSpell">
           <label id="castTypeLabel">Cast Type</label>
