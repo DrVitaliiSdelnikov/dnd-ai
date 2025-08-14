@@ -267,11 +267,20 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const magicBonus = magicBonusEffect?.properties?.bonus || 0;
     const totalBonus = abilityMod + proficiencyBonus + magicBonus;
 
+    // Improved Critical: compute threshold for this item (most generous)
+    const improvedCritThresholds = Array.isArray(effects)
+      ? effects.filter(e => e?.type === 'IMPROVED_CRITICAL')
+          .map((e: any) => Number(e?.properties?.critThreshold))
+          .filter((v: any) => Number.isFinite(v) && v >= 2 && v <= 19)
+      : [];
+    const critThreshold = improvedCritThresholds.length > 0 ? Math.min(...improvedCritThresholds) : 20;
+
     // Roll attack d20 with Halfling Lucky (item-scoped) applied before adv/disadv selection
     const halflingLuckyStacks = Array.isArray(effects) ? effects.filter(e => e?.type === 'HALFLING_LUCKY').length : 0;
     let d20Roll: number;
     let isNatural20: boolean = false;
     let isNatural1: boolean = false;
+    let isCritical: boolean = false;
     let halflingLuckyAnnotation = '';
     let halflingLuckyAnnotationPlain = '';
     let d20RollDisplay = '';
@@ -288,6 +297,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
         : Math.min(adjFirst.value, adjSecond.value);
       isNatural20 = d20Roll === 20;
       isNatural1 = d20Roll === 1;
+      isCritical = d20Roll !== 1 && d20Roll >= critThreshold;
       d20RollDisplay = `${this.formatLuckyDieDisplay(first, adjFirst)}, ${this.formatLuckyDieDisplay(second, adjSecond)}`;
       halflingLuckyAnnotation = totalTriggers > 0 ? ` (Halfling Lucky x${totalTriggers})` : '';
       halflingLuckyAnnotationPlain = totalTriggers > 0 ? `Halfling Lucky x${totalTriggers}` : '';
@@ -298,6 +308,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       d20Roll = adjusted.value;
       isNatural20 = d20Roll === 20;
       isNatural1 = d20Roll === 1;
+      isCritical = d20Roll !== 1 && d20Roll >= critThreshold;
       d20RollDisplay = this.formatLuckyDieDisplay(initial, adjusted);
       halflingLuckyAnnotation = adjusted.triggers > 0 ? ` (Halfling Lucky x${adjusted.triggers})` : '';
       halflingLuckyAnnotationPlain = adjusted.triggers > 0 ? `Halfling Lucky x${adjusted.triggers}` : '';
@@ -362,7 +373,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           if ((base as any).error) { rollResults[pid] = ''; break; }
           let damageTotal = (base as any).total as number;
 
-          if (isNatural20) {
+          if (isCritical) {
             const extra = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
             if (!(extra as any).error) {
               const extraTotal = (extra as any).total as number;
@@ -419,7 +430,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
         const base = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
         if ((base as any).error) return;
         let total = (base as any).total as number;
-        if (isNatural20) {
+        if (isCritical) {
           const extra = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
           if (!(extra as any).error) total += (extra as any).total as number;
         }
@@ -437,8 +448,8 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     // Append crit annotation if relevant
     if (isNatural1) {
       description += ' (natural 1!)';
-    } else if (isNatural20) {
-      description += ' (natural 20!)';
+    } else if (isCritical) {
+      description += ` (natural ${d20Roll} - critical!)`;
     }
 
     // NEW: Prefix for advantage/disadvantage

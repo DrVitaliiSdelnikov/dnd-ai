@@ -142,6 +142,13 @@ export class SpellbookDisplayComponent implements OnInit {
     // Determine character level for levelScaling
     const playerLevel = this.playerCardStateService.playerCard$()?.level ?? 1;
 
+    // Compute Improved Critical threshold for this spell (attack_roll only)
+    const improvedCritThresholds = (spell.effects || [])
+      .filter(e => e?.type === 'IMPROVED_CRITICAL')
+      .map(e => Number((e as any)?.properties?.critThreshold))
+      .filter(v => Number.isFinite(v) && v >= 2 && v <= 19);
+    const critThreshold = improvedCritThresholds.length > 0 ? Math.min(...improvedCritThresholds) : 20;
+
     // Build mapping from effect id -> chat value (numbers or text).
     const chatValues: { [effectId: string]: string } = {};
 
@@ -152,6 +159,7 @@ export class SpellbookDisplayComponent implements OnInit {
       // Crit tracking for attack-roll spells
       let isNatural20 = false;
       let isNatural1 = false;
+      let isCritical = false;
       let firstDamageResolved = false;
       let capturedD20: number | null = null;
 
@@ -190,6 +198,8 @@ export class SpellbookDisplayComponent implements OnInit {
                 capturedD20 = d20;
                 isNatural20 = d20 === 20;
                 isNatural1 = d20 === 1;
+                // Improved Critical applies only to attack_roll
+                isCritical = (spell.castType === 'attack_roll') && d20 !== 1 && d20 >= critThreshold;
               }
             } else if (/^\s*1[dD]20(\s*[+-]\s*\d+)?\s*$/.test(notation)) {
               // Non-attack d20 roll: apply Halfling Lucky (spell-scoped), no adv/disadv context
@@ -259,8 +269,8 @@ export class SpellbookDisplayComponent implements OnInit {
             const baseBreakdowns = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
             const rolls = baseBreakdowns.map(r => r.total);
             let extraBreakdowns: Array<{ total: number; rolls: number[]; modifier: number; breakdown: string }> = [];
-            // On natural 20 for attack-roll spells, reroll and add each dice entry in this DAMAGE effect
-            if (spell.castType === 'attack_roll' && isNatural20 && finalDiceList.length > 0) {
+            // On critical for attack-roll spells, reroll and add each dice entry in this DAMAGE effect
+            if (spell.castType === 'attack_roll' && isCritical && finalDiceList.length > 0) {
               extraBreakdowns = finalDiceList.map(notation => this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
               extraBreakdowns.forEach((b, idx) => {
                 rolls[idx] = (rolls[idx] || 0) + b.total;
@@ -322,8 +332,8 @@ export class SpellbookDisplayComponent implements OnInit {
         }
         if (isNatural1) {
           description += ' (natural 1!)';
-        } else if (isNatural20) {
-          description += ' (natural 20!)';
+        } else if (isCritical && typeof capturedD20 === 'number') {
+          description += ` (natural ${capturedD20} - critical!)`;
         }
       }
 
@@ -358,7 +368,7 @@ export class SpellbookDisplayComponent implements OnInit {
           const baseBreakdowns = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
           const totals = baseBreakdowns.map(r => r.total);
           // Crit doubling for attack-roll spells
-          if (spell.castType === 'attack_roll' && capturedD20 === 20 && finalDiceList.length > 0) {
+          if (spell.castType === 'attack_roll' && isCritical && finalDiceList.length > 0) {
             finalDiceList.forEach((notation, idx) => {
               const extra = this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting });
               totals[idx] = (totals[idx] || 0) + extra.total;

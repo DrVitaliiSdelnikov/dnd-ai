@@ -50,7 +50,9 @@ export type EffectType =
   // Dice roll effect for templates
   | 'D20_ROLL'
   // Racial/feat-like mechanics
-  | 'HALFLING_LUCKY';
+  | 'HALFLING_LUCKY'
+  // Critical mechanics
+  | 'IMPROVED_CRITICAL';
 
 export interface ItemWithEffects {
   id_suggestion: string;

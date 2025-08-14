@@ -170,6 +170,17 @@ export class EffectDefinitionsService {
       fields: [],
       outputTemplate: () => '',
       isSystemEffect: true
+    },
+
+    // System-only: Improved Critical (custom critical threshold)
+    IMPROVED_CRITICAL: {
+      name: 'Improved Critical',
+      description: 'Your attacks score a critical hit on a roll equal to or above the set number (2–19). Applies only to this weapon or attack-roll spell.',
+      fields: [
+        { key: 'critThreshold', label: 'Critical Threshold (2–19)', type: 'number', required: true, placeholder: 'e.g., 19' }
+      ],
+      outputTemplate: () => '',
+      isSystemEffect: true
     }
   };
 
