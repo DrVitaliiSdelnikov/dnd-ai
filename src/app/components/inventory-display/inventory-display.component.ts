@@ -81,11 +81,24 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   itemExtraToggles = computed<RollExtraToggle[]>(() => {
     const it = this.selectedItem();
     const effects = it?.properties?.effects || [];
-    const toggles = effects
+
+    // Base toggles from effects that explicitly expose a menu toggle
+    const baseToggles = effects
       .filter((e: any) => !!e?.properties?.menuToggleEnabled)
       .map((e: any) => ({ id: e.id, label: String(e?.properties?.menuToggleLabel || e?.name || ''), checked: !!e?.properties?.menuToggleChecked }))
       .filter(t => !!t.label);
-    return toggles.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+    // Always include GWM/Sharpshooter with fixed labels; default checked = false when absent
+    const special: RollExtraToggle[] = effects
+      .filter((e: any) => e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER')
+      .map((e: any) => ({ id: e.id, label: e.type === 'GREAT_WEAPON_MASTER' ? 'Great Weapon Master' : 'Sharpshooter', checked: !!e?.properties?.menuToggleChecked }));
+
+    const toggles = [...baseToggles, ...special];
+    // Deduplicate by id (in case labels were manually set previously)
+    const dedupMap = new Map<string, RollExtraToggle>();
+    toggles.forEach(t => { if (t.label) dedupMap.set(t.id, t); });
+
+    return Array.from(dedupMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
   });
 
   categorizedItems: { [key: string]: InventoryItem[] } = {};
@@ -331,7 +344,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
 
     // Determine power-shot style toggle (GWM/Sharpshooter): first occurrence by order that is checked
     const powerShotEffect = (Array.isArray(effects) ? [...effects] : [])
-      .filter((e: any) => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleEnabled && !!e?.properties?.menuToggleChecked)
+      .filter((e: any) => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleChecked)
       .sort((a: any, b: any) => (Number(a?.order || 0) - Number(b?.order || 0)))[0] || null;
 
     // Track first DAMAGE for crit doubling

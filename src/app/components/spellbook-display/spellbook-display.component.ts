@@ -61,11 +61,19 @@ export class SpellbookDisplayComponent implements OnInit {
   readonly spellExtraToggles = computed<RollExtraToggle[]>(() => {
     const spell = this.selectedItem();
     if (!spell || !Array.isArray(spell.effects)) return [];
-    const toggles = (spell.effects || [])
+    // Base toggles from effects that explicitly expose a menu toggle
+    const baseToggles = (spell.effects || [])
       .filter(e => !!e?.properties?.menuToggleEnabled)
       .map(e => ({ id: e.id, label: String(e?.properties?.menuToggleLabel || e?.name || ''), checked: !!e?.properties?.menuToggleChecked }))
       .filter(t => !!t.label);
-    return toggles.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+    // Always include GWM/Sharpshooter with fixed labels; default checked = false when absent
+    const special: RollExtraToggle[] = (spell.effects || [])
+      .filter(e => e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER')
+      .map(e => ({ id: e.id, label: e.type === 'GREAT_WEAPON_MASTER' ? 'Great Weapon Master' : 'Sharpshooter', checked: !!e?.properties?.menuToggleChecked }));
+    const toggles = [...baseToggles, ...special];
+    const dedupMap = new Map<string, RollExtraToggle>();
+    toggles.forEach(t => { if (t.label) dedupMap.set(t.id, t); });
+    return Array.from(dedupMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
   });
 
   // Group spells for template rendering
@@ -214,7 +222,7 @@ export class SpellbookDisplayComponent implements OnInit {
               }
               // Determine power-shot toggle for this spell (first by order)
               const powerShot = (spell.effects || [])
-                .filter(e => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleEnabled && !!e?.properties?.menuToggleChecked)
+                .filter(e => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleChecked)
                 .sort((a: any, b: any) => (Number(a?.order || 0) - Number(b?.order || 0)))[0];
               const base = `${d20} (${details})`;
               chatValues[eff.id] = powerShot ? `${base}-5` : base;
@@ -426,7 +434,7 @@ export class SpellbookDisplayComponent implements OnInit {
 
       // Append +10dmg if power-shot toggle active (first by order)
       const powerShot = (spell.effects || [])
-        .filter(e => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleEnabled && !!e?.properties?.menuToggleChecked)
+        .filter(e => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleChecked)
         .sort((a: any, b: any) => (Number(a?.order || 0) - Number(b?.order || 0)))[0];
       if (powerShot) {
         description += `+10dmg`;

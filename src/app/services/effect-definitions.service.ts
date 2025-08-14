@@ -187,11 +187,7 @@ export class EffectDefinitionsService {
     GREAT_WEAPON_MASTER: {
       name: 'Great Weapon Master',
       description: 'When toggled, apply -5 to the attack roll (to-hit) and +10 damage on hit. Treated as a right-click toggle.',
-      fields: [
-        { key: 'menuToggleEnabled', label: 'Expose in right-click menu', type: 'checkbox' },
-        { key: 'menuToggleLabel', label: 'Menu label', type: 'text', placeholder: 'Great Weapon Master' },
-        { key: 'menuToggleChecked', label: 'Default checked', type: 'checkbox' }
-      ],
+      fields: [],
       outputTemplate: () => '',
       isSystemEffect: true
     },
@@ -200,11 +196,7 @@ export class EffectDefinitionsService {
     SHARPSHOOTER: {
       name: 'Sharpshooter',
       description: 'When toggled, apply -5 to the attack roll (to-hit) and +10 damage on hit. Treated as a right-click toggle.',
-      fields: [
-        { key: 'menuToggleEnabled', label: 'Expose in right-click menu', type: 'checkbox' },
-        { key: 'menuToggleLabel', label: 'Menu label', type: 'text', placeholder: 'Sharpshooter' },
-        { key: 'menuToggleChecked', label: 'Default checked', type: 'checkbox' }
-      ],
+      fields: [],
       outputTemplate: () => '',
       isSystemEffect: true
     }
