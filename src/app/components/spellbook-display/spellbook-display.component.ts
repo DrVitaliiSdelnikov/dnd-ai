@@ -86,6 +86,8 @@ export class SpellbookDisplayComponent implements OnInit {
         key = 'Passive';
       } else if ((s?.level ?? 0) === -1) {
         key = 'Abilities';
+      } else if ((s?.level ?? 0) === 0) {
+        key = 'Cantrips';
       } else {
         key = `Level ${s?.level ?? 0}`;
       }
