@@ -146,6 +146,17 @@ export class EffectDefinitionsService {
       fields: [],
       outputTemplate: () => '',
       isSystemEffect: true
+    },
+
+    // System-only: Elemental Adept (treat 1s as 2s for chosen element damage dice)
+    ELEMENTAL_ADEPT: {
+      name: 'Elemental Adept',
+      description: 'For damage of the chosen element, any damage die result of 1 is treated as 2. Applies after any rerolls (e.g., Great Weapon Fighting).',
+      fields: [
+        { key: 'element', label: 'Element', type: 'select', required: true, options: ['fire','cold','lightning','thunder','acid','poison','necrotic','radiant','psychic','force'] }
+      ],
+      outputTemplate: () => '',
+      isSystemEffect: true
     }
   };
 

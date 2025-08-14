@@ -210,6 +210,10 @@ export class SpellbookDisplayComponent implements OnInit {
             if (hasGreatWeaponFighting) {
               console.log('[GWF] Active for spell:', spell?.name || spell?.id_suggestion);
             }
+            const eaEffect = (spell.effects || []).find(e => e?.type === 'ELEMENTAL_ADEPT');
+            if (eaEffect) {
+              console.log('[Elemental Adept] Active for spell:', spell?.name || spell?.id_suggestion, 'element:', eaEffect?.properties?.element);
+            }
 
             const finalDiceList = this.applySlotAndLevelScalingToDiceList(
               this.parseDiceList(baseDiceInput),
@@ -220,15 +224,34 @@ export class SpellbookDisplayComponent implements OnInit {
               playerLevel
             );
 
-            const rollObjs = finalDiceList.map(d => this.rollDiceNotation(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
-            const rolls = rollObjs.map(r => r.total);
+            // Roll using breakdown so we can reuse exact per-die results for Elemental Adept
+            const baseBreakdowns = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
+            const rolls = baseBreakdowns.map(r => r.total);
+            let extraBreakdowns: Array<{ total: number; rolls: number[]; modifier: number; breakdown: string }> = [];
             // On natural 20 for attack-roll spells, reroll and add each dice entry in this DAMAGE effect
             if (spell.castType === 'attack_roll' && isNatural20 && finalDiceList.length > 0) {
-              finalDiceList.forEach((notation, idx) => {
-                const extra = this.rollDiceNotation(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }).total;
-                rolls[idx] = (rolls[idx] || 0) + extra;
+              extraBreakdowns = finalDiceList.map(notation => this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
+              extraBreakdowns.forEach((b, idx) => {
+                rolls[idx] = (rolls[idx] || 0) + b.total;
               });
             }
+
+            // Elemental Adept: treat 1s as 2s on matching element; apply after rerolls
+            const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+            const elementalAdept = eaEffect;
+            if (elementalAdept && damageType && elementalAdept?.properties?.element === damageType) {
+              // Count ones from the already-rolled base and crit breakdowns
+              const onesFromBase = baseBreakdowns.reduce((sum, b) => sum + (b.rolls?.filter(r => r === 1).length || 0), 0);
+              const onesFromCrit = extraBreakdowns.reduce((sum, b) => sum + (b.rolls?.filter(r => r === 1).length || 0), 0);
+              const onesTotal = onesFromBase + onesFromCrit;
+              if (onesTotal > 0) {
+                const delta = onesTotal * 1;
+                // Add delta to the first roll entry by convention to keep formatting simple
+                if (rolls.length > 0) { rolls[0] = (rolls[0] || 0) + delta; }
+                console.log('[Elemental Adept] +' + delta + ' (' + onesTotal + ' die/dice adjusted) for', damageType);
+              }
+            }
+
             const joined = rolls.join(', ');
             const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
             chatValues[eff.id] = `${joined}${typeText}`;
@@ -257,6 +280,8 @@ export class SpellbookDisplayComponent implements OnInit {
 
       // Render final message using the template with computed values
       let description = this.templateRenderer.renderSpellTemplateForChat(spell, chatValues);
+      // Normalize sign sequences like "+-1" -> "-1"
+      description = this.normalizeSignSequences(description);
       // Prefix adv/disadv only for attack-roll spells
       if (spell.castType === 'attack_roll') {
         if (rollMode === RollStateEnum.ADVANTAGE) {
@@ -452,6 +477,54 @@ export class SpellbookDisplayComponent implements OnInit {
     const total = sum + modifier;
     const breakdown = `${rolls.join('+')}${modifier ? (modifier > 0 ? '+' + modifier : String(modifier)) : ''}`;
     return { total, breakdown };
+  }
+
+  private rollDiceNotationWithBreakdown(
+    diceNotation: string,
+    options?: { rerollOnOneOrTwo?: boolean }
+  ): { total: number; rolls: number[]; modifier: number; breakdown: string } {
+    if (!diceNotation || typeof diceNotation !== 'string' || !diceNotation.trim()) {
+      return { total: 0, rolls: [], modifier: 0, breakdown: '' };
+    }
+
+    const parts = diceNotation.trim().match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
+    if (!parts) {
+      const staticValue = parseInt(diceNotation.trim(), 10);
+      if (!isNaN(staticValue)) {
+        return { total: staticValue, rolls: [staticValue], modifier: 0, breakdown: String(staticValue) };
+      }
+      return { total: 0, rolls: [], modifier: 0, breakdown: diceNotation };
+    }
+
+    const numDice = parseInt(parts[1], 10);
+    const diceType = parseInt(parts[2], 10);
+    let modifier = 0;
+    if (parts[3] && parts[4]) {
+      modifier = parseInt(parts[4], 10);
+      if (parts[3] === '-') { modifier = -modifier; }
+    }
+
+    const rolls: number[] = [];
+    for (let i = 0; i < numDice; i++) {
+      let roll = Math.floor(Math.random() * diceType) + 1;
+      if (options?.rerollOnOneOrTwo && (roll === 1 || roll === 2)) {
+        const prev = roll;
+        const reroll = Math.floor(Math.random() * diceType) + 1;
+        roll = reroll; // must use the new result even if 1 or 2
+        console.log('[GWF] Reroll d' + diceType + ':', prev, '->', reroll);
+      }
+      rolls.push(roll);
+    }
+    const sum = rolls.reduce((a, b) => a + b, 0);
+    const total = sum + modifier;
+    const breakdown = `${rolls.join('+')}${modifier ? (modifier > 0 ? '+' + modifier : String(modifier)) : ''}`;
+    return { total, rolls, modifier, breakdown };
+  }
+
+  private normalizeSignSequences(text: string): string {
+    if (!text) { return text; }
+    // Replace "+-" (with optional spaces) with "-"; keep any surrounding spacing minimal
+    return text.replace(/\+\s*-\s*/g, '-');
   }
 
   openEditModal(spell: Spell): void {

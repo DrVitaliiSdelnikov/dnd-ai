@@ -249,6 +249,11 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     if (hasGreatWeaponFighting) {
       console.log('[GWF] Active for item:', item?.name || (item as any)?.item_id_suggestion);
     }
+    // Detect Elemental Adept on this item only
+    const eaEffect = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
+    if (eaEffect) {
+      console.log('[Elemental Adept] Active for item:', item?.name || (item as any)?.item_id_suggestion, 'element:', eaEffect?.properties?.element);
+    }
 
     // Track first DAMAGE for crit doubling
     let firstDamageResolved = false;
@@ -294,6 +299,22 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           }
 
           const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+
+          // Elemental Adept: treat 1s as 2s for chosen element, applied after rerolls
+          const elementalAdept = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
+          if (elementalAdept && damageType && elementalAdept?.properties?.element === damageType) {
+            // Re-roll with breakdown to count ones; then adjust by replacing each 1 with 2
+            const breakdownRoll = this.parseAndRollDiceWithBreakdown(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting });
+            if (!breakdownRoll.error) {
+              const onesCount = breakdownRoll.rolls.filter((r: number) => r === 1).length;
+              if (onesCount > 0) {
+                const delta = onesCount * 1; // each 1 becomes 2, so +1 per one
+                damageTotal = damageTotal + delta;
+                console.log('[Elemental Adept] +' + delta + ' (' + onesCount + ' die/dice adjusted) for', damageType);
+              }
+            }
+          }
+
           // Do NOT add ability/magic bonuses here; template can include + {{attack_stat}} / + {{magic_bonus}}
           rollResults[pid] = `${damageTotal}${damageType ? ' ' + damageType : ''}`;
           break;
@@ -377,6 +398,50 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     }
 
     return { total: null, error: `Unknown dice notation format: ${diceNotation}` };
+  }
+
+  // Helper: same as above but returns individual rolls for post-processing (e.g., Elemental Adept)
+  private parseAndRollDiceWithBreakdown(
+    diceNotation: string,
+    options?: { rerollOnOneOrTwo?: boolean }
+  ): { total: number; rolls: number[]; modifier: number; error: null } | { total: null; rolls: number[]; modifier: number; error: string } {
+    if (!diceNotation || typeof diceNotation !== 'string') {
+      return { total: null, rolls: [], modifier: 0, error: `Invalid dice notation: ${diceNotation}` };
+    }
+
+    const parts = diceNotation.trim().match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
+    if (parts) {
+      const numDice = parseInt(parts[1], 10);
+      const diceType = parseInt(parts[2], 10);
+      let modifier = 0;
+      if (parts[3] && parts[4]) {
+        modifier = parseInt(parts[4], 10);
+        if (parts[3] === '-') { modifier = -modifier; }
+      }
+
+      const rolls: number[] = [];
+      let total = 0;
+      for (let i = 0; i < numDice; i++) {
+        let roll = Math.floor(Math.random() * diceType) + 1;
+        if (options?.rerollOnOneOrTwo && (roll === 1 || roll === 2)) {
+          const prev = roll;
+          const reroll = Math.floor(Math.random() * diceType) + 1;
+          roll = reroll;
+          console.log('[GWF] Reroll d' + diceType + ':', prev, '->', reroll);
+        }
+        rolls.push(roll);
+        total += roll;
+      }
+      total += modifier;
+      return { total, rolls, modifier, error: null };
+    }
+
+    const staticValue = parseInt(diceNotation, 10);
+    if (!isNaN(staticValue)) {
+      return { total: staticValue, rolls: [staticValue], modifier: 0, error: null };
+    }
+
+    return { total: null, rolls: [], modifier: 0, error: `Unknown dice notation format: ${diceNotation}` };
   }
 
   private normalizeSignSequences(text: string): string {

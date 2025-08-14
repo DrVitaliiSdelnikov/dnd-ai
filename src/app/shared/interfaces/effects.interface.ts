@@ -34,6 +34,7 @@ export type EffectType =
   | 'DAMAGE'
   | 'HEALING' 
   | 'GREAT_WEAPON_FIGHTING'
+  | 'ELEMENTAL_ADEPT'
   | 'BUFF_STAT'
   | 'CONDITION'
   // System Effects (don't appear in preview)

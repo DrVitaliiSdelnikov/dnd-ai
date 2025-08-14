@@ -121,7 +121,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
             {
               "id": "string", // Must match template placeholders! Examples: "d20_roll", "proficiency", "attack_stat", "weapon_damage"
               "name": "string", // Human-readable name like "Attack Stat" or "Slashing Damage"
-              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL | PROFICIENCY",
+              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL | PROFICIENCY | ELEMENTAL_ADEPT",
               "properties": {
                 // DAMAGE: { "dice": "1d8+2" | "1d4+1, 1d4+1, 1d4+1", "damageType": "slashing|fire|...",
                 //           "slotScaling": { "perSlotDice": "1d8", "separateRoll": false },
@@ -164,7 +164,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
           {
             "id": "string", // Must match template placeholders
             "name": "string",
-            "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL | GREAT_WEAPON_FIGHTING",
+            "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL | GREAT_WEAPON_FIGHTING | ELEMENTAL_ADEPT",
             "properties": {
               // DAMAGE: { "dice": "1d10" | "1d4+1, 1d4+1, 1d4+1", "damageType": "fire",
               //           "slotScaling": { "perSlotDice": "1d10", "separateRoll": false },
