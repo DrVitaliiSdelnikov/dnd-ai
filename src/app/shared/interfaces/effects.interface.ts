@@ -55,7 +55,9 @@ export type EffectType =
   | 'IMPROVED_CRITICAL'
   // New power-shot style feats
   | 'GREAT_WEAPON_MASTER'
-  | 'SHARPSHOOTER';
+  | 'SHARPSHOOTER'
+  // New: Savage Attacker (system-only, toggleable per attack on spells)
+  | 'SAVAGE_ATTACKER';
 
 export interface ItemWithEffects {
   id_suggestion: string;

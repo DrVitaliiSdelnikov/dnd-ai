@@ -199,6 +199,15 @@ export class EffectDefinitionsService {
       fields: [],
       outputTemplate: () => '',
       isSystemEffect: true
+    },
+
+    // System-only: Savage Attacker (toggle per attack on attack_roll spells)
+    SAVAGE_ATTACKER: {
+      name: 'Savage Attacker',
+      description: 'Once per turn when you hit with a weapon, you can roll the weapon’s damage dice twice and use either result. Toggle to use on this attack. Applies to the first DAMAGE placeholder only.',
+      fields: [],
+      outputTemplate: () => '',
+      isSystemEffect: true
     }
   };
 

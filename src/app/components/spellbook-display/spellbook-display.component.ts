@@ -70,7 +70,11 @@ export class SpellbookDisplayComponent implements OnInit {
     const special: RollExtraToggle[] = (spell.effects || [])
       .filter(e => e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER')
       .map(e => ({ id: e.id, label: e.type === 'GREAT_WEAPON_MASTER' ? 'Great Weapon Master' : 'Sharpshooter', checked: !!e?.properties?.menuToggleChecked }));
-    const toggles = [...baseToggles, ...special];
+    // Include Savage Attacker as a fixed-label toggle when present on the spell; default unchecked when absent
+    const savage: RollExtraToggle[] = (spell.effects || [])
+      .filter(e => e?.type === 'SAVAGE_ATTACKER')
+      .map(e => ({ id: e.id, label: 'Savage Attacker', checked: !!e?.properties?.menuToggleChecked }));
+    const toggles = [...baseToggles, ...special, ...savage];
     const dedupMap = new Map<string, RollExtraToggle>();
     toggles.forEach(t => { if (t.label) dedupMap.set(t.id, t); });
     return Array.from(dedupMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
@@ -299,37 +303,83 @@ export class SpellbookDisplayComponent implements OnInit {
               playerLevel
             );
 
-            // Roll using breakdown so we can reuse exact per-die results for Elemental Adept
-            const baseBreakdowns = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
-            const rolls = baseBreakdowns.map(r => r.total);
-            let extraBreakdowns: Array<{ total: number; rolls: number[]; modifier: number; breakdown: string }> = [];
-            // On critical for attack-roll spells, reroll and add each dice entry in this DAMAGE effect
-            if (spell.castType === 'attack_roll' && isCritical && finalDiceList.length > 0) {
-              extraBreakdowns = finalDiceList.map(notation => this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
-              extraBreakdowns.forEach((b, idx) => {
-                rolls[idx] = (rolls[idx] || 0) + b.total;
-              });
-            }
-
-            // Elemental Adept: treat 1s as 2s on matching element; apply after rerolls
-            const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
-            const elementalAdept = eaEffect;
-            if (elementalAdept && damageType && elementalAdept?.properties?.element === damageType) {
-              // Count ones from the already-rolled base and crit breakdowns
-              const onesFromBase = baseBreakdowns.reduce((sum, b) => sum + (b.rolls?.filter(r => r === 1).length || 0), 0);
-              const onesFromCrit = extraBreakdowns.reduce((sum, b) => sum + (b.rolls?.filter(r => r === 1).length || 0), 0);
-              const onesTotal = onesFromBase + onesFromCrit;
-              if (onesTotal > 0) {
-                const delta = onesTotal * 1;
-                // Add delta to the first roll entry by convention to keep formatting simple
-                if (rolls.length > 0) { rolls[0] = (rolls[0] || 0) + delta; }
-                console.log('[Elemental Adept] +' + delta + ' (' + onesTotal + ' die/dice adjusted) for', damageType);
+            // Determine if Savage Attacker applies: only for attack_roll spells and only for the first DAMAGE placeholder
+            let useSavageAttacker = false;
+            if (spell.castType === 'attack_roll') {
+              const saEffect = (spell.effects || []).find(e => e?.type === 'SAVAGE_ATTACKER');
+              const saChecked = !!(saEffect && saEffect.properties && saEffect.properties.menuToggleChecked);
+              if (saEffect && saChecked) {
+                // Identify the first DAMAGE placeholder id in template order
+                const placeholderIds: string[] = Array.from((spell.template || '').matchAll(/\{\{([^}]+)\}\}/g)).map(m => String(m[1]).trim());
+                const firstDamagePlaceholderId = placeholderIds.find(pid => {
+                  const effById = (spell.effects || []).find(e => e.id === pid);
+                  return effById?.type === 'DAMAGE';
+                });
+                useSavageAttacker = firstDamagePlaceholderId === eff.id;
               }
             }
 
-            // Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
-            const abilityBonuses = this.computeAbilityBonusPerEntry(levelScaling, playerLevel, finalDiceList.length);
-            abilityBonuses.forEach((b, idx) => { if (b) { rolls[idx] = (rolls[idx] || 0) + b; } });
+            // Function to compute totals for this DAMAGE effect (one candidate)
+            const computeTotals = (): number[] => {
+              const baseBreakdowns = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
+              const totals = baseBreakdowns.map(r => r.total);
+              // On critical for attack-roll spells, reroll and add each dice entry in this DAMAGE effect
+              if (spell.castType === 'attack_roll' && isCritical && finalDiceList.length > 0) {
+                finalDiceList.forEach((notation, idx) => {
+                  const extra = this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting });
+                  totals[idx] = (totals[idx] || 0) + extra.total;
+                });
+              }
+              // Elemental Adept: treat 1s as 2s on matching element; apply after rerolls
+              const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+              const elementalAdept = eaEffect;
+              if (elementalAdept && damageType && elementalAdept?.properties?.element === damageType) {
+                const onesFromBase = baseBreakdowns.reduce((sum, b) => sum + (b.rolls?.filter(r => r === 1).length || 0), 0);
+                // Crit extra ones
+                if (spell.castType === 'attack_roll' && isCritical && finalDiceList.length > 0) {
+                  finalDiceList.forEach(notation => {
+                    const extra = this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting });
+                    const ones = extra.rolls?.filter(r => r === 1).length || 0;
+                    if (ones > 0 && totals.length > 0) {
+                      totals[0] = (totals[0] || 0) + ones * 1;
+                    }
+                  });
+                }
+                if (onesFromBase > 0 && totals.length > 0) {
+                  totals[0] = (totals[0] || 0) + onesFromBase * 1;
+                }
+              }
+              // Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
+              const abilityBonuses = this.computeAbilityBonusPerEntry(levelScaling, playerLevel, finalDiceList.length);
+              abilityBonuses.forEach((b, idx) => { if (b) { totals[idx] = (totals[idx] || 0) + b; } });
+              return totals;
+            };
+
+            let rolls: number[];
+            if (useSavageAttacker) {
+              // Roll two candidates and choose the higher total across all entries; use that candidate's per-entry values
+              const candidateA = computeTotals();
+              const candidateB = computeTotals();
+              const sumA = candidateA.reduce((a, b) => a + b, 0);
+              const sumB = candidateB.reduce((a, b) => a + b, 0);
+              rolls = sumB > sumA ? candidateB : candidateA;
+            } else {
+              // Default single candidate
+              const baseBreakdowns = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
+              rolls = baseBreakdowns.map(r => r.total);
+              if (spell.castType === 'attack_roll' && isCritical && finalDiceList.length > 0) {
+                const extraBreakdowns = finalDiceList.map(notation => this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
+                extraBreakdowns.forEach((b, idx) => { rolls[idx] = (rolls[idx] || 0) + b.total; });
+              }
+              const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+              const elementalAdept = eaEffect;
+              if (elementalAdept && damageType && elementalAdept?.properties?.element === damageType) {
+                const onesFromBase = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: false })).reduce((sum, b) => sum + (b.rolls?.filter(r => r === 1).length || 0), 0);
+                if (onesFromBase > 0 && rolls.length > 0) { rolls[0] = (rolls[0] || 0) + onesFromBase * 1; }
+              }
+              const abilityBonuses = this.computeAbilityBonusPerEntry(levelScaling, playerLevel, finalDiceList.length);
+              abilityBonuses.forEach((b, idx) => { if (b) { rolls[idx] = (rolls[idx] || 0) + b; } });
+            }
 
             const joined = rolls.join(', ');
             const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
