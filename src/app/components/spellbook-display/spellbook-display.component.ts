@@ -206,6 +206,11 @@ export class SpellbookDisplayComponent implements OnInit {
             const slotScaling = eff?.properties?.slotScaling;
             const levelScaling = eff?.properties?.levelScaling;
 
+            const hasGreatWeaponFighting = (spell.effects || []).some(e => e?.type === 'GREAT_WEAPON_FIGHTING');
+            if (hasGreatWeaponFighting) {
+              console.log('[GWF] Active for spell:', spell?.name || spell?.id_suggestion);
+            }
+
             const finalDiceList = this.applySlotAndLevelScalingToDiceList(
               this.parseDiceList(baseDiceInput),
               slotLevel,
@@ -215,12 +220,12 @@ export class SpellbookDisplayComponent implements OnInit {
               playerLevel
             );
 
-            const rollObjs = finalDiceList.map(d => this.rollDiceNotation(d));
+            const rollObjs = finalDiceList.map(d => this.rollDiceNotation(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
             const rolls = rollObjs.map(r => r.total);
             // On natural 20 for attack-roll spells, reroll and add each dice entry in this DAMAGE effect
             if (spell.castType === 'attack_roll' && isNatural20 && finalDiceList.length > 0) {
               finalDiceList.forEach((notation, idx) => {
-                const extra = this.rollDiceNotation(notation).total;
+                const extra = this.rollDiceNotation(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }).total;
                 rolls[idx] = (rolls[idx] || 0) + extra;
               });
             }
@@ -408,7 +413,8 @@ export class SpellbookDisplayComponent implements OnInit {
   }
 
   private rollDiceNotation(
-    diceNotation: string
+    diceNotation: string,
+    options?: { rerollOnOneOrTwo?: boolean }
   ): { total: number; breakdown: string } {
     if (!diceNotation || typeof diceNotation !== 'string' || !diceNotation.trim()) {
       return { total: 0, breakdown: '' };
@@ -433,7 +439,14 @@ export class SpellbookDisplayComponent implements OnInit {
 
     const rolls: number[] = [];
     for (let i = 0; i < numDice; i++) {
-      rolls.push(Math.floor(Math.random() * diceType) + 1);
+      let roll = Math.floor(Math.random() * diceType) + 1;
+      if (options?.rerollOnOneOrTwo && (roll === 1 || roll === 2)) {
+        const prev = roll;
+        const reroll = Math.floor(Math.random() * diceType) + 1;
+        roll = reroll; // must use the new result even if 1 or 2
+        console.log('[GWF] Reroll d' + diceType + ':', prev, '->', reroll);
+      }
+      rolls.push(roll);
     }
     const sum = rolls.reduce((a, b) => a + b, 0);
     const total = sum + modifier;

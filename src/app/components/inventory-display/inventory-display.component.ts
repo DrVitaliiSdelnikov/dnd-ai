@@ -244,6 +244,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     // Build rollResults for every placeholder present in template
     const rollResults: { [effectId: string]: string } = {};
 
+    // Detect Great Weapon Fighting on this item only
+    const hasGreatWeaponFighting = Array.isArray(effects) && effects.some(e => e?.type === 'GREAT_WEAPON_FIGHTING');
+    if (hasGreatWeaponFighting) {
+      console.log('[GWF] Active for item:', item?.name || (item as any)?.item_id_suggestion);
+    }
+
     // Track first DAMAGE for crit doubling
     let firstDamageResolved = false;
 
@@ -274,13 +280,13 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           const dice = eff?.properties?.dice as string;
           if (!dice) { rollResults[pid] = ''; break; }
 
-          // Parse basic XdY(+/-Z) using existing helper
-          const base = this.parseAndRollDice(dice) as any;
+          // Parse basic XdY(+/-Z) using existing helper with optional GWF rerolling
+          const base = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
           if ((base as any).error) { rollResults[pid] = ''; break; }
           let damageTotal = (base as any).total as number;
 
           if (isNatural20) {
-            const extra = this.parseAndRollDice(dice) as any;
+            const extra = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
             if (!(extra as any).error) {
               const extraTotal = (extra as any).total as number;
               damageTotal += extraTotal;
@@ -330,6 +336,47 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     this.actionResults[item.item_id_suggestion] = description;
 
     this.confirmationService.close();
+  }
+
+  private parseAndRollDiceWithOptions(
+    diceNotation: string,
+    options?: { rerollOnOneOrTwo?: boolean }
+  ): { total: number; error: null } | { total: null; error: string } {
+    if (!diceNotation || typeof diceNotation !== 'string') {
+      return { total: null, error: `Invalid dice notation: ${diceNotation}` };
+    }
+
+    const parts = diceNotation.trim().match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
+    if (parts) {
+      const numDice = parseInt(parts[1], 10);
+      const diceType = parseInt(parts[2], 10);
+      let modifier = 0;
+      if (parts[3] && parts[4]) {
+        modifier = parseInt(parts[4], 10);
+        if (parts[3] === '-') { modifier = -modifier; }
+      }
+
+      let total = 0;
+      for (let i = 0; i < numDice; i++) {
+        let roll = Math.floor(Math.random() * diceType) + 1;
+        if (options?.rerollOnOneOrTwo && (roll === 1 || roll === 2)) {
+          const prev = roll;
+          const reroll = Math.floor(Math.random() * diceType) + 1;
+          roll = reroll; // must use new result even if 1 or 2
+          console.log('[GWF] Reroll d' + diceType + ':', prev, '->', reroll);
+        }
+        total += roll;
+      }
+      total += modifier;
+      return { total, error: null };
+    }
+
+    const staticValue = parseInt(diceNotation, 10);
+    if (!isNaN(staticValue)) {
+      return { total: staticValue, error: null };
+    }
+
+    return { total: null, error: `Unknown dice notation format: ${diceNotation}` };
   }
 
   private normalizeSignSequences(text: string): string {

@@ -164,7 +164,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
           {
             "id": "string", // Must match template placeholders
             "name": "string",
-            "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL",
+            "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL | GREAT_WEAPON_FIGHTING",
             "properties": {
               // DAMAGE: { "dice": "1d10" | "1d4+1, 1d4+1, 1d4+1", "damageType": "fire",
               //           "slotScaling": { "perSlotDice": "1d10", "separateRoll": false },

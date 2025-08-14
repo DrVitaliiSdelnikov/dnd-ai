@@ -42,13 +42,6 @@ export class EffectDefinitionsService {
       outputTemplate: (props: EffectProperties) => `${props.buffValue > 0 ? '+' : ''}${props.buffValue} to ${props.stat?.toUpperCase()}`
     },
 
-    GREAT_WEAPON_FIGHTING: {
-      name: 'Great Weapon Fighting',
-      description: 'Rerolls 1s and 2s on damage dice',
-      fields: [],
-      outputTemplate: () => 'with Great Weapon Fighting'
-    },
-
     CONDITION: {
       name: 'Condition',
       description: 'Applies a condition to a target.',
@@ -144,6 +137,15 @@ export class EffectDefinitionsService {
         { key: 'dice', label: 'Dice', type: 'text', required: true, placeholder: '1d20' }
       ],
       outputTemplate: (props: EffectProperties) => props.dice || '1d20'
+    },
+
+    // System-only: Great Weapon Fighting (reroll 1s and 2s on damage dice once)
+    GREAT_WEAPON_FIGHTING: {
+      name: 'Great Weapon Fighting',
+      description: 'When rolling damage, reroll any 1s or 2s once and use the new results. Applies only if this effect is present on the current weapon/spell.',
+      fields: [],
+      outputTemplate: () => '',
+      isSystemEffect: true
     }
   };
 
