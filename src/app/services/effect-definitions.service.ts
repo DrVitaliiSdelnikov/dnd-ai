@@ -157,6 +157,15 @@ export class EffectDefinitionsService {
       ],
       outputTemplate: () => '',
       isSystemEffect: true
+    },
+
+    // System-only: Halfling Lucky (reroll d20 result of 1; stacks)
+    HALFLING_LUCKY: {
+      name: 'Halfling Lucky',
+      description: 'When you roll a 1 on a d20 (skill checks when passive; host-only for active spell/item), reroll the die and use the new result. Stacks add extra rerolls if the result is still 1.',
+      fields: [],
+      outputTemplate: () => '',
+      isSystemEffect: true
     }
   };
 

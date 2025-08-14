@@ -11,6 +11,7 @@ import { ConfirmPopup, ConfirmPopupModule } from 'primeng/confirmpopup';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { SkillEditorComponent } from './skill-editor/skill-editor.component';
 import { DialogService } from 'primeng/dynamicdialog';
+import { PlayerCardStateService } from '../../services/player-card-state.service';
 
 interface Skill {
   key: string;
@@ -42,6 +43,7 @@ export class SkillsDisplayComponent {
   private messageService: MessageService = inject(MessageService);
   @Output() skillCheck = new EventEmitter<RollEvent>();
   private dialogService = inject(DialogService);
+  private playerCardStateService = inject(PlayerCardStateService);
   private readonly skillAbilityMap: { [key: string]: string } = {
     acrobatics: 'dex', animal_handling: 'wis', arcana: 'int', athletics: 'str',
     deception: 'cha', history: 'int', insight: 'wis', intimidation: 'cha',
@@ -94,18 +96,56 @@ export class SkillsDisplayComponent {
   }
 
   rollSkillCheck(skill: Skill, rollState: RollState = 'NORMAL'): void {
+    const halflingLuckyStacks = this.getPassiveHalflingLuckyStacks();
+
+    let usedAnnotation = '';
     let d20Roll: number;
-    if (rollState === 'ADVANTAGE') {
-      d20Roll = Math.max(this.rollD20(), this.rollD20());
-    } else if (rollState === 'DISADVANTAGE') {
-      d20Roll = Math.min(this.rollD20(), this.rollD20());
-    } else {
-      d20Roll = this.rollD20();
+
+    if (rollState === 'ADVANTAGE' || rollState === 'DISADVANTAGE') {
+      // Roll two dice and apply Halfling Lucky to each die independently before choosing
+      const first = this.rollD20();
+      const second = this.rollD20();
+      const adjFirst = this.applyHalflingLuckyToDie(first, halflingLuckyStacks);
+      const adjSecond = this.applyHalflingLuckyToDie(second, halflingLuckyStacks);
+
+      const rollsDisplay: string[] = [];
+      rollsDisplay.push(this.formatLuckyDieDisplay(first, adjFirst));
+      rollsDisplay.push(this.formatLuckyDieDisplay(second, adjSecond));
+
+      const used = rollState === 'ADVANTAGE'
+        ? Math.max(adjFirst.value, adjSecond.value)
+        : Math.min(adjFirst.value, adjSecond.value);
+
+      const totalTriggers = (adjFirst.triggers || 0) + (adjSecond.triggers || 0);
+      usedAnnotation = totalTriggers > 0 ? ` (Halfling Lucky x${totalTriggers})` : '';
+
+      d20Roll = used;
+
+      const prefix = rollState === 'ADVANTAGE' ? 'Rolls' : 'Rolls';
+      // We embed the rolls detail into the final message below
+      const rollsString = `${prefix}: [${rollsDisplay.join(', ')}] -> Used ${d20Roll}${usedAnnotation}`;
+
+      const finalResult = d20Roll + skill.modifier;
+      const modifierString = skill.modifier >= 0 ? `+ ${skill.modifier}` : `- ${Math.abs(skill.modifier)}`;
+      const resultDescription = `${skill.name} Check: ${finalResult} (${rollsString} ${modifierString})`;
+
+      this.skillCheck.emit({
+        type: `SKILL_CHECK_${skill.key.toUpperCase()}`,
+        description: resultDescription
+      });
+      this.confirmationService.close();
+      return;
     }
+
+    // NORMAL mode: single die
+    const initial = this.rollD20();
+    const adjusted = this.applyHalflingLuckyToDie(initial, halflingLuckyStacks);
+    d20Roll = adjusted.value;
+    usedAnnotation = adjusted.triggers > 0 ? ` (Halfling Lucky x${adjusted.triggers})` : '';
 
     const finalResult = d20Roll + skill.modifier;
     const modifierString = skill.modifier >= 0 ? `+ ${skill.modifier}` : `- ${Math.abs(skill.modifier)}`;
-    const resultDescription = `${skill.name} Check: ${finalResult} (Roll: ${d20Roll} ${modifierString})`;
+    const resultDescription = `${skill.name} Check: ${finalResult} (Roll: ${this.formatLuckyDieDisplay(initial, adjusted)}${usedAnnotation} ${modifierString})`;
 
     this.skillCheck.emit({
       type: `SKILL_CHECK_${skill.key.toUpperCase()}`,
@@ -132,4 +172,41 @@ export class SkillsDisplayComponent {
   private rollD20(): number {
     return Math.floor(Math.random() * 20) + 1;
   };
+
+  private getPassiveHalflingLuckyStacks(): number {
+    const card = this.playerCardStateService.playerCard$();
+    const spells = Array.isArray(card?.spells) ? card!.spells : [];
+    let stacks = 0;
+    for (const s of spells) {
+      if (s?.isPassive && Array.isArray(s.effects)) {
+        stacks += s.effects.filter(e => e?.type === 'HALFLING_LUCKY').length;
+      }
+    }
+    return stacks;
+  }
+
+  private applyHalflingLuckyToDie(initial: number, stacks: number): { value: number, triggers: number } {
+    if (stacks <= 0) return { value: initial, triggers: 0 };
+    let current = initial;
+    let triggers = 0;
+    let remaining = stacks;
+    while (remaining > 0 && current === 1) {
+      current = this.rollD20();
+      triggers += 1;
+      remaining -= 1;
+      // Must use the new result even if 1; loop will continue if remaining > 0 and still 1
+    }
+    return { value: current, triggers };
+  }
+
+  private formatLuckyDieDisplay(original: number, adjusted: { value: number, triggers: number }): string {
+    if (!adjusted || adjusted.triggers <= 0) {
+      return String(original);
+    }
+    // Show a simple original→new form; if multiple triggers, only show final
+    if (original === adjusted.value) {
+      return String(original);
+    }
+    return `${original}\u2192${adjusted.value}`; // arrow →
+  }
 }
