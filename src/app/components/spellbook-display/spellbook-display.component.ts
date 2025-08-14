@@ -169,15 +169,46 @@ export class SpellbookDisplayComponent implements OnInit {
         switch (eff.type) {
           case 'D20_ROLL': {
             const notation = (eff?.properties?.dice as string) || '1d20';
-            // If this is an attack-roll spell, respect rollMode for d20 rolls
+            // If this is an attack-roll spell, respect rollMode for d20 rolls and apply Halfling Lucky (spell-scoped)
             if (spell.castType === 'attack_roll' && /^\s*1[dD]20(\s*[+-]\s*\d+)?\s*$/.test(notation)) {
-              const d20 = this.rollD20WithMode(rollMode);
-              chatValues[eff.id] = String(d20);
+              const halflingLuckyStacks = (spell.effects || []).filter(e => e?.type === 'HALFLING_LUCKY').length;
+              let d20: number;
+              let details = '';
+              if (rollMode === RollStateEnum.ADVANTAGE || rollMode === RollStateEnum.DISADVANTAGE) {
+                const first = this.rollD20();
+                const second = this.rollD20();
+                const adjFirst = this.applyHalflingLuckyToDie(first, halflingLuckyStacks);
+                const adjSecond = this.applyHalflingLuckyToDie(second, halflingLuckyStacks);
+                const totalTriggers = (adjFirst.triggers || 0) + (adjSecond.triggers || 0);
+                d20 = rollMode === RollStateEnum.ADVANTAGE
+                  ? Math.max(adjFirst.value, adjSecond.value)
+                  : Math.min(adjFirst.value, adjSecond.value);
+                const annotationPlain = totalTriggers > 0 ? `Halfling Lucky x${totalTriggers}` : '';
+                const rollsDisp = `${this.formatLuckyDieDisplayForSpell(first, adjFirst)}, ${this.formatLuckyDieDisplayForSpell(second, adjSecond)}`;
+                const prefix = 'Rolls';
+                details = `${prefix}: [${rollsDisp}] -> Used ${d20}${annotationPlain}`;
+              } else {
+                const initial = this.rollD20();
+                const adjusted = this.applyHalflingLuckyToDie(initial, halflingLuckyStacks);
+                d20 = adjusted.value;
+                const annotationPlain = adjusted.triggers > 0 ? `Halfling Lucky x${adjusted.triggers}` : '';
+                details = `Roll: ${this.formatLuckyDieDisplayForSpell(initial, adjusted)}${annotationPlain}`;
+              }
+              chatValues[eff.id] = `${d20} (${details})`;
               if (capturedD20 === null) {
                 capturedD20 = d20;
                 isNatural20 = d20 === 20;
                 isNatural1 = d20 === 1;
               }
+            } else if (/^\s*1[dD]20(\s*[+-]\s*\d+)?\s*$/.test(notation)) {
+              // Non-attack d20 roll: apply Halfling Lucky (spell-scoped), no adv/disadv context
+              const halflingLuckyStacks = (spell.effects || []).filter(e => e?.type === 'HALFLING_LUCKY').length;
+              const initial = this.rollD20();
+              const adjusted = this.applyHalflingLuckyToDie(initial, halflingLuckyStacks);
+              const d20 = adjusted.value;
+              const annotationPlain = adjusted.triggers > 0 ? `Halfling Lucky x${adjusted.triggers}` : '';
+              const details = `Roll: ${this.formatLuckyDieDisplayForSpell(initial, adjusted)}${annotationPlain}`;
+              chatValues[eff.id] = `${d20} (${details})`;
             } else {
               const roll = this.rollDiceNotation(notation);
               chatValues[eff.id] = String(roll.total);
@@ -622,5 +653,25 @@ export class SpellbookDisplayComponent implements OnInit {
     } else {
       return this.rollD20();
     }
+  }
+
+  // Halfling Lucky helper (spell-scoped)
+  private applyHalflingLuckyToDie(initial: number, stacks: number): { value: number; triggers: number } {
+    if (stacks <= 0) return { value: initial, triggers: 0 };
+    let current = initial;
+    let triggers = 0;
+    let remaining = stacks;
+    while (remaining > 0 && current === 1) {
+      current = this.rollD20();
+      triggers += 1;
+      remaining -= 1;
+    }
+    return { value: current, triggers };
+  }
+
+  private formatLuckyDieDisplayForSpell(initial: number, adjusted: { value: number; triggers: number }): string {
+    if (!adjusted || adjusted.triggers <= 0) return String(initial);
+    if (initial === adjusted.value) return String(initial);
+    return `${initial}\u2192${adjusted.value}`;
   }
 }

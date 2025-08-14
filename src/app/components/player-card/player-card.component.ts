@@ -323,22 +323,43 @@ export class PlayerCardComponent implements OnInit {
     const abilityData = this.equipmentBonuses()?.statsBonuses;
     const modifier = abilityData[abilityKey];
 
+    // Count passive HALFLING_LUCKY stacks from spells
+    const card = this.playerCardStateService.playerCard$();
+    const passiveSpells = Array.isArray(card?.spells) ? card!.spells.filter(s => s?.isPassive) : [];
+    const halflingLuckyStacks = passiveSpells.reduce((sum, s) => sum + ((Array.isArray(s.effects) ? s.effects.filter(e => e?.type === 'HALFLING_LUCKY').length : 0)), 0);
+
     let d20Roll: number;
     let rollsString: string;
 
     if (rollMode === RollStateEnum.ADVANTAGE) {
       const roll1 = Math.floor(Math.random() * 20) + 1;
       const roll2 = Math.floor(Math.random() * 20) + 1;
-      d20Roll = Math.max(roll1, roll2);
-      rollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+      const adj1 = this.applyHalflingLuckyToDieForChecks(roll1, halflingLuckyStacks);
+      const adj2 = this.applyHalflingLuckyToDieForChecks(roll2, halflingLuckyStacks);
+      const used = Math.max(adj1.value, adj2.value);
+      const triggers = (adj1.triggers || 0) + (adj2.triggers || 0);
+      d20Roll = used;
+      const annotation = triggers > 0 ? ` (Halfling Lucky x${triggers})` : '';
+      console.log('[Ability Check] Adv rolls:', roll1, '->', adj1.value, '|', roll2, '->', adj2.value, 'stacks:', halflingLuckyStacks, 'triggers:', triggers);
+      rollsString = `Rolls: [${this.formatLuckyDieDisplayForChecks(roll1, adj1)}, ${this.formatLuckyDieDisplayForChecks(roll2, adj2)}] -> Used ${used}${annotation}`;
     } else if (rollMode === RollStateEnum.DISADVANTAGE) {
       const roll1 = Math.floor(Math.random() * 20) + 1;
       const roll2 = Math.floor(Math.random() * 20) + 1;
-      d20Roll = Math.min(roll1, roll2);
-      rollsString = `Rolls: [${roll1}, ${roll2}] -> Used ${d20Roll}`;
+      const adj1 = this.applyHalflingLuckyToDieForChecks(roll1, halflingLuckyStacks);
+      const adj2 = this.applyHalflingLuckyToDieForChecks(roll2, halflingLuckyStacks);
+      const used = Math.min(adj1.value, adj2.value);
+      const triggers = (adj1.triggers || 0) + (adj2.triggers || 0);
+      d20Roll = used;
+      const annotation = triggers > 0 ? ` (Halfling Lucky x${triggers})` : '';
+      console.log('[Ability Check] Disadv rolls:', roll1, '->', adj1.value, '|', roll2, '->', adj2.value, 'stacks:', halflingLuckyStacks, 'triggers:', triggers);
+      rollsString = `Rolls: [${this.formatLuckyDieDisplayForChecks(roll1, adj1)}, ${this.formatLuckyDieDisplayForChecks(roll2, adj2)}] -> Used ${used}${annotation}`;
     } else {
-      d20Roll = Math.floor(Math.random() * 20) + 1;
-      rollsString = `Roll: ${d20Roll}`;
+      const initial = Math.floor(Math.random() * 20) + 1;
+      const adjusted = this.applyHalflingLuckyToDieForChecks(initial, halflingLuckyStacks);
+      d20Roll = adjusted.value;
+      const annotation = adjusted.triggers > 0 ? ` (Halfling Lucky x${adjusted.triggers})` : '';
+      console.log('[Ability Check] Normal roll:', initial, '->', adjusted.value, 'stacks:', halflingLuckyStacks, 'triggers:', adjusted.triggers);
+      rollsString = `Roll: ${this.formatLuckyDieDisplayForChecks(initial, adjusted)}${annotation}`;
     }
 
     if (d20Roll === 20) {
@@ -356,6 +377,27 @@ export class PlayerCardComponent implements OnInit {
       description: resultString
     });
     this.confirmationService.close();
+  }
+
+  private applyHalflingLuckyToDieForChecks(initial: number, stacks: number): { value: number, triggers: number } {
+    if (stacks <= 0) return { value: initial, triggers: 0 };
+    let current = initial;
+    let triggers = 0;
+    let remaining = stacks;
+    while (remaining > 0 && current === 1) {
+      const reroll = Math.floor(Math.random() * 20) + 1;
+      console.log('[Halfling Lucky][Ability Check] Reroll 1 ->', reroll);
+      current = reroll;
+      triggers += 1;
+      remaining -= 1;
+    }
+    return { value: current, triggers };
+  }
+
+  private formatLuckyDieDisplayForChecks(original: number, adjusted: { value: number, triggers: number }): string {
+    if (!adjusted || adjusted.triggers <= 0) return String(original);
+    if (original === adjusted.value) return String(original);
+    return `${original}\u2192${adjusted.value}`;
   }
 
   private calculateArmorClass(

@@ -160,6 +160,26 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     }
   }
 
+  // Halfling Lucky helpers (item-scoped)
+  private applyHalflingLuckyToDie(initial: number, stacks: number): { value: number; triggers: number } {
+    if (stacks <= 0) return { value: initial, triggers: 0 };
+    let current = initial;
+    let triggers = 0;
+    let remaining = stacks;
+    while (remaining > 0 && current === 1) {
+      current = this.rollD20();
+      triggers += 1;
+      remaining -= 1;
+    }
+    return { value: current, triggers };
+  }
+
+  private formatLuckyDieDisplay(original: number, adjusted: { value: number; triggers: number }): string {
+    if (!adjusted || adjusted.triggers <= 0) return String(original);
+    if (original === adjusted.value) return String(original);
+    return `${original}\u2192${adjusted.value}`;
+  }
+
   objectKeys(obj: any): string[] {
     return Object.keys(obj || {})
       .filter(displayName => obj[displayName] && obj[displayName].length > 0);
@@ -236,10 +256,42 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const magicBonus = magicBonusEffect?.properties?.bonus || 0;
     const totalBonus = abilityMod + proficiencyBonus + magicBonus;
 
-    // Roll attack d20 (respect advantage/disadvantage)
-    const d20Roll = this.rollD20WithMode(mode);
-    const isNatural20 = d20Roll === 20;
-    const isNatural1 = d20Roll === 1;
+    // Roll attack d20 with Halfling Lucky (item-scoped) applied before adv/disadv selection
+    const halflingLuckyStacks = Array.isArray(effects) ? effects.filter(e => e?.type === 'HALFLING_LUCKY').length : 0;
+    let d20Roll: number;
+    let isNatural20: boolean = false;
+    let isNatural1: boolean = false;
+    let halflingLuckyAnnotation = '';
+    let halflingLuckyAnnotationPlain = '';
+    let d20RollDisplay = '';
+    let d20RollDetails = '';
+
+    if (mode === RollStateEnum.ADVANTAGE || mode === RollStateEnum.DISADVANTAGE) {
+      const first = this.rollD20();
+      const second = this.rollD20();
+      const adjFirst = this.applyHalflingLuckyToDie(first, halflingLuckyStacks);
+      const adjSecond = this.applyHalflingLuckyToDie(second, halflingLuckyStacks);
+      const totalTriggers = (adjFirst.triggers || 0) + (adjSecond.triggers || 0);
+      d20Roll = mode === RollStateEnum.ADVANTAGE
+        ? Math.max(adjFirst.value, adjSecond.value)
+        : Math.min(adjFirst.value, adjSecond.value);
+      isNatural20 = d20Roll === 20;
+      isNatural1 = d20Roll === 1;
+      d20RollDisplay = `${this.formatLuckyDieDisplay(first, adjFirst)}, ${this.formatLuckyDieDisplay(second, adjSecond)}`;
+      halflingLuckyAnnotation = totalTriggers > 0 ? ` (Halfling Lucky x${totalTriggers})` : '';
+      halflingLuckyAnnotationPlain = totalTriggers > 0 ? `Halfling Lucky x${totalTriggers}` : '';
+      d20RollDetails = `Rolls: [${d20RollDisplay}] -> Used ${d20Roll}${halflingLuckyAnnotationPlain ? halflingLuckyAnnotationPlain : ''}`;
+    } else {
+      const initial = this.rollD20();
+      const adjusted = this.applyHalflingLuckyToDie(initial, halflingLuckyStacks);
+      d20Roll = adjusted.value;
+      isNatural20 = d20Roll === 20;
+      isNatural1 = d20Roll === 1;
+      d20RollDisplay = this.formatLuckyDieDisplay(initial, adjusted);
+      halflingLuckyAnnotation = adjusted.triggers > 0 ? ` (Halfling Lucky x${adjusted.triggers})` : '';
+      halflingLuckyAnnotationPlain = adjusted.triggers > 0 ? `Halfling Lucky x${adjusted.triggers}` : '';
+      d20RollDetails = `Roll: ${d20RollDisplay}${halflingLuckyAnnotationPlain ? halflingLuckyAnnotationPlain : ''}`;
+    }
 
     // Build rollResults for every placeholder present in template
     const rollResults: { [effectId: string]: string } = {};
@@ -265,7 +317,8 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
 
       switch (type) {
         case 'D20_ROLL': {
-          rollResults[pid] = String(d20Roll);
+          // Provide the used number and a chip immediately after with the detailed rolls
+          rollResults[pid] = `${d20Roll} (${d20RollDetails})`;
           break;
         }
         case 'PROFICIENCY': {
