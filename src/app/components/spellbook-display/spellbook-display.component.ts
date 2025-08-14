@@ -362,6 +362,8 @@ export class SpellbookDisplayComponent implements OnInit {
               const candidateB = computeTotals();
               const sumA = candidateA.reduce((a, b) => a + b, 0);
               const sumB = candidateB.reduce((a, b) => a + b, 0);
+              const used = sumB > sumA ? 'B' : 'A';
+              console.log('[Savage Attacker][Spell]', (spell?.name || spell?.id_suggestion || ''), 'effectId:', eff.id, 'A =', candidateA, 'sumA =', sumA, '| B =', candidateB, 'sumB =', sumB, '-> used', used);
               rolls = sumB > sumA ? candidateB : candidateA;
             } else {
               // Default single candidate
