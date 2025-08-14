@@ -70,6 +70,7 @@
 <p-confirmpopup>
   <ng-template #content let-message>
     <app-roll-options-panel
+      [includeNormal]="false"
       (rollEmit)="rollAttackAndDamage(this.selectedItem(), $event)">
     </app-roll-options-panel>
   </ng-template>

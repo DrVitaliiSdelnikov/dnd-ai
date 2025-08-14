@@ -62,6 +62,7 @@
 <p-confirmpopup>
   <ng-template #content let-message>
     <app-roll-options-panel
+      [includeNormal]="false"
       (rollEmit)="onSpellRollModeSelected($event)">
     </app-roll-options-panel>
   </ng-template>

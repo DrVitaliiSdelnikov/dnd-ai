@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, inject, DestroyRef, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RadioButtonModule } from 'primeng/radiobutton';
@@ -25,13 +25,24 @@ export class RollOptionsPanelComponent implements OnInit {
   @Output() rollEmit = new EventEmitter<RollState>();
   private destroyRef = inject(DestroyRef);
   rollForm: FormGroup;
-  readonly rollOptions = [
+  @Input() includeNormal: boolean = true;
+  rollOptions = [
     { value: RollStateEnum.ADVANTAGE, text: 'Advantage' },
     { value: RollStateEnum.NORMAL, text: 'Normal' },
     { value: RollStateEnum.DISADVANTAGE, text: 'Disadvantage' }
   ];
 
   ngOnInit(): void {
+    // Build options based on includeNormal input
+    const options = [
+      { value: RollStateEnum.ADVANTAGE, text: 'Advantage' }
+    ];
+    if (this.includeNormal) {
+      options.push({ value: RollStateEnum.NORMAL, text: 'Normal' });
+    }
+    options.push({ value: RollStateEnum.DISADVANTAGE, text: 'Disadvantage' });
+    this.rollOptions = options;
+
     this.rollForm = new FormGroup({
       rollState: new FormControl(RollStateEnum.NORMAL)
     });
