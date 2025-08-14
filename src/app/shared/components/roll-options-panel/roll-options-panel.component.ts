@@ -14,6 +14,12 @@ export enum RollStateEnum {
   DISADVANTAGE = 'DISADVANTAGE',
 }
 
+export interface RollExtraToggle {
+  id: string;
+  label: string;
+  checked: boolean;
+}
+
 @Component({
   selector: 'app-roll-options-panel',
   standalone: true,
@@ -23,9 +29,12 @@ export enum RollStateEnum {
 })
 export class RollOptionsPanelComponent implements OnInit {
   @Output() rollEmit = new EventEmitter<RollState>();
+  @Output() toggleChanged = new EventEmitter<{ id: string; checked: boolean }>();
   private destroyRef = inject(DestroyRef);
   rollForm: FormGroup;
   @Input() includeNormal: boolean = true;
+  // New: effect-provided toggles
+  @Input() toggles: RollExtraToggle[] = [];
   rollOptions = [
     { value: RollStateEnum.ADVANTAGE, text: 'Advantage' },
     { value: RollStateEnum.NORMAL, text: 'Normal' },
@@ -47,6 +56,12 @@ export class RollOptionsPanelComponent implements OnInit {
       rollState: new FormControl(RollStateEnum.NORMAL)
     });
     this.watchValueChange();
+  }
+
+  onToggleClick(t: RollExtraToggle): void {
+    const newState = !t.checked;
+    t.checked = newState;
+    this.toggleChanged.emit({ id: t.id, checked: newState });
   }
 
   private watchValueChange(): void {

@@ -278,6 +278,33 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
     }
 
     this.effectForm = this.fb.group(formControls);
+
+    // Additional validation: if DAMAGE has menuToggleEnabled true, require non-empty menuToggleLabel
+    if (effect.type === 'DAMAGE') {
+      this.effectForm.valueChanges.subscribe(val => {
+        const enabled = !!val['menuToggleEnabled'];
+        const labelCtrl = this.effectForm.get('menuToggleLabel');
+        if (labelCtrl) {
+          if (enabled) {
+            labelCtrl.setValidators([Validators.required]);
+          } else {
+            labelCtrl.clearValidators();
+          }
+          labelCtrl.updateValueAndValidity({ emitEvent: false });
+        }
+      });
+      // Initialize the validator state based on initial value
+      const initEnabled = !!this.effectForm.get('menuToggleEnabled')?.value;
+      const initLabelCtrl = this.effectForm.get('menuToggleLabel');
+      if (initLabelCtrl) {
+        if (initEnabled) {
+          initLabelCtrl.setValidators([Validators.required]);
+        } else {
+          initLabelCtrl.clearValidators();
+        }
+        initLabelCtrl.updateValueAndValidity({ emitEvent: false });
+      }
+    }
   }
 
   saveEffect(): void {

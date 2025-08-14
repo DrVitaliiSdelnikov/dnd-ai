@@ -21,4 +21,16 @@
       </div>
     }
   </div>
+
+  <div class="extras-list" *ngIf="toggles && toggles.length">
+    <div class="roll-panel-header" style="margin-top: .5rem;">
+      <strong>EXTRAS:</strong>
+    </div>
+    @for(t of (toggles | slice:0); track t.id) {
+      <div class="custom-checkbox-wrapper" (click)="onToggleClick(t)">
+        <i class="pi" [ngClass]="t.checked ? 'pi-check-square' : 'pi-square'" style="margin-right:.5rem"></i>
+        <span class="text-container">{{ t.label }}</span>
+      </div>
+    }
+  </div>
 </div>

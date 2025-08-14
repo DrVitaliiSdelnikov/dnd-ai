@@ -27,7 +27,7 @@ import { FormsModule } from '@angular/forms';
 import { SpellcastingService } from '../../services/spellcasting.service';
 import { OverlayPanel, OverlayPanelModule } from 'primeng/overlaypanel';
 import { ViewChild } from '@angular/core';
-import { RollOptionsPanelComponent, RollState, RollStateEnum } from '../../shared/components/roll-options-panel/roll-options-panel.component';
+import { RollOptionsPanelComponent, RollState, RollStateEnum, RollExtraToggle } from '../../shared/components/roll-options-panel/roll-options-panel.component';
 
 @Component({
   selector: 'app-spellbook-display',
@@ -57,24 +57,15 @@ export class SpellbookDisplayComponent implements OnInit {
   private selectedSpellRollMode: WritableSignal<RollState> = signal(RollStateEnum.NORMAL);
   private lastSpellContextEvent: MouseEvent | null = null;
 
-  readonly categorizedSpells = computed(() => {
-    const currentSpells = this.spells();
-
-    if (!currentSpells || !Array.isArray(currentSpells)) {
-      return {};
-    }
-
-    const grouped = currentSpells.reduce((acc, spell) => {
-      const level = spell.level ?? 0;
-      const key = level === 0 ? 'Cantrips' : (level > 0 ? `Level ${level}` : 'Abilities');
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(spell);
-      return acc;
-    }, {} as { [key: string]: any[] });
-
-    return grouped;
+  // Collect toggles for current selected spell (alphabetized by label)
+  readonly spellExtraToggles = computed<RollExtraToggle[]>(() => {
+    const spell = this.selectedItem();
+    if (!spell || !Array.isArray(spell.effects)) return [];
+    const toggles = (spell.effects || [])
+      .filter(e => e?.type === 'DAMAGE' && e?.properties?.menuToggleEnabled)
+      .map(e => ({ id: e.id, label: String(e?.properties?.menuToggleLabel || e?.name || ''), checked: !!e?.properties?.menuToggleChecked }))
+      .filter(t => !!t.label);
+    return toggles.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
   });
 
   ngOnInit(): void {
@@ -326,6 +317,63 @@ export class SpellbookDisplayComponent implements OnInit {
           description += ' (natural 20!)';
         }
       }
+
+      // Append any enabled extra damage toggles that are not already present in the template
+      const enabledExtras = (spell.effects || [])
+        .filter(e => e?.type === 'DAMAGE' && e?.properties?.menuToggleEnabled && e?.properties?.menuToggleChecked)
+        .map(e => ({ effect: e as Effect, label: String(e.properties?.menuToggleLabel || e.name || '' ) }))
+        .filter(x => !!x.label)
+        .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+      if (enabledExtras.length > 0) {
+        // Collect placeholders to avoid duplication
+        const placeholderIds: string[] = Array.from((spell.template || '').matchAll(/\{\{([^}]+)\}\}/g)).map(m => String(m[1]).trim());
+        const additions: string[] = [];
+        for (const x of enabledExtras) {
+          const eff = x.effect as any;
+          if (placeholderIds.includes(eff.id)) {
+            continue; // already in template output
+          }
+          const baseDiceInput = (eff?.properties?.dice as string) || '';
+          const slotScaling = eff?.properties?.slotScaling;
+          const levelScaling = eff?.properties?.levelScaling;
+          const hasGreatWeaponFighting = (spell.effects || []).some(e => e?.type === 'GREAT_WEAPON_FIGHTING');
+          const finalDiceList = this.applySlotAndLevelScalingToDiceList(
+            this.parseDiceList(baseDiceInput),
+            slotLevel,
+            spell.level || 0,
+            slotScaling,
+            levelScaling,
+            playerLevel
+          );
+          const baseBreakdowns = finalDiceList.map(d => this.rollDiceNotationWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting }));
+          const totals = baseBreakdowns.map(r => r.total);
+          // Crit doubling for attack-roll spells
+          if (spell.castType === 'attack_roll' && capturedD20 === 20 && finalDiceList.length > 0) {
+            finalDiceList.forEach((notation, idx) => {
+              const extra = this.rollDiceNotationWithBreakdown(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting });
+              totals[idx] = (totals[idx] || 0) + extra.total;
+            });
+          }
+          // Elemental Adept adjustment
+          const eaEffect = (spell.effects || []).find(e => e?.type === 'ELEMENTAL_ADEPT');
+          const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+          if (eaEffect && damageType && eaEffect?.properties?.element === damageType) {
+            const onesFromBase = baseBreakdowns.reduce((sum, b) => sum + (b.rolls?.filter((r: number) => r === 1).length || 0), 0);
+            if (onesFromBase > 0) {
+              const delta = onesFromBase * 1;
+              if (totals.length > 0) { totals[0] = (totals[0] || 0) + delta; }
+            }
+          }
+          const joined = totals.join(', ');
+          const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
+          additions.push(`${x.label}: ${joined}${typeText}`);
+        }
+        if (additions.length > 0) {
+          description += (description?.trim().endsWith('.') ? '' : '') + ` + ` + additions.join(', ');
+        }
+      }
+
       this.actionResults[spell.id_suggestion] = description;
     }
 
@@ -638,6 +686,20 @@ export class SpellbookDisplayComponent implements OnInit {
     this.slotOptions = validSlots.map(l => ({ label: `Level ${l}`, value: l }));
     if (this.slotPanel && this.lastSpellContextEvent) {
       this.slotPanel.toggle(this.lastSpellContextEvent);
+    }
+  }
+
+  // Persist toggle change
+  onSpellExtraToggleChanged(evt: { id: string; checked: boolean }): void {
+    const spell = this.selectedItem();
+    if (!spell) return;
+    const updated = { ...spell, effects: (spell.effects || []).map(e => e.id === evt.id ? ({ ...e, properties: { ...e.properties, menuToggleChecked: evt.checked } }) : e) };
+    // Persist in player card
+    const current = this.playerCardStateService.playerCard$();
+    if (current && Array.isArray(current.spells)) {
+      const updatedSpells = current.spells.map(s => s.id_suggestion === updated.id_suggestion ? updated : s);
+      this.playerCardStateService.updatePlayerCard({ ...current, spells: updatedSpells } as any);
+      this.selectedItem.set(updated);
     }
   }
 

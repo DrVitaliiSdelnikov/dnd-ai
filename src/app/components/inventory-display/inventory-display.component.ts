@@ -16,7 +16,7 @@ import { Tooltip } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import {
   RollOptionsPanelComponent,
-  RollState, RollStateEnum
+  RollState, RollStateEnum, RollExtraToggle
 } from '../../shared/components/roll-options-panel/roll-options-panel.component';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { ItemEditorComponent } from './item-editor/item-editor.component';
@@ -76,6 +76,17 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     [RollStateEnum.NORMAL]: 'Normal',
     [RollStateEnum.DISADVANTAGE]: 'Disadvantage'
   };
+
+  // New: computed toggles for selected item
+  itemExtraToggles = computed<RollExtraToggle[]>(() => {
+    const it = this.selectedItem();
+    const effects = it?.properties?.effects || [];
+    const toggles = effects
+      .filter((e: any) => e?.type === 'DAMAGE' && e?.properties?.menuToggleEnabled)
+      .map((e: any) => ({ id: e.id, label: String(e?.properties?.menuToggleLabel || e?.name || ''), checked: !!e?.properties?.menuToggleChecked }))
+      .filter(t => !!t.label);
+    return toggles.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+  });
 
   categorizedItems: { [key: string]: InventoryItem[] } = {};
   categoryOrder: string[] = ['WEAPON', 'ARMOR', 'CONSUMABLE', 'MISC_ITEM', 'OTHER'];
@@ -386,6 +397,35 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     // Normalize sign sequences like "+-1" -> "-1"
     description = this.normalizeSignSequences(description);
 
+    // Append extra DAMAGE toggles (alphabetical, not present in template)
+    const extraAdditions: string[] = [];
+    const enabledExtras = (effects || [])
+      .filter((e: any) => e?.type === 'DAMAGE' && e?.properties?.menuToggleEnabled && e?.properties?.menuToggleChecked)
+      .sort((a: any, b: any) => String(a?.properties?.menuToggleLabel || a?.name || '').localeCompare(String(b?.properties?.menuToggleLabel || b?.name || ''), undefined, { sensitivity: 'base' }));
+    if (enabledExtras.length > 0) {
+      const placeholderIdsSet = new Set(placeholderIds);
+      enabledExtras.forEach((eff: any) => {
+        if (placeholderIdsSet.has(eff.id)) return; // already included
+        const dice = eff?.properties?.dice as string;
+        if (!dice) return;
+        const base = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
+        if ((base as any).error) return;
+        let total = (base as any).total as number;
+        if (isNatural20) {
+          const extra = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
+          if (!(extra as any).error) total += (extra as any).total as number;
+        }
+        const dmgType = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
+        const label = String(eff?.properties?.menuToggleLabel || eff?.name || '');
+        if (label) {
+          extraAdditions.push(`${label}: ${total}${dmgType}`);
+        }
+      });
+    }
+    if (extraAdditions.length > 0) {
+      description += (description?.trim().endsWith('.') ? '' : '') + ` + ` + extraAdditions.join(', ');
+    }
+
     // Append crit annotation if relevant
     if (isNatural1) {
       description += ' (natural 1!)';
@@ -402,12 +442,12 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
 
     // Emit one unified message
     this.emitRollResults.emit({
-      type: `WEAPON_ATTACK_${item.item_id_suggestion}`,
+      type: `WEAPON_ATTACK_${(item as any).item_id_suggestion || (item as any).id_suggestion}`,
       description
     });
 
     // Save last action text for UI (optional)
-    this.actionResults[item.item_id_suggestion] = description;
+    this.actionResults[(item as any).item_id_suggestion || (item as any).id_suggestion] = description;
 
     this.confirmationService.close();
   }
@@ -562,6 +602,28 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       rejectVisible: false,
       closable: true
     });
+  }
+
+  onItemExtraToggleChanged(evt: { id: string; checked: boolean }): void {
+    const current = this.playerCardStateService.playerCard$();
+    if (!current) return;
+    const item = this.selectedItem();
+    if (!item) return;
+    const itemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+    const updatedItem = {
+      ...item,
+      properties: {
+        ...item.properties,
+        effects: (item.properties?.effects || []).map((e: any) => e.id === evt.id ? ({ ...e, properties: { ...e.properties, menuToggleChecked: evt.checked } }) : e)
+      }
+    } as any;
+    const updatedLoot = ((current.loot && current.loot !== 'SAME') ? current.loot : []) as any[];
+    const nextLoot = updatedLoot.map((it: any) => {
+      const curId = (it as any).item_id_suggestion || (it as any).id_suggestion;
+      return curId === itemId ? updatedItem : it;
+    });
+    this.playerCardStateService.updatePlayerCard({ ...current, loot: nextLoot } as any);
+    this.selectedItem.set(updatedItem);
   }
 
   addNewItem(itemType: 'WEAPON' | 'ARMOR' | 'MISC_ITEM'): void {

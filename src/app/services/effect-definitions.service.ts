@@ -14,7 +14,11 @@ export class EffectDefinitionsService {
       fields: [
         { key: 'dice', label: 'Damage Dice', type: 'text', required: true, placeholder: '1d6+2 or 1d4+1, 1d4+1, 1d4+1' },
         { key: 'damageType', label: 'Damage Type', type: 'select', required: false, 
-          options: ['slashing', 'piercing', 'bludgeoning', 'fire', 'cold', 'lightning', 'thunder', 'acid', 'poison', 'necrotic', 'radiant', 'psychic', 'force'] }
+          options: ['slashing', 'piercing', 'bludgeoning', 'fire', 'cold', 'lightning', 'thunder', 'acid', 'poison', 'necrotic', 'radiant', 'psychic', 'force'] },
+        // New: optional right-click toggle exposure
+        { key: 'menuToggleEnabled', label: 'Expose in right-click menu', type: 'checkbox' },
+        { key: 'menuToggleLabel', label: 'Menu label', type: 'text', placeholder: 'e.g., Sneak Attack' },
+        { key: 'menuToggleChecked', label: 'Default checked', type: 'checkbox' }
       ],
       outputTemplate: (props: EffectProperties) => {
         const typeText = props.damageType ? ` ${props.damageType}` : '';

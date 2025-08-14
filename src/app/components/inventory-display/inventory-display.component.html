@@ -71,6 +71,8 @@
   <ng-template #content let-message>
     <app-roll-options-panel
       [includeNormal]="false"
+      [toggles]="itemExtraToggles()"
+      (toggleChanged)="onItemExtraToggleChanged($event)"
       (rollEmit)="rollAttackAndDamage(this.selectedItem(), $event)">
     </app-roll-options-panel>
   </ng-template>
