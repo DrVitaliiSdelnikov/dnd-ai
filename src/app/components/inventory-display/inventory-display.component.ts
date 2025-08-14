@@ -82,7 +82,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     const it = this.selectedItem();
     const effects = it?.properties?.effects || [];
     const toggles = effects
-      .filter((e: any) => e?.type === 'DAMAGE' && e?.properties?.menuToggleEnabled)
+      .filter((e: any) => !!e?.properties?.menuToggleEnabled)
       .map((e: any) => ({ id: e.id, label: String(e?.properties?.menuToggleLabel || e?.name || ''), checked: !!e?.properties?.menuToggleChecked }))
       .filter(t => !!t.label);
     return toggles.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
@@ -329,6 +329,11 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       console.log('[Elemental Adept] Active for item:', item?.name || (item as any)?.item_id_suggestion, 'element:', eaEffect?.properties?.element);
     }
 
+    // Determine power-shot style toggle (GWM/Sharpshooter): first occurrence by order that is checked
+    const powerShotEffect = (Array.isArray(effects) ? [...effects] : [])
+      .filter((e: any) => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleEnabled && !!e?.properties?.menuToggleChecked)
+      .sort((a: any, b: any) => (Number(a?.order || 0) - Number(b?.order || 0)))[0] || null;
+
     // Track first DAMAGE for crit doubling
     let firstDamageResolved = false;
 
@@ -340,7 +345,9 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       switch (type) {
         case 'D20_ROLL': {
           // Provide the used number and a chip immediately after with the detailed rolls
-          rollResults[pid] = `${d20Roll} (${d20RollDetails})`;
+          const base = `${d20Roll} (${d20RollDetails})`;
+          // Apply -5 after the D20 if power-shot toggle is active
+          rollResults[pid] = powerShotEffect ? `${base}-5` : base;
           break;
         }
         case 'PROFICIENCY': {
@@ -453,6 +460,11 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     }
     if (extraAdditions.length > 0) {
       description += (description?.trim().endsWith('.') ? '' : '') + ` + ` + extraAdditions.join(', ');
+    }
+
+    // If power-shot toggle active, append +10dmg at end
+    if (powerShotEffect) {
+      description += `+10dmg`;
     }
 
     // Append crit annotation if relevant

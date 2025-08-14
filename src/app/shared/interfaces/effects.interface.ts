@@ -52,7 +52,10 @@ export type EffectType =
   // Racial/feat-like mechanics
   | 'HALFLING_LUCKY'
   // Critical mechanics
-  | 'IMPROVED_CRITICAL';
+  | 'IMPROVED_CRITICAL'
+  // New power-shot style feats
+  | 'GREAT_WEAPON_MASTER'
+  | 'SHARPSHOOTER';
 
 export interface ItemWithEffects {
   id_suggestion: string;

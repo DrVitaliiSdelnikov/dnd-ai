@@ -62,7 +62,7 @@ export class SpellbookDisplayComponent implements OnInit {
     const spell = this.selectedItem();
     if (!spell || !Array.isArray(spell.effects)) return [];
     const toggles = (spell.effects || [])
-      .filter(e => e?.type === 'DAMAGE' && e?.properties?.menuToggleEnabled)
+      .filter(e => !!e?.properties?.menuToggleEnabled)
       .map(e => ({ id: e.id, label: String(e?.properties?.menuToggleLabel || e?.name || ''), checked: !!e?.properties?.menuToggleChecked }))
       .filter(t => !!t.label);
     return toggles.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
@@ -212,7 +212,12 @@ export class SpellbookDisplayComponent implements OnInit {
                 const annotationPlain = adjusted.triggers > 0 ? `Halfling Lucky x${adjusted.triggers}` : '';
                 details = `Roll: ${this.formatLuckyDieDisplayForSpell(initial, adjusted)}${annotationPlain}`;
               }
-              chatValues[eff.id] = `${d20} (${details})`;
+              // Determine power-shot toggle for this spell (first by order)
+              const powerShot = (spell.effects || [])
+                .filter(e => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleEnabled && !!e?.properties?.menuToggleChecked)
+                .sort((a: any, b: any) => (Number(a?.order || 0) - Number(b?.order || 0)))[0];
+              const base = `${d20} (${details})`;
+              chatValues[eff.id] = powerShot ? `${base}-5` : base;
               if (capturedD20 === null) {
                 capturedD20 = d20;
                 isNatural20 = d20 === 20;
@@ -417,6 +422,14 @@ export class SpellbookDisplayComponent implements OnInit {
         if (additions.length > 0) {
           description += (description?.trim().endsWith('.') ? '' : '') + ` + ` + additions.join(', ');
         }
+      }
+
+      // Append +10dmg if power-shot toggle active (first by order)
+      const powerShot = (spell.effects || [])
+        .filter(e => (e?.type === 'GREAT_WEAPON_MASTER' || e?.type === 'SHARPSHOOTER') && !!e?.properties?.menuToggleEnabled && !!e?.properties?.menuToggleChecked)
+        .sort((a: any, b: any) => (Number(a?.order || 0) - Number(b?.order || 0)))[0];
+      if (powerShot) {
+        description += `+10dmg`;
       }
 
       this.actionResults[spell.id_suggestion] = description;
