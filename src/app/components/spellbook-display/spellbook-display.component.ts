@@ -68,6 +68,25 @@ export class SpellbookDisplayComponent implements OnInit {
     return toggles.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
   });
 
+  // Group spells for template rendering
+  readonly categorizedSpells = computed<{ [key: string]: Spell[] }>(() => {
+    const groups: { [key: string]: Spell[] } = {};
+    const list = this.spells() || [];
+    for (const s of list) {
+      let key: string;
+      if (s?.isPassive) {
+        key = 'Passive';
+      } else if ((s?.level ?? 0) === -1) {
+        key = 'Abilities';
+      } else {
+        key = `Level ${s?.level ?? 0}`;
+      }
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    }
+    return groups;
+  });
+
   ngOnInit(): void {
     this.spellAddOptions = [
       {
