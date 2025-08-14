@@ -125,7 +125,11 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
               "properties": {
                 // DAMAGE: { "dice": "1d8+2" | "1d4+1, 1d4+1, 1d4+1", "damageType": "slashing|fire|...",
                 //           "slotScaling": { "perSlotDice": "1d8", "separateRoll": false },
-                //           "levelScaling": [{ "level": 5, "addDice": "1d8" } | { "level": 11, "addCount": 1, "separateRoll": true }] }
+                //           "levelScaling": [
+                //             { "level": 5, "addDice": "1d8" },
+                //             { "level": 10, "addAbilityMod": "int", "applyTo": "first|each" },
+                //             { "level": 11, "addCount": 1, "separateRoll": true }
+                //           ] }
                 // HEALING: { "healAmount": "2d4+2" }
                 // ARMOR_CLASS: {
                 //   "acValue": 13,
@@ -168,7 +172,11 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
             "properties": {
               // DAMAGE: { "dice": "1d10" | "1d4+1, 1d4+1, 1d4+1", "damageType": "fire",
               //           "slotScaling": { "perSlotDice": "1d10", "separateRoll": false },
-              //           "levelScaling": [{ "level": 5, "addDice": "1d10" } | { "level": 11, "addCount": 1, "separateRoll": true }] }
+              //           "levelScaling": [
+              //             { "level": 5, "addDice": "1d10" },
+              //             { "level": 10, "addAbilityMod": "int", "applyTo": "first|each" },
+              //             { "level": 11, "addCount": 1, "separateRoll": true }
+              //           ] }
               // HEALING: { "healAmount": "2d4+2", "slotScaling": { "perSlotDice": "1d4" }, "levelScaling": [{ "level": 5, "addDice": "1d4" }] }
               // SAVE_THROW: { "dc": 13, "saveAbility": "dex" }
               // ATTACK_STAT: { "attackStat": "int" }
@@ -196,6 +204,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - Flat AC bonuses: ARMOR_CLASS with isMainArmor=false stack additively; BUFF_STAT(stat:"ac") also stacks.
 - Ability caps semantics: 0 = ignore that ability; > 0 = apply the modifier with positives clamped to the cap and negatives fully applied.
 - DAMAGE effects: you may enter multiple dice separated by commas for multiple separate hits (e.g., Magic Missile). Upcasting can either add dice into the same roll or as separate rolls using slotScaling.separateRoll=true. If a damageType is set, do not add the word "damage" in the template; the UI will append it once in chat.
+- Level scaling steps for DAMAGE also support ability bonuses: \`{ "level": N, "addAbilityMod": "str|dex|con|int|wis|cha", "applyTo": "first|each" }\`. The bonus is added after dice are rolled, is not doubled on critical hits, is ignored if the modifier is 0, and works for both spells and items. \`applyTo\` defaults to \`first\`.
 
 **WEAPON EXAMPLE (Longsword +1):**
 - item_id_suggestion: "longsword_plus_1"

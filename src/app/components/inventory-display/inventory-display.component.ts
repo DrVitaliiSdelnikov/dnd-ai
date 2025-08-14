@@ -356,50 +356,47 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           break;
         }
         case 'DAMAGE': {
-          // Roll dice for this damage effect; on crit, reroll and add again for this effect
-          const dice = eff?.properties?.dice as string;
-          if (!dice) { rollResults[pid] = ''; break; }
+          // Parse dice list and apply level scaling (items ignore slot upcasting)
+          const baseDiceInput = (eff?.properties?.dice as string) || '';
+          if (!baseDiceInput) { rollResults[pid] = ''; break; }
 
           // Respect optional menu toggle: if enabled but currently unchecked, omit this placeholder entirely
           const toggleEnabled = !!eff?.properties?.menuToggleEnabled;
           const toggleChecked = !!eff?.properties?.menuToggleChecked;
-          if (toggleEnabled && !toggleChecked) {
-            rollResults[pid] = '';
-            break;
+          if (toggleEnabled && !toggleChecked) { rollResults[pid] = ''; break; }
+
+          const levelScaling = eff?.properties?.levelScaling;
+
+          const finalDiceList = this.applyLevelScalingToDiceListForItem(
+            this.parseDiceListForItem(baseDiceInput),
+            levelScaling,
+            this.playerCardStateService.playerCard$()?.level ?? 1
+          );
+
+          // Roll each entry with optional GWF; on crit, add an extra roll of the same notation
+          const baseBreakdowns = finalDiceList.map(d => this.parseAndRollDiceWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting })) as any[];
+          const totalsPerEntry: number[] = baseBreakdowns.map(r => r.total as number);
+          if (isCritical && finalDiceList.length > 0) {
+            finalDiceList.forEach((notation, idx) => {
+              const extra = this.parseAndRollDiceWithOptions(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
+              if (!(extra as any).error) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + (extra.total as number); }
+            });
           }
 
-          // Parse basic XdY(+/-Z) using existing helper with optional GWF rerolling
-          const base = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
-          if ((base as any).error) { rollResults[pid] = ''; break; }
-          let damageTotal = (base as any).total as number;
-
-          if (isCritical) {
-            const extra = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
-            if (!(extra as any).error) {
-              const extraTotal = (extra as any).total as number;
-              damageTotal += extraTotal;
-            }
-          }
-
+          // Elemental Adept adjustment after rerolls
           const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
-
-          // Elemental Adept: treat 1s as 2s for chosen element, applied after rerolls
-          const elementalAdept = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
-          if (elementalAdept && damageType && elementalAdept?.properties?.element === damageType) {
-            // Re-roll with breakdown to count ones; then adjust by replacing each 1 with 2
-            const breakdownRoll = this.parseAndRollDiceWithBreakdown(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting });
-            if (!breakdownRoll.error) {
-              const onesCount = breakdownRoll.rolls.filter((r: number) => r === 1).length;
-              if (onesCount > 0) {
-                const delta = onesCount * 1; // each 1 becomes 2, so +1 per one
-                damageTotal = damageTotal + delta;
-                console.log('[Elemental Adept] +' + delta + ' (' + onesCount + ' die/dice adjusted) for', damageType);
-              }
-            }
+          const ea = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
+          if (ea && damageType && ea?.properties?.element === damageType) {
+            const onesFromBase = baseBreakdowns.reduce((sum: number, b: any) => sum + (b.rolls?.filter((r: number) => r === 1).length || 0), 0);
+            if (onesFromBase > 0) { if (totalsPerEntry.length > 0) totalsPerEntry[0] = (totalsPerEntry[0] || 0) + onesFromBase * 1; }
           }
 
-          // Do NOT add ability/magic bonuses here; template can include + {{attack_stat}} / + {{magic_bonus}}
-          rollResults[pid] = `${damageTotal}${damageType ? ' ' + damageType : ''}`;
+          // Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
+          const abilityBonuses = this.computeAbilityBonusPerEntryForItem(levelScaling, finalDiceList.length);
+          abilityBonuses.forEach((b, idx) => { if (b) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + b; } });
+
+          const joined = totalsPerEntry.join(', ');
+          rollResults[pid] = `${joined}${damageType ? ' ' + damageType : ''}`;
           break;
         }
         default: {
@@ -425,20 +422,33 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
       const placeholderIdsSet = new Set(placeholderIds);
       enabledExtras.forEach((eff: any) => {
         if (placeholderIdsSet.has(eff.id)) return; // already included
-        const dice = eff?.properties?.dice as string;
-        if (!dice) return;
-        const base = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
-        if ((base as any).error) return;
-        let total = (base as any).total as number;
-        if (isCritical) {
-          const extra = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
-          if (!(extra as any).error) total += (extra as any).total as number;
+        const baseDiceInput = (eff?.properties?.dice as string) || '';
+        if (!baseDiceInput) return;
+        const levelScaling = eff?.properties?.levelScaling;
+        const finalDiceList = this.applyLevelScalingToDiceListForItem(
+          this.parseDiceListForItem(baseDiceInput),
+          levelScaling,
+          this.playerCardStateService.playerCard$()?.level ?? 1
+        );
+        const baseBreakdowns = finalDiceList.map((d: string) => this.parseAndRollDiceWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting })) as any[];
+        const totals = baseBreakdowns.map(r => r.total as number);
+        if (isCritical && finalDiceList.length > 0) {
+          finalDiceList.forEach((notation, idx) => {
+            const extra = this.parseAndRollDiceWithOptions(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
+            if (!(extra as any).error) totals[idx] = (totals[idx] || 0) + (extra.total as number);
+          });
         }
+        const ea = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
+        const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+        if (ea && damageType && ea?.properties?.element === damageType) {
+          const onesFromBase = baseBreakdowns.reduce((sum: number, b: any) => sum + (b.rolls?.filter((r: number) => r === 1).length || 0), 0);
+          if (onesFromBase > 0 && totals.length > 0) totals[0] = (totals[0] || 0) + onesFromBase * 1;
+        }
+        const abilityBonuses = this.computeAbilityBonusPerEntryForItem(levelScaling, finalDiceList.length);
+        abilityBonuses.forEach((b, idx) => { if (b) { totals[idx] = (totals[idx] || 0) + b; } });
         const dmgType = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
         const label = String(eff?.properties?.menuToggleLabel || eff?.name || '');
-        if (label) {
-          extraAdditions.push(`${label}: ${total}${dmgType}`);
-        }
+        if (label) extraAdditions.push(`${label}: ${totals.join(', ')}${dmgType}`);
       });
     }
     if (extraAdditions.length > 0) {
@@ -469,6 +479,82 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     this.actionResults[(item as any).item_id_suggestion || (item as any).id_suggestion] = description;
 
     this.confirmationService.close();
+  }
+
+  private parseDiceListForItem(input: string | string[]): string[] {
+    if (Array.isArray(input)) {
+      return input.filter(s => typeof s === 'string').map(s => s.trim()).filter(Boolean);
+    }
+    if (!input || typeof input !== 'string') return [];
+    return input.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  private addDiceForItem(a: string, b: string): string {
+    const parse = (s: string) => s.trim().match(/^(\d+)[dD](\d+)(?:([+-])(\d+))?$/);
+    const pa = parse(a); const pb = parse(b);
+    if (pa && pb && pa[2] === pb[2]) {
+      const count = parseInt(pa[1], 10) + parseInt(pb[1], 10);
+      const modA = pa[3] && pa[4] ? (pa[3] === '-' ? -parseInt(pa[4], 10) : parseInt(pa[4], 10)) : 0;
+      const modB = pb[3] && pb[4] ? (pb[3] === '-' ? -parseInt(pb[4], 10) : parseInt(pb[4], 10)) : 0;
+      const mod = modA + modB;
+      return `${count}d${pa[2]}${mod !== 0 ? (mod > 0 ? '+' + mod : String(mod)) : ''}`;
+    }
+    return `${a} + ${b}`;
+  }
+
+  private applyLevelScalingToDiceListForItem(
+    baseDiceList: string[],
+    levelScaling: any,
+    characterLevel: number
+  ): string[] {
+    let result: string[] = [...baseDiceList];
+    if (!Array.isArray(levelScaling)) return result;
+    const steps = levelScaling
+      .filter((s: any) => typeof s?.level === 'number' && s.level <= characterLevel)
+      .sort((a: any, b: any) => a.level - b.level);
+    steps.forEach((step: any) => {
+      const stepDice: string | undefined = typeof step?.addDice === 'string' ? step.addDice : undefined;
+      const stepCount: number | undefined = typeof step?.addCount === 'number' ? step.addCount : undefined;
+      const stepSeparate: boolean = !!step?.separateRoll;
+      if (typeof stepCount === 'number' && stepCount > 0) {
+        const diceToAdd = stepDice || (result[0] || '').trim();
+        if (!diceToAdd) return;
+        if (stepSeparate) {
+          for (let i = 0; i < stepCount; i++) result.push(diceToAdd);
+        } else {
+          for (let i = 0; i < stepCount; i++) {
+            if (result.length === 0) result.push(diceToAdd);
+            else result[0] = this.addDiceForItem(result[0], diceToAdd);
+          }
+        }
+      }
+      if (stepDice && (typeof stepCount !== 'number')) {
+        if (stepSeparate) result.push(stepDice);
+        else {
+          if (result.length === 0) result.push(stepDice);
+          else result[0] = this.addDiceForItem(result[0], stepDice);
+        }
+      }
+    });
+    return result;
+  }
+
+  private computeAbilityBonusPerEntryForItem(levelScaling: any, entriesCount: number): number[] {
+    const bonuses: number[] = new Array(Math.max(0, entriesCount || 0)).fill(0);
+    const steps = Array.isArray(levelScaling) ? levelScaling.filter((s: any) => typeof s?.level === 'number' && s.level <= (this.playerCardStateService.playerCard$()?.level ?? 1)) : [];
+    if (steps.length === 0 || entriesCount <= 0) return bonuses;
+    const dict = this.abilityModifiers() || {};
+    for (const step of steps) {
+      const keyRaw = typeof step?.addAbilityMod === 'string' ? step.addAbilityMod : '';
+      if (!keyRaw) continue;
+      const key = String(keyRaw).toLowerCase();
+      const mod = Number(dict?.[key] ?? 0);
+      if (!mod) continue;
+      const applyTo = step?.applyTo === 'each' ? 'each' : 'first';
+      if (applyTo === 'each') { for (let i = 0; i < bonuses.length; i++) bonuses[i] += mod; }
+      else { bonuses[0] = (bonuses[0] || 0) + mod; }
+    }
+    return bonuses;
   }
 
   private parseAndRollDiceWithOptions(

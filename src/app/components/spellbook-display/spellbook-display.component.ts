@@ -312,6 +312,10 @@ export class SpellbookDisplayComponent implements OnInit {
               }
             }
 
+            // Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
+            const abilityBonuses = this.computeAbilityBonusPerEntry(levelScaling, playerLevel, finalDiceList.length);
+            abilityBonuses.forEach((b, idx) => { if (b) { rolls[idx] = (rolls[idx] || 0) + b; } });
+
             const joined = rolls.join(', ');
             const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
             chatValues[eff.id] = `${joined}${typeText}`;
@@ -403,6 +407,9 @@ export class SpellbookDisplayComponent implements OnInit {
               if (totals.length > 0) { totals[0] = (totals[0] || 0) + delta; }
             }
           }
+          // Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
+          const abilityBonuses = this.computeAbilityBonusPerEntry(levelScaling, playerLevel, finalDiceList.length);
+          abilityBonuses.forEach((b, idx) => { if (b) { totals[idx] = (totals[idx] || 0) + b; } });
           const joined = totals.join(', ');
           const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
           additions.push(`${x.label}: ${joined}${typeText}`);
@@ -773,5 +780,33 @@ export class SpellbookDisplayComponent implements OnInit {
     if (!adjusted || adjusted.triggers <= 0) return String(initial);
     if (initial === adjusted.value) return String(initial);
     return `${initial}\u2192${adjusted.value}`;
+  }
+
+  // Compute per-entry ability-mod bonuses from levelScaling steps
+  private computeAbilityBonusPerEntry(
+    levelScaling: any,
+    characterLevel: number,
+    entriesCount: number
+  ): number[] {
+    const bonuses: number[] = new Array(Math.max(0, entriesCount || 0)).fill(0);
+    const steps = Array.isArray(levelScaling)
+      ? levelScaling.filter((s: any) => typeof s?.level === 'number' && s.level <= characterLevel)
+      : [];
+    if (steps.length === 0 || entriesCount <= 0) return bonuses;
+    const mods = this.abilityModifiers?.() || {};
+    for (const step of steps) {
+      const keyRaw = typeof step?.addAbilityMod === 'string' ? step.addAbilityMod : '';
+      if (!keyRaw) continue;
+      const key = String(keyRaw).toLowerCase();
+      const mod = Number(mods?.[key] ?? 0);
+      if (!mod) continue; // ignore zero to keep chip clean
+      const applyTo = step?.applyTo === 'each' ? 'each' : 'first';
+      if (applyTo === 'each') {
+        for (let i = 0; i < bonuses.length; i++) bonuses[i] += mod;
+      } else {
+        bonuses[0] = (bonuses[0] || 0) + mod;
+      }
+    }
+    return bonuses;
   }
 }
