@@ -383,6 +383,26 @@ export class SpellbookDisplayComponent implements OnInit {
               abilityBonuses.forEach((b, idx) => { if (b) { rolls[idx] = (rolls[idx] || 0) + b; } });
             }
 
+            // Savage Attacks (Half-Orc) — for attack_roll spells if present on the spell effects, add one extra roll of the first damage dice to the first DAMAGE placeholder only on criticals
+            const hasSavageAttacks = (spell.effects || []).some(e => e?.type === 'SAVAGE_ATTACKS');
+            if (spell.castType === 'attack_roll' && hasSavageAttacks && isCritical) {
+              // Identify first DAMAGE placeholder id in template order and apply only there
+              const placeholderIdsForSpell: string[] = Array.from((spell.template || '').matchAll(/\{\{([^}]+)\}\}/g)).map(m => String(m[1]).trim());
+              const firstDamagePid = placeholderIdsForSpell.find(pid => {
+                const effById = (spell.effects || []).find(e => e.id === pid);
+                return effById?.type === 'DAMAGE';
+              });
+              if (firstDamagePid === eff.id && finalDiceList.length > 0) {
+                const firstNotation = finalDiceList[0];
+                const extra = this.rollDiceNotationWithBreakdown(firstNotation, { rerollOnOneOrTwo: hasGreatWeaponFighting });
+                // Add the single extra die to the first damage entry total only
+                if (Array.isArray(rolls) && rolls.length > 0) {
+                  rolls[0] = (rolls[0] || 0) + extra.total;
+                  console.log('[Savage Attacks][Spell]', (spell?.name || spell?.id_suggestion || ''), 'effId:', eff.id, 'crit d20:', capturedD20, 'extra roll', firstNotation, '->', extra.total);
+                }
+              }
+            }
+
             const joined = rolls.join(', ');
             const typeText = eff?.properties?.damageType ? ` ${String(eff.properties.damageType)} damage` : '';
             chatValues[eff.id] = `${joined}${typeText}`;

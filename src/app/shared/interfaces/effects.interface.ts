@@ -57,7 +57,9 @@ export type EffectType =
   | 'GREAT_WEAPON_MASTER'
   | 'SHARPSHOOTER'
   // New: Savage Attacker (system-only, toggleable per attack on spells)
-  | 'SAVAGE_ATTACKER';
+  | 'SAVAGE_ATTACKER'
+  // New: Savage Attacks (Half-Orc crit extra die)
+  | 'SAVAGE_ATTACKS';
 
 export interface ItemWithEffects {
   id_suggestion: string;

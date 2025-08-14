@@ -381,95 +381,109 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           break;
         }
         case 'DAMAGE': {
-          // Parse dice list and apply level scaling (items ignore slot upcasting)
-          const baseDiceInput = (eff?.properties?.dice as string) || '';
-          if (!baseDiceInput) { rollResults[pid] = ''; break; }
+			  // Parse dice list and apply level scaling (items ignore slot upcasting)
+			  const baseDiceInput = (eff?.properties?.dice as string) || '';
+			  if (!baseDiceInput) { rollResults[pid] = ''; break; }
 
-          // Respect optional menu toggle: if enabled but currently unchecked, omit this placeholder entirely
-          const toggleEnabled = !!eff?.properties?.menuToggleEnabled;
-          const toggleChecked = !!eff?.properties?.menuToggleChecked;
-          if (toggleEnabled && !toggleChecked) { rollResults[pid] = ''; break; }
+			  // Respect optional menu toggle: if enabled but currently unchecked, omit this placeholder entirely
+			  const toggleEnabled = !!eff?.properties?.menuToggleEnabled;
+			  const toggleChecked = !!eff?.properties?.menuToggleChecked;
+			  if (toggleEnabled && !toggleChecked) { rollResults[pid] = ''; break; }
 
-          const levelScaling = eff?.properties?.levelScaling;
+			  const levelScaling = eff?.properties?.levelScaling;
 
-          const finalDiceList = this.applyLevelScalingToDiceListForItem(
-            this.parseDiceListForItem(baseDiceInput),
-            levelScaling,
-            this.playerCardStateService.playerCard$()?.level ?? 1
-          );
+			  const finalDiceList = this.applyLevelScalingToDiceListForItem(
+				this.parseDiceListForItem(baseDiceInput),
+				levelScaling,
+				this.playerCardStateService.playerCard$()?.level ?? 1
+			  );
 
-          // Determine if Savage Attacker applies: only for the first DAMAGE placeholder in template order
-          let useSavageAttacker = false;
-          const effectsArr = effects as any[];
-          const saEffect = Array.isArray(effectsArr) ? effectsArr.find(e => e?.type === 'SAVAGE_ATTACKER') : null;
-          const saChecked = !!(saEffect && saEffect.properties && saEffect.properties.menuToggleChecked);
-          if (saEffect && saChecked) {
-            const firstDamagePlaceholderId = placeholderIds.find(ph => {
-              const effById = effectsArr.find(e => e.id === ph);
-              return effById?.type === 'DAMAGE';
-            });
-            useSavageAttacker = firstDamagePlaceholderId === pid;
-          }
+			  // Determine if Savage Attacker applies: only for the first DAMAGE placeholder in template order
+			  let useSavageAttacker = false;
+			  const effectsArr = effects as any[];
+			  const saEffect = Array.isArray(effectsArr) ? effectsArr.find(e => e?.type === 'SAVAGE_ATTACKER') : null;
+			  const saChecked = !!(saEffect && saEffect.properties && saEffect.properties.menuToggleChecked);
+			  if (saEffect && saChecked) {
+				const firstDamagePlaceholderId = placeholderIds.find(ph => {
+				  const effById = effectsArr.find(e => e.id === ph);
+				  return effById?.type === 'DAMAGE';
+				});
+				useSavageAttacker = firstDamagePlaceholderId === pid;
+			  }
 
-          // Helper to compute totals for one candidate
-          const computeTotals = (): number[] => {
-            const baseBreakdowns = finalDiceList.map(d => this.parseAndRollDiceWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting })) as any[];
-            const totalsPerEntry: number[] = baseBreakdowns.map(r => r.total as number);
-            if (isCritical && finalDiceList.length > 0) {
-              finalDiceList.forEach((notation, idx) => {
-                const extra = this.parseAndRollDiceWithOptions(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
-                if (!(extra as any).error) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + (extra.total as number); }
-              });
-            }
-            // Elemental Adept adjustment after rerolls
-            const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
-            const ea = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
-            if (ea && damageType && ea?.properties?.element === damageType) {
-              const onesFromBase = baseBreakdowns.reduce((sum: number, b: any) => sum + (b.rolls?.filter((r: number) => r === 1).length || 0), 0);
-              if (onesFromBase > 0 && totalsPerEntry.length > 0) totalsPerEntry[0] = (totalsPerEntry[0] || 0) + onesFromBase * 1;
-            }
-            // Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
-            const abilityBonuses = this.computeAbilityBonusPerEntryForItem(levelScaling, finalDiceList.length);
-            abilityBonuses.forEach((b, idx) => { if (b) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + b; } });
-            return totalsPerEntry;
-          };
+			  // Helper to compute totals for one candidate
+			  const computeTotals = (): number[] => {
+				const baseBreakdowns = finalDiceList.map(d => this.parseAndRollDiceWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting })) as any[];
+				const totalsPerEntry: number[] = baseBreakdowns.map(r => r.total as number);
+				if (isCritical && finalDiceList.length > 0) {
+				  finalDiceList.forEach((notation, idx) => {
+					const extra = this.parseAndRollDiceWithOptions(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
+					if (!(extra as any).error) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + (extra.total as number); }
+				  });
+				}
+				// Elemental Adept adjustment after rerolls
+				const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+				const ea = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
+				if (ea && damageType && ea?.properties?.element === damageType) {
+				  const onesFromBase = baseBreakdowns.reduce((sum: number, b: any) => sum + (b.rolls?.filter((r: number) => r === 1).length || 0), 0);
+				  if (onesFromBase > 0 && totalsPerEntry.length > 0) totalsPerEntry[0] = (totalsPerEntry[0] || 0) + onesFromBase * 1;
+				}
+				// Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
+				const abilityBonuses = this.computeAbilityBonusPerEntryForItem(levelScaling, finalDiceList.length);
+				abilityBonuses.forEach((b, idx) => { if (b) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + b; } });
+				return totalsPerEntry;
+			  };
 
-          let totalsPerEntry: number[];
-          if (useSavageAttacker) {
-            const candA = computeTotals();
-            const candB = computeTotals();
-            const sumA = candA.reduce((a, b) => a + b, 0);
-            const sumB = candB.reduce((a, b) => a + b, 0);
-            const used = sumB > sumA ? 'B' : 'A';
-            console.log('[Savage Attacker][Item]', (item?.name || (item as any)?.item_id_suggestion || ''), 'effectId:', pid, 'A =', candA, 'sumA =', sumA, '| B =', candB, 'sumB =', sumB, '-> used', used);
-            totalsPerEntry = sumB > sumA ? candB : candA;
-          } else {
-            // Roll each entry with optional GWF; on crit, add an extra roll of the same notation
-            const baseBreakdowns = finalDiceList.map(d => this.parseAndRollDiceWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting })) as any[];
-            totalsPerEntry = baseBreakdowns.map(r => r.total as number);
-            if (isCritical && finalDiceList.length > 0) {
-              finalDiceList.forEach((notation, idx) => {
-                const extra = this.parseAndRollDiceWithOptions(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
-                if (!(extra as any).error) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + (extra.total as number); }
-              });
-            }
-            // Elemental Adept adjustment after rerolls
-            const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
-            const ea = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
-            if (ea && damageType && ea?.properties?.element === damageType) {
-              const onesFromBase = baseBreakdowns.reduce((sum: number, b: any) => sum + (b.rolls?.filter((r: number) => r === 1).length || 0), 0);
-              if (onesFromBase > 0) { if (totalsPerEntry.length > 0) totalsPerEntry[0] = (totalsPerEntry[0] || 0) + onesFromBase * 1; }
-            }
-            // Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
-            const abilityBonuses = this.computeAbilityBonusPerEntryForItem(levelScaling, finalDiceList.length);
-            abilityBonuses.forEach((b, idx) => { if (b) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + b; } });
-          }
+			  let totalsPerEntry: number[];
+			  if (useSavageAttacker) {
+				const candA = computeTotals();
+				const candB = computeTotals();
+				const sumA = candA.reduce((a, b) => a + b, 0);
+				const sumB = candB.reduce((a, b) => a + b, 0);
+				const used = sumB > sumA ? 'B' : 'A';
+				console.log('[Savage Attacker][Item]', (item?.name || (item as any)?.item_id_suggestion || ''), 'effectId:', pid, 'A =', candA, 'sumA =', sumA, '| B =', candB, 'sumB =', sumB, '-> used', used);
+				totalsPerEntry = sumB > sumA ? candB : candA;
+			  } else {
+				// Roll each entry with optional GWF; on crit, add an extra roll of the same notation
+				const baseBreakdowns = finalDiceList.map(d => this.parseAndRollDiceWithBreakdown(d, { rerollOnOneOrTwo: hasGreatWeaponFighting })) as any[];
+				totalsPerEntry = baseBreakdowns.map(r => r.total as number);
+				if (isCritical && finalDiceList.length > 0) {
+				  finalDiceList.forEach((notation, idx) => {
+					const extra = this.parseAndRollDiceWithOptions(notation, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
+					if (!(extra as any).error) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + (extra.total as number); }
+				  });
+				}
+				// Elemental Adept adjustment after rerolls
+				const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+				const ea = Array.isArray(effects) ? effects.find(e => e?.type === 'ELEMENTAL_ADEPT') : null;
+				if (ea && damageType && ea?.properties?.element === damageType) {
+				  const onesFromBase = baseBreakdowns.reduce((sum: number, b: any) => sum + (b.rolls?.filter((r: number) => r === 1).length || 0), 0);
+				  if (onesFromBase > 0) { if (totalsPerEntry.length > 0) totalsPerEntry[0] = (totalsPerEntry[0] || 0) + onesFromBase * 1; }
+				}
+				// Ability-mod bonus via levelScaling: add after dice (not doubled on crit)
+				const abilityBonuses = this.computeAbilityBonusPerEntryForItem(levelScaling, finalDiceList.length);
+				abilityBonuses.forEach((b, idx) => { if (b) { totalsPerEntry[idx] = (totalsPerEntry[idx] || 0) + b; } });
+			  }
 
-          const joined = totalsPerEntry.join(', ');
-          const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
-          rollResults[pid] = `${joined}${damageType ? ' ' + damageType : ''}`;
-          break;
-        }
+			  // Savage Attacks (Half-Orc) — items only and only for melee weapons, on criticals add one extra die of the first damage entry to the first placeholder only
+			  const hasSavageAttacks = Array.isArray(effects) && effects.some(e => e?.type === 'SAVAGE_ATTACKS');
+			  const isMeleeWeapon = String((item as any)?.range_type || 'MELEE') === 'MELEE';
+			  const isFirstDamagePlaceholder = placeholderIds.find(ph => { const effById = (effects as any[]).find(e => e.id === ph); return effById?.type === 'DAMAGE'; }) === pid;
+			  if (hasSavageAttacks && isMeleeWeapon && isCritical && finalDiceList.length > 0 && isFirstDamagePlaceholder) {
+				// Extra roll uses the first dice notation only, added to the first entry total
+				const firstNotation = finalDiceList[0];
+				const extra = this.parseAndRollDiceWithOptions(firstNotation, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
+				if (!(extra as any).error) {
+				  totalsPerEntry[0] = (totalsPerEntry[0] || 0) + (extra.total as number);
+				  console.log('[Savage Attacks][Item]', (item?.name || (item as any)?.item_id_suggestion || ''), 'pid:', pid, 'crit d20:', d20Roll, 'extra roll', firstNotation, '->', (extra.total as number));
+				}
+			  }
+
+			  const joined = totalsPerEntry.join(', ');
+			  const damageType = eff?.properties?.damageType ? String(eff.properties.damageType) : '';
+			  rollResults[pid] = `${joined}${damageType ? ' ' + damageType : ''}`;
+			  break;
+			}
         default: {
           // Unknown or non-combat effect: leave empty so renderer drops it
           rollResults[pid] = '';

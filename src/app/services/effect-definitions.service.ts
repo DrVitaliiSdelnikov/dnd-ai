@@ -204,7 +204,16 @@ export class EffectDefinitionsService {
     // System-only: Savage Attacker (toggle per attack on attack_roll spells)
     SAVAGE_ATTACKER: {
       name: 'Savage Attacker',
-      description: 'Once per turn when you hit with a weapon, you can roll the weapon’s damage dice twice and use either result. Toggle to use on this attack. Applies to the first DAMAGE placeholder only.',
+      description: 'Once per turn when you hit with a weapon, you can roll the weapon’s damage dice twice and use either result. Toggle to use on this attack. Applies to the first DAMAGE chip only.',
+      fields: [],
+      outputTemplate: () => '',
+      isSystemEffect: true
+    },
+
+    // System-only: Savage Attacks (Half-Orc) – on a critical, roll one of the weapon's damage dice one additional time and add it to the extra damage
+    SAVAGE_ATTACKS: {
+      name: 'Savage Attacks',
+      description: 'On a critical hit, roll one of the weapon’s damage dice one additional time and add it to the critical damage. Applies to the first DAMAGE chip only.',
       fields: [],
       outputTemplate: () => '',
       isSystemEffect: true
