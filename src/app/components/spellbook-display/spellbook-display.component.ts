@@ -228,6 +228,15 @@ export class SpellbookDisplayComponent implements OnInit {
             const slotScaling = eff?.properties?.slotScaling;
             const levelScaling = eff?.properties?.levelScaling;
 
+            // If this DAMAGE effect is exposed as an optional toggle but currently unchecked,
+            // suppress its placeholder output entirely
+            const toggleEnabled = !!eff?.properties?.menuToggleEnabled;
+            const toggleChecked = !!eff?.properties?.menuToggleChecked;
+            if (toggleEnabled && !toggleChecked) {
+              chatValues[eff.id] = '';
+              break;
+            }
+
             const hasGreatWeaponFighting = (spell.effects || []).some(e => e?.type === 'GREAT_WEAPON_FIGHTING');
             if (hasGreatWeaponFighting) {
               console.log('[GWF] Active for spell:', spell?.name || spell?.id_suggestion);

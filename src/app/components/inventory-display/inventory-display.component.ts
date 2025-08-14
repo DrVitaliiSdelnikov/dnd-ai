@@ -349,6 +349,14 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
           const dice = eff?.properties?.dice as string;
           if (!dice) { rollResults[pid] = ''; break; }
 
+          // Respect optional menu toggle: if enabled but currently unchecked, omit this placeholder entirely
+          const toggleEnabled = !!eff?.properties?.menuToggleEnabled;
+          const toggleChecked = !!eff?.properties?.menuToggleChecked;
+          if (toggleEnabled && !toggleChecked) {
+            rollResults[pid] = '';
+            break;
+          }
+
           // Parse basic XdY(+/-Z) using existing helper with optional GWF rerolling
           const base = this.parseAndRollDiceWithOptions(dice, { rerollOnOneOrTwo: hasGreatWeaponFighting }) as any;
           if ((base as any).error) { rollResults[pid] = ''; break; }
