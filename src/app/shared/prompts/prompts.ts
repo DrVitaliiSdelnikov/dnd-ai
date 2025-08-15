@@ -121,7 +121,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
             {
               "id": "string", // Must match template placeholders! Examples: "d20_roll", "proficiency", "attack_stat", "weapon_damage"
               "name": "string", // Human-readable name like "Attack Stat" or "Slashing Damage"
-              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL | PROFICIENCY | ELEMENTAL_ADEPT | GREAT_WEAPON_MASTER | SHARPSHOOTER",
+              "type": "DAMAGE | HEALING | GREAT_WEAPON_FIGHTING | ARMOR_CLASS | ATTACK_STAT | MAGIC_BONUS | STATIC_TEXT | CONDITIONAL_EFFECT | D20_ROLL | PROFICIENCY | ELEMENTAL_ADEPT | GREAT_WEAPON_MASTER | SHARPSHOOTER | CHARGES",
               "properties": {
                 // DAMAGE: { "dice": "1d8+2" | "1d4+1, 1d4+1, 1d4+1", "damageType": "slashing|fire|...",
                 //           "slotScaling": { "perSlotDice": "1d8", "separateRoll": false },
@@ -145,6 +145,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
                 // STATIC_TEXT: { "text": "glows with magical light" }
                 // CONDITIONAL_EFFECT: { "condition": "on critical hit", "effect": "target catches fire" }
                 // D20_ROLL: { "dice": "1d20" }
+                // CHARGES: { "label": "Uses", "resetCondition": "long_rest", "mode": "fixed", "max": 3 }
               },
               "isSystemEffect": "boolean", // true for ARMOR_CLASS only; these don't appear in preview but affect mechanics
               "order": "number" // for ordering in display (1, 2, 3...)
@@ -168,7 +169,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
           {
             "id": "string", // Must match template placeholders
             "name": "string",
-            "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL | GREAT_WEAPON_FIGHTING | ELEMENTAL_ADEPT | GREAT_WEAPON_MASTER | SHARPSHOOTER",
+            "type": "DAMAGE | HEALING | STATIC_TEXT | CONDITIONAL_EFFECT | ATTACK_STAT | MAGIC_BONUS | PROFICIENCY | SAVE_THROW | D20_ROLL | GREAT_WEAPON_FIGHTING | ELEMENTAL_ADEPT | GREAT_WEAPON_MASTER | SHARPSHOOTER | CHARGES",
             "properties": {
               // DAMAGE: { "dice": "1d10" | "1d4+1, 1d4+1, 1d4+1", "damageType": "fire",
               //           "slotScaling": { "perSlotDice": "1d10", "separateRoll": false },
@@ -182,6 +183,7 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
               // ATTACK_STAT: { "attackStat": "int" }
               // MAGIC_BONUS: { "bonus": 1 }
               // D20_ROLL: { "dice": "1d20" }
+              // CHARGES: { "label": "Ki Points", "resetCondition": "short_rest", "mode": "linear", "baseAtLevel1": 1, "perLevel": 1 }
             },
             "isSystemEffect": "boolean", // true for none in spells; all effects render unless explicitly system-only
             "order": "number"
@@ -204,7 +206,8 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - Flat AC bonuses: ARMOR_CLASS with isMainArmor=false stack additively; BUFF_STAT(stat:"ac") also stacks.
 - Ability caps semantics: 0 = ignore that ability; > 0 = apply the modifier with positives clamped to the cap and negatives fully applied.
 - DAMAGE effects: you may enter multiple dice separated by commas for multiple separate hits (e.g., Magic Missile). Upcasting can either add dice into the same roll or as separate rolls using slotScaling.separateRoll=true. If a damageType is set, do not add the word "damage" in the template; the UI will append it once in chat.
-- Level scaling steps for DAMAGE also support ability bonuses: \`{ "level": N, "addAbilityMod": "str|dex|con|int|wis|cha", "applyTo": "first|each" }\`. The bonus is added after dice are rolled, is not doubled on critical hits, is ignored if the modifier is 0, and works for both spells and items. \`applyTo\` defaults to \`first\`.
+- Level scaling steps for DAMAGE also support ability bonuses: { "level": N, "addAbilityMod": "str|dex|con|int|wis|cha", "applyTo": "first|each" }. The bonus is added after dice are rolled, is not doubled on critical hits, is ignored if the modifier is 0, and works for both spells and items. applyTo defaults to first.
+- Charges system (items and spells): use a CHARGES effect to track limited uses and cooldown-like resources (e.g., Ki Points, Rage uses, Lay on Hands pool). Properties: label, resetCondition (short_rest|long_rest|custom), and a mode that computes the max: fixed(max), linear(baseAtLevel1 + perLevel), multiplier(multiplier × level), table(steps[]; supports "unlimited"), ability_mod(ability + min + cap), or proficiency(profMultiplier + profBonus). State is per-effect chargesUsed and is shared within the same loot entry. UI: checkboxes when max ≤ 10, small counter when > 10; "unlimited" shows as text.
 
 **WEAPON EXAMPLE (Longsword +1):**
 - item_id_suggestion: "longsword_plus_1"
@@ -245,6 +248,17 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - template: "{{name}}: {{missiles}}."
 - effects: [
   { id: "missiles", name: "Force Damage", type: "DAMAGE", properties: { dice: "1d4+1, 1d4+1, 1d4+1", damageType: "force", slotScaling: { perSlotDice: "1d4+1", separateRoll: true } }, order: 1 }
+]
+
+**ABILITY EXAMPLE (Ki Points via CHARGES):**
+- id_suggestion: "ki_feature"
+- name: "Ki"
+- type: "ABILITY"
+- level: -1
+- isPassive: true
+- template: "{{name}}"
+- effects: [
+  { id: "ki_charges", name: "Ki Charges", type: "CHARGES", properties: { label: "Ki Points", resetCondition: "short_rest", mode: "linear", baseAtLevel1: 1, perLevel: 1 }, order: 1 }
 ]
 
 **SPELL EXAMPLE (Save Throw, scaled damage):**
