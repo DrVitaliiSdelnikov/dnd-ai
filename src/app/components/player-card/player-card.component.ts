@@ -184,6 +184,63 @@ export class PlayerCardComponent implements OnInit {
     });
   }
 
+  private resetChargesForRest(card: PlayerCard, kind: 'short_rest' | 'long_rest'): PlayerCard {
+    const shouldReset = (cond: string | undefined | null) => {
+      if (kind === 'short_rest') return cond === 'short_rest';
+      return cond === 'short_rest' || cond === 'long_rest';
+    };
+
+    const resetEffects = (effects: any[]): any[] => {
+      if (!Array.isArray(effects)) return effects;
+      return effects.map(e => {
+        if (e?.type !== 'CHARGES') return e;
+        const cond = (e?.properties?.resetCondition as string) || null;
+        if (!shouldReset(cond)) return e;
+        const nextProps = { ...(e.properties || {}), chargesUsed: 0 };
+        return { ...e, properties: nextProps };
+      });
+    };
+
+    const resetItem = (it: any) => {
+      const props = it?.properties || {};
+      const nextEffects = resetEffects(props?.effects || it?.effects || []);
+      // prefer properties.effects when present in our app
+      const nextProps = { ...props, effects: nextEffects };
+      return { ...it, properties: nextProps };
+    };
+
+    const resetSpell = (s: any) => {
+      const nextEffects = resetEffects(Array.isArray(s?.effects) ? s.effects : (s?.properties?.effects || []));
+      return { ...s, effects: nextEffects };
+    };
+
+    const nextLoot = card.loot === 'SAME' ? 'SAME' : (card.loot || []).map(resetItem);
+    const nextSpells = card.spells === 'SAME' ? 'SAME' : (card.spells || []).map(resetSpell);
+
+    return {
+      ...card,
+      hp: { current: card?.hp?.maximum ?? 0, maximum: card?.hp?.maximum ?? 0 },
+      loot: nextLoot as any,
+      spells: nextSpells as any
+    };
+  }
+
+  handleShortRest(): void {
+    const current = this.playerCardStateService.playerCard$();
+    if (!current) return;
+    const updated = this.resetChargesForRest(current, 'short_rest');
+    this.playerCardStateService.updatePlayerCard(updated);
+    this.messageService.add({ severity: 'success', summary: 'Short Rest', detail: 'HP restored and short-rest resources reset.' });
+  }
+
+  handleLongRest(): void {
+    const current = this.playerCardStateService.playerCard$();
+    if (!current) return;
+    const updated = this.resetChargesForRest(current, 'long_rest');
+    this.playerCardStateService.updatePlayerCard(updated);
+    this.messageService.add({ severity: 'success', summary: 'Long Rest', detail: 'HP restored and long-rest resources reset.' });
+  }
+
   ngOnInit(): void {
     this.setInitPlayerCard();
   }
