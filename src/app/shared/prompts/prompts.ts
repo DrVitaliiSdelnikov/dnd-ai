@@ -208,7 +208,8 @@ you **MUST** return the string "SAME" for that field. Example: "loot":"SAME".
 - DAMAGE effects: you may enter multiple dice separated by commas for multiple separate hits (e.g., Magic Missile). Upcasting can either add dice into the same roll or as separate rolls using slotScaling.separateRoll=true. If a damageType is set, do not add the word "damage" in the template; the UI will append it once in chat.
 - Level scaling steps for DAMAGE also support ability bonuses: { "level": N, "addAbilityMod": "str|dex|con|int|wis|cha", "applyTo": "first|each" }. The bonus is added after dice are rolled, is not doubled on critical hits, is ignored if the modifier is 0, and works for both spells and items. applyTo defaults to first.
 - Charges system (items and spells): use a CHARGES effect to track limited uses and cooldown-like resources (e.g., Ki Points, Rage uses, Lay on Hands pool). Properties: label, resetCondition (short_rest|long_rest|custom), and a mode that computes the max: fixed(max), linear(baseAtLevel1 + perLevel), multiplier(multiplier × level), table(steps[]; supports "unlimited"), ability_mod(ability + min + cap), or proficiency(profMultiplier + profBonus). State is per-effect chargesUsed and is shared within the same loot entry. UI: checkboxes when max ≤ 10, small counter when > 10; "unlimited" shows as text.
-
+- CHARGES consumption rules (critical): When the player uses an item/spell/ability that has a CHARGES effect, update that effect's properties.chargesUsed to reflect the amount spent this turn.
+  
 **WEAPON EXAMPLE (Longsword +1):**
 - item_id_suggestion: "longsword_plus_1"
 - name: "Longsword +1" 
