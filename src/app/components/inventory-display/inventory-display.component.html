@@ -58,6 +58,29 @@
              Roll error
           </span>
         </div>
+
+        <!-- Charges rows (below action buttons) -->
+        <div *ngFor="let eff of getChargesEffects(item)" class="charges-row">
+          <div class="charges-label">
+            {{ chargesLabel(eff) }}
+            <i *ngIf="chargesInfo(eff)" class="pi pi-info-circle ml-1" [pTooltip]="chargesInfo(eff)" tooltipPosition="right"></i>
+          </div>
+          <div class="charges-control" *ngIf="chargesUiMode(item, eff) === 'checkboxes'">
+            <ng-container *ngFor="let idx of range(maxCharges(item, eff)); let i = index">
+              <p-checkbox [binary]="true"
+                          [ngModel]="i < getChargesUsed(eff)"
+                          (onChange)="onChargesCheckboxClick(item, eff, i + 1)"></p-checkbox>
+            </ng-container>
+          </div>
+          <div class="charges-control" *ngIf="chargesUiMode(item, eff) === 'counter'">
+            <button pButton class="p-button-text p-button-sm" (click)="onChargesCounterAdjust(item, eff, -1)">-</button>
+            <span class="mx-2">{{ getChargesUsed(eff) }} / {{ computeMaxCharges(item, eff) }}</span>
+            <button pButton class="p-button-text p-button-sm" (click)="onChargesCounterAdjust(item, eff, 1)">+</button>
+          </div>
+          <div class="charges-control" *ngIf="chargesUiMode(item, eff) === 'none'">
+            <span class="mx-2">Unlimited</span>
+          </div>
+        </div>
       </li>
     </ul>
   </div>

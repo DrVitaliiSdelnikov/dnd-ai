@@ -242,7 +242,7 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
     const definition = this.effectDefinitionsService.getEffectDefinition(type);
     const maxOrder = Math.max(...this.effects.map(e => e.order), 0);
     
-    return {
+    const base: Effect = {
       id: this.generateEffectId(),
       name: definition.name,
       type: type,
@@ -251,6 +251,20 @@ export class EffectEditorComponent implements OnInit, OnChanges, AfterViewInit {
       isSystemEffect: definition.isSystemEffect,
       order: maxOrder + 1
     };
+
+    // Provide sensible defaults for CHARGES effect
+    if (type === 'CHARGES') {
+      base.properties = {
+        label: 'Charges',
+        sharedAcrossStack: true,
+        resetCondition: 'long_rest',
+        mode: 'fixed',
+        max: 1,
+        uiMode: 'auto'
+      };
+    }
+
+    return base;
   }
 
   private buildEffectForm(effect: Effect): void {

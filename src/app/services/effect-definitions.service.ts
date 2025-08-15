@@ -120,7 +120,7 @@ export class EffectDefinitionsService {
       name: 'Proficiency',
       description: 'Presence means you add proficiency bonus',
       fields: [],
-      outputTemplate: () => 'PB' // Render succinct chip text; numeric value is computed elsewhere
+      outputTemplate: () => 'PB'
     },
 
     SAVE_THROW: {
@@ -215,6 +215,39 @@ export class EffectDefinitionsService {
       name: 'Savage Attacks',
       description: 'On a critical hit, roll one of the weapon’s damage dice one additional time and add it to the critical damage. Applies to the first DAMAGE chip only.',
       fields: [],
+      outputTemplate: () => '',
+      isSystemEffect: true
+    },
+
+    // Charges tracking (UI effect)
+    CHARGES: {
+      name: 'Charges',
+      description: 'Adds a charges pool that can be tracked on the character sheet. Supports fixed and level-scaling pools.',
+      fields: [
+        { key: 'label', label: 'Label', type: 'text', required: true, placeholder: 'Charges label' },
+        { key: 'infoText', label: 'Info (tooltip)', type: 'text', placeholder: 'Shown on info icon' },
+        { key: 'resetCondition', label: 'Reset On', type: 'select', options: ['short_rest','long_rest','custom'] },
+        { key: 'sharedAcrossStack', label: 'Shared within entry', type: 'checkbox' },
+        { key: 'uiMode', label: 'UI Mode', type: 'select', options: ['auto','checkboxes','counter'] },
+        // Max calculation mode and parameters
+        { key: 'mode', label: 'Max Mode', type: 'select', options: ['fixed','linear','multiplier','table','ability_mod','proficiency'] },
+        // fixed
+        { key: 'max', label: 'Max (fixed)', type: 'number' },
+        // linear
+        { key: 'baseAtLevel1', label: 'Base at level 1', type: 'number' },
+        { key: 'perLevel', label: 'Add per level', type: 'number' },
+        { key: 'cap', label: 'Cap', type: 'number' },
+        // multiplier
+        { key: 'multiplier', label: 'Multiplier × level', type: 'number' },
+        // table (stored as JSON string; editor will not validate here)
+        { key: 'steps', label: 'Step Table (JSON)', type: 'text', placeholder: '[{"level":1,"max":2},{"level":3,"max":3}]' },
+        // ability mod
+        { key: 'ability', label: 'Ability (for mod)', type: 'select', options: ['str','dex','con','int','wis','cha'] },
+        { key: 'min', label: 'Minimum (ability mode)', type: 'number' },
+        // proficiency
+        { key: 'profMultiplier', label: 'PB Multiplier', type: 'number' },
+        { key: 'profBonus', label: 'PB Bonus', type: 'number' }
+      ],
       outputTemplate: () => '',
       isSystemEffect: true
     }

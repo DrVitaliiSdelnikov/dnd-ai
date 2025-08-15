@@ -23,16 +23,18 @@ import { DropdownModule } from 'primeng/dropdown';
 import { DialogModule } from 'primeng/dialog';
 import { Effect } from '../../shared/interfaces/effects.interface';
 import { PlayerCardStateService } from '../../services/player-card-state.service';
-import { FormsModule } from '@angular/forms';
 import { SpellcastingService } from '../../services/spellcasting.service';
 import { OverlayPanel, OverlayPanelModule } from 'primeng/overlaypanel';
 import { ViewChild } from '@angular/core';
 import { RollOptionsPanelComponent, RollState, RollStateEnum, RollExtraToggle } from '../../shared/components/roll-options-panel/roll-options-panel.component';
+import { ChargesService } from '../../services/charges.service';
+import { CheckboxModule } from 'primeng/checkbox';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, FormsModule, OverlayPanelModule, RollOptionsPanelComponent],
+  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, CheckboxModule, FormsModule, OverlayPanelModule, RollOptionsPanelComponent],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']
@@ -45,6 +47,7 @@ export class SpellbookDisplayComponent implements OnInit {
   private templateRenderer = inject(TemplateRendererService);
   private playerCardStateService = inject(PlayerCardStateService);
   private spellcastingService = inject(SpellcastingService);
+  private chargesService = inject(ChargesService);
   @Output() spellCasted: EventEmitter<RollEvent> = new EventEmitter<RollEvent>();
   @Output() spellAdded = new EventEmitter<Spell>();
   spellAddOptions: MenuItem[];
@@ -841,6 +844,73 @@ export class SpellbookDisplayComponent implements OnInit {
       this.playerCardStateService.updatePlayerCard({ ...current, spells: updatedSpells } as any);
       this.selectedItem.set(updated);
     }
+  }
+
+  // ---- CHARGES helpers (spells) ----
+  getChargesEffects(spell: Spell): Effect[] {
+    const effs = (spell?.effects || []) as Effect[];
+    return effs.filter(e => e?.type === 'CHARGES');
+  }
+
+  chargesUiMode(spell: Spell, effect: Effect): 'checkboxes' | 'counter' | 'none' {
+    const max = this.computeMaxCharges(spell, effect);
+    if (max === 'unlimited') return 'none';
+    const uiMode = (effect?.properties?.uiMode as string) || 'auto';
+    const threshold = 10;
+    if (uiMode === 'checkboxes') return (max as number) > threshold ? 'counter' : 'checkboxes';
+    if (uiMode === 'counter') return 'counter';
+    return (max as number) > threshold ? 'counter' : 'checkboxes';
+  }
+
+  computeMaxCharges(spell: Spell, effect: Effect): number | 'unlimited' {
+    const level = this.playerCardStateService.playerCard$()?.level ?? 1;
+    const abilityMods = this.abilityModifiers() || {};
+    const pb = this.playerCardStateService.getProficiencyBonus(level);
+    return this.chargesService.computeMax(effect?.properties || {}, { level, abilityModifiers: abilityMods, proficiencyBonus: pb });
+  }
+
+  getChargesUsed(effect: Effect): number {
+    const used = Number(effect?.properties?.chargesUsed ?? 0);
+    return Number.isFinite(used) ? Math.max(0, Math.floor(used)) : 0;
+  }
+
+  private setChargesUsedOnSpell(spell: Spell, effectId: string, nextUsed: number): void {
+    const current = this.playerCardStateService.playerCard$();
+    if (!current) return;
+    const updatedSpell = { ...spell, effects: (spell.effects || []).map((e: any) => e.id === effectId ? ({ ...e, properties: { ...e.properties, chargesUsed: nextUsed } }) : e) } as any;
+    const curSpells = Array.isArray(current.spells) ? current.spells : [];
+    const updatedSpells = curSpells.map((s: any) => s.id_suggestion === spell.id_suggestion ? updatedSpell : s);
+    this.playerCardStateService.updatePlayerCard({ ...current, spells: updatedSpells } as any);
+  }
+
+  onChargesCheckboxClick(spell: Spell, effect: Effect, indexOneBased: number): void {
+    const max = this.computeMaxCharges(spell, effect);
+    if (max === 'unlimited') return;
+    const currentUsed = this.getChargesUsed(effect);
+    const nextUsed = indexOneBased <= currentUsed ? indexOneBased - 1 : indexOneBased;
+    const clamped = Math.max(0, Math.min(nextUsed, max as number));
+    this.setChargesUsedOnSpell(spell, effect.id, clamped);
+  }
+
+  onChargesCounterAdjust(spell: Spell, effect: Effect, delta: number): void {
+    const max = this.computeMaxCharges(spell, effect);
+    if (max === 'unlimited') return;
+    const currentUsed = this.getChargesUsed(effect);
+    const clamped = Math.max(0, Math.min(currentUsed + delta, max as number));
+    this.setChargesUsedOnSpell(spell, effect.id, clamped);
+  }
+
+  chargesLabel(effect: Effect): string { return (effect?.properties?.label as string) || 'Charges'; }
+  chargesInfo(effect: Effect): string { return (effect?.properties?.infoText as string) || ''; }
+
+  range(n: number): number[] {
+    const count = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    return Array.from({ length: count }, (_, i) => i);
+  }
+
+  maxCharges(spell: Spell, effect: Effect): number {
+    const m = this.computeMaxCharges(spell, effect);
+    return m === 'unlimited' ? 0 : (m as number);
   }
 
   private rollD20(): number {

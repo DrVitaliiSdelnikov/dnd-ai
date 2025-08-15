@@ -26,6 +26,10 @@ import { SpeedDialModule } from 'primeng/speeddial';
 import { TemplateRendererService } from '../../services/template-renderer.service';
 import { SafeHtml } from '@angular/platform-browser';
 import { NgClass } from '@angular/common';
+import { Effect } from '../../shared/interfaces/effects.interface';
+import { ChargesService } from '../../services/charges.service';
+import { CheckboxModule } from 'primeng/checkbox';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-inventory-display',
@@ -39,7 +43,9 @@ import { NgClass } from '@angular/common';
     ConfirmPopupModule,
     RollOptionsPanelComponent,
     SpeedDialModule,
-    NgClass
+    NgClass,
+    CheckboxModule,
+    FormsModule
   ],
   providers: [
     MessageService,
@@ -57,6 +63,7 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
   private messageService: MessageService = inject(MessageService);
   private playerCardStateService: PlayerCardStateService = inject(PlayerCardStateService);
   private templateRenderer = inject(TemplateRendererService);
+  private chargesService = inject(ChargesService);
 
   abilityModifiers = computed(() => {
     return this.playerCardStateService.abilityModifiers$();
@@ -819,6 +826,88 @@ export class InventoryDisplayComponent implements OnInit, OnChanges {
     });
     this.playerCardStateService.updatePlayerCard({ ...current, loot: nextLoot } as any);
     this.selectedItem.set(updatedItem);
+  }
+
+  // ---- CHARGES helpers ----
+  getChargesEffects(item: InventoryItem): Effect[] {
+    const effs = (item?.properties?.effects || []) as Effect[];
+    return effs.filter(e => e?.type === 'CHARGES');
+  }
+
+  chargesUiMode(item: InventoryItem, effect: Effect): 'checkboxes' | 'counter' | 'none' {
+    const max = this.computeMaxCharges(item, effect);
+    if (max === 'unlimited') return 'none';
+    const uiMode = (effect?.properties?.uiMode as string) || 'auto';
+    const threshold = 10;
+    if (uiMode === 'checkboxes') return max > threshold ? 'counter' : 'checkboxes';
+    if (uiMode === 'counter') return 'counter';
+    return max > threshold ? 'counter' : 'checkboxes';
+  }
+
+  computeMaxCharges(item: InventoryItem, effect: Effect): number | 'unlimited' {
+    const level = this.playerCardStateService.playerCard$()?.level ?? 1;
+    const abilityMods = this.abilityModifiers() || {};
+    const pb = this.playerCardStateService.getProficiencyBonus(level);
+    return this.chargesService.computeMax(effect?.properties || {}, { level, abilityModifiers: abilityMods, proficiencyBonus: pb });
+  }
+
+  getChargesUsed(effect: Effect): number {
+    const used = Number(effect?.properties?.chargesUsed ?? 0);
+    return Number.isFinite(used) ? Math.max(0, Math.floor(used)) : 0;
+  }
+
+  setChargesUsedOnItem(item: InventoryItem, effectId: string, nextUsed: number): void {
+    const current = this.playerCardStateService.playerCard$();
+    if (!current) return;
+    const itemId = (item as any).item_id_suggestion || (item as any).id_suggestion;
+    const updatedItem = {
+      ...item,
+      properties: {
+        ...item.properties,
+        effects: (item.properties?.effects || []).map((e: any) => e.id === effectId ? ({ ...e, properties: { ...e.properties, chargesUsed: nextUsed } }) : e)
+      }
+    } as any;
+    const updatedLoot = ((current.loot && current.loot !== 'SAME') ? current.loot : []) as any[];
+    const nextLoot = updatedLoot.map((it: any) => {
+      const curId = (it as any).item_id_suggestion || (it as any).id_suggestion;
+      return curId === itemId ? updatedItem : it;
+    });
+    this.playerCardStateService.updatePlayerCard({ ...current, loot: nextLoot } as any);
+  }
+
+  onChargesCheckboxClick(item: InventoryItem, effect: Effect, indexOneBased: number): void {
+    const max = this.computeMaxCharges(item, effect);
+    if (max === 'unlimited') return;
+    const currentUsed = this.getChargesUsed(effect);
+    const nextUsed = indexOneBased <= currentUsed ? indexOneBased - 1 : indexOneBased;
+    const clamped = Math.max(0, Math.min(nextUsed, max));
+    this.setChargesUsedOnItem(item, effect.id, clamped);
+  }
+
+  onChargesCounterAdjust(item: InventoryItem, effect: Effect, delta: number): void {
+    const max = this.computeMaxCharges(item, effect);
+    if (max === 'unlimited') return;
+    const currentUsed = this.getChargesUsed(effect);
+    const clamped = Math.max(0, Math.min(currentUsed + delta, max));
+    this.setChargesUsedOnItem(item, effect.id, clamped);
+  }
+
+  chargesLabel(effect: Effect): string {
+    return (effect?.properties?.label as string) || 'Charges';
+  }
+
+  chargesInfo(effect: Effect): string {
+    return (effect?.properties?.infoText as string) || '';
+  }
+
+  range(n: number): number[] {
+    const count = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    return Array.from({ length: count }, (_, i) => i);
+  }
+
+  maxCharges(item: InventoryItem, effect: Effect): number {
+    const m = this.computeMaxCharges(item, effect);
+    return m === 'unlimited' ? 0 : (m as number);
   }
 
   addNewItem(itemType: 'WEAPON' | 'ARMOR' | 'MISC_ITEM'): void {

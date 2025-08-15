@@ -59,7 +59,9 @@ export type EffectType =
   // New: Savage Attacker (system-only, toggleable per attack on spells)
   | 'SAVAGE_ATTACKER'
   // New: Savage Attacks (Half-Orc crit extra die)
-  | 'SAVAGE_ATTACKS';
+  | 'SAVAGE_ATTACKS'
+  // Charges tracking (system-like UI effect)
+  | 'CHARGES';
 
 export interface ItemWithEffects {
   id_suggestion: string;

@@ -47,6 +47,9 @@
     padding: 8px 5px;
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s ease-in-out;
+    flex-direction: column; /* allow charges row under actions */
+    align-items: stretch;
+    gap: 6px;
   }
 
   .item-entry:last-child {
@@ -55,6 +58,19 @@
 
   .item-entry:hover {
     background-color: #f0f0f0;
+  }
+
+  .item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .item-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .item-name {
@@ -152,6 +168,29 @@
   .tooltip-container:hover .tooltip-text {
     visibility: visible;
     opacity: 1;
+  }
+
+  /* Charges row */
+  .charges-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .charges-label {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .charges-control {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 6px;
   }
 }
 

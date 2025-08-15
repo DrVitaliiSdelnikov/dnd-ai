@@ -8,6 +8,26 @@
   gap: 0.2rem;
 }
 
+.item-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.item-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .add-item-fab {
   position: absolute;
   bottom: 0.5rem;
@@ -33,4 +53,26 @@
 .dice-text {
   color: var(--primary-color, #3f51b5);
   font-weight: 600;
+}
+
+.charges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.charges-label {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.charges-control {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
 }
