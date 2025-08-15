@@ -140,8 +140,9 @@
 
     .hp-armor-wrapper {
       display: flex;
-      gap: 5px;
-      flex-direction: column;
+      gap: 8px;
+      flex-direction: row;
+      align-items: center;
     }
 
     .bonus-oval {
@@ -170,6 +171,14 @@
     padding: 0.75rem 1rem;
     border: 1px solid #374151;
     border-radius: 6px;
+  }
+
+  .rest-buttons-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 15px;
+    margin: 8px 1rem 0 1rem;
   }
 
   .info-main {

@@ -34,26 +34,7 @@
             styleClass="p-button-sm p-button-outlined manage-btn"
             (emitRollResults)="setDiceRollResult($event)"
           />
-
-          <button
-            pButton
-            type="button"
-            class="p-button-outlined p-button-sm manage-btn"
-            [disabled]="!playerCardForm.get('level')?.getRawValue()"
-            label="Short Rest"
-            (click)="handleShortRest()">
-          </button>
-
-          <button
-            pButton
-            type="button"
-            class="p-button-outlined p-button-sm manage-btn"
-            [disabled]="!playerCardForm.get('level')?.getRawValue()"
-            label="Long Rest"
-            (click)="handleLongRest()">
-          </button>
         </div>
-
 
         <p class="char-specialization">
           @if(playerCardForm.get('race')?.getRawValue() && playerCardForm.get('class')?.getRawValue()) {
@@ -88,6 +69,26 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="rest-buttons-wrapper">
+      <button
+        pButton
+        type="button"
+        class="p-button-outlined p-button-sm manage-btn"
+        [disabled]="!playerCardForm.get('level')?.getRawValue()"
+        label="Short Rest"
+        (click)="handleShortRest()">
+      </button>
+
+      <button
+        pButton
+        type="button"
+        class="p-button-outlined p-button-sm manage-btn"
+        [disabled]="!playerCardForm.get('level')?.getRawValue()"
+        label="Long Rest"
+        (click)="handleLongRest()">
+      </button>
     </div>
 
     <ng-container *ngIf="!editMode(); else editView">
