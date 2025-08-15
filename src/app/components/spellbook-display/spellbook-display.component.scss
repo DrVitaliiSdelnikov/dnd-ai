@@ -3,11 +3,6 @@
   padding-bottom: 3rem;
 }
 
-.managing-section {
-  display: flex;
-  gap: 0.2rem;
-}
-
 .item-entry {
   display: flex;
   flex-direction: column;
@@ -15,15 +10,25 @@
   gap: 6px;
 }
 
-.item-info {
+.item-top-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  gap: 12px;
+  min-width: 0;
+}
+
+.item-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
 }
 
 .item-actions {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
 }

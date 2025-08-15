@@ -42,14 +42,12 @@
 
   .item-entry {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column; /* charges below */
+    align-items: stretch;
+    gap: 6px;
     padding: 8px 5px;
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s ease-in-out;
-    flex-direction: column; /* allow charges row under actions */
-    align-items: stretch;
-    gap: 6px;
   }
 
   .item-entry:last-child {
@@ -60,17 +58,27 @@
     background-color: #f0f0f0;
   }
 
-  .item-info {
+  .item-top-line {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between; /* keep on one line */
     width: 100%;
+    gap: 12px;
+    min-width: 0; /* allow inner flexes to shrink */
+  }
+
+  .item-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
   }
 
   .item-actions {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    flex: 0 0 auto;
   }
 
   .item-name {

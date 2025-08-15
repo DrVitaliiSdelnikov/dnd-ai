@@ -11,25 +11,25 @@
       <ul class="item-list">
         @for(spell of categorizedSpells()[categoryName]; track spell.id_suggestion) {
           <li class="item-entry">
-            <div class="item-info">
-              <span class="item-name">
-                {{ spell.name }}
-              </span>
-              <span *ngIf="spell.description">
-                <i [pTooltip]="spell.description" tooltipPosition="right" class="pi pi-info-circle"></i>
-              </span>
-            </div>
-            
-            <div class="managing-section">
-              <button
-                pButton
-                type="button"
-                icon="pi pi-pencil"
-                class="p-button-text p-button-sm edit-button"
-                (click)="openEditModal(spell)"
-                pTooltip="Edit Spell">
-              </button>
+            <div class="item-top-line">
+              <div class="item-info">
+                <span class="item-name">
+                  {{ spell.name }}
+                </span>
+                <span *ngIf="spell.description">
+                  <i [pTooltip]="spell.description" tooltipPosition="right" class="pi pi-info-circle"></i>
+                </span>
+              </div>
+              
               <div class="item-actions">
+                <button
+                  pButton
+                  type="button"
+                  icon="pi pi-pencil"
+                  class="p-button-text p-button-sm edit-button"
+                  (click)="openEditModal(spell)"
+                  pTooltip="Edit Spell">
+                </button>
                 <button
                   *ngIf="!spell.isPassive"
                   pButton
