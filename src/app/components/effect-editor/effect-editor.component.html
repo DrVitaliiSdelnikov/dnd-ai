@@ -29,7 +29,7 @@
         </div>
         <div class="field flex align-items-center" *ngIf="isSpell">
           <p-checkbox formControlName="isPassive" [binary]="true" inputId="isPassive"></p-checkbox>
-          <label for="isPassive" class="ml-2">Passive</label>
+          <label for="isPassive" class="ml-2" pTooltip="If passive, no cast UI is shown and effects are always-on">Passive</label>
         </div>
       </div>
       
@@ -169,7 +169,7 @@
 
       <!-- Dynamic Fields based on Effect Type -->
       <div *ngFor="let field of getEffectDefinition(selectedEffectType).fields" class="field">
-        <label [for]="field.key">{{ field.label }} <span *ngIf="field.required">*</span></label>
+        <label [for]="field.key" [pTooltip]="field.tooltip || ''">{{ field.label }} <span *ngIf="field.required">*</span></label>
         
         <!-- Text Input -->
         <input *ngIf="field.type === 'text'" 
@@ -193,30 +193,29 @@
                     placeholder="Select {{ field.label }}" />
         
         <!-- Checkbox -->
-        <p-checkbox *ngIf="field.type === 'checkbox'" 
-                    [inputId]="field.key" 
-                    [binary]="true" 
-                    [formControlName]="field.key"></p-checkbox>
-        <label *ngIf="field.type === 'checkbox'" class="ml-2" [for]="field.key">{{ field.label }}</label>
+        <div *ngIf="field.type === 'checkbox'" class="flex align-items-center">
+          <p-checkbox [inputId]="field.key" [binary]="true" [formControlName]="field.key"></p-checkbox>
+          <label class="ml-2" [for]="field.key" [pTooltip]="field.tooltip || ''">{{ field.label }}</label>
+        </div>
       </div>
 
       <!-- Scaling UI for DAMAGE/HEALING -->
       <div class="field" *ngIf="selectedEffectType === 'DAMAGE' || selectedEffectType === 'HEALING'">
-        <label>Slot Scaling</label>
+        <label pTooltip="Add dice when upcast above base level">Slot Scaling</label>
         <div class="p-fluid p-formgrid p-grid">
           <div class="p-field p-col-12">
             <label for="perSlotDice">Add Dice per Upcast Slot</label>
             <input pInputText id="perSlotDice" formControlName="perSlotDice" placeholder="e.g. 1d8" />
             <div class="mt-2">
               <p-checkbox inputId="separateRoll" formControlName="separateRoll" [binary]="true"></p-checkbox>
-              <label for="separateRoll" class="ml-2">Separate roll</label>
+              <label for="separateRoll" class="ml-2" pTooltip="If checked, each added die rolls separately">Separate roll</label>
             </div>
           </div>
         </div>
       </div>
 
       <div class="field" *ngIf="selectedEffectType === 'DAMAGE' || selectedEffectType === 'HEALING'">
-        <label for="levelScalingSteps">Level Scaling Steps (JSON)</label>
+        <label for="levelScalingSteps" pTooltip="JSON of level thresholds that add dice or ability bonuses">Level Scaling Steps (JSON)</label>
         <textarea pInputTextarea id="levelScalingSteps" formControlName="levelScalingSteps" rows="4" placeholder='e.g. [{"level":5,"addDice":"1d8"},{"level":11,"addDice":"1d8"}]'></textarea>
       </div>
 

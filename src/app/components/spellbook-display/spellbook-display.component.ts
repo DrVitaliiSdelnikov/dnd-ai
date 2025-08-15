@@ -7,7 +7,7 @@ import {
   InputSignal,
   computed, inject, WritableSignal, signal
 } from '@angular/core';
-import { NgIf } from '@angular/common';
+import { NgIf, NgForOf } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
@@ -34,7 +34,7 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-spellbook-display',
   standalone: true,
-  imports: [NgIf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, CheckboxModule, FormsModule, OverlayPanelModule, RollOptionsPanelComponent],
+  imports: [NgIf, NgForOf, ButtonDirective, TooltipModule, ConfirmPopupModule, SpeedDialModule, DropdownModule, DialogModule, CheckboxModule, FormsModule, OverlayPanelModule, RollOptionsPanelComponent],
   providers: [ConfirmationService, DialogService],
   templateUrl: './spellbook-display.component.html',
   styleUrls: ['./spellbook-display.component.scss']

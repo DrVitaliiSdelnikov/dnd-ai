@@ -27,6 +27,7 @@ export interface EffectField {
   options?: string[];
   required?: boolean;
   placeholder?: string;
+  tooltip?: string;
 }
 
 export type EffectType = 
